@@ -17,5 +17,8 @@ class Boundary(unittest.TestCase):
         self.assertFalse(t["rollback"]["tested"])
         self.assertEqual(t["target"]["image_digest"],"unverified")
         self.assertTrue(t["gates"]["manual_cutover_required"])
+        self.assertEqual(t["submodule"]["proposed_path"],"apps/openclaw")
+        self.assertTrue(t["submodule"]["current_path_occupied"])
+        self.assertFalse(t["submodule"]["install"])
 
 if __name__=="__main__":unittest.main()

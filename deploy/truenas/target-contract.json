@@ -36,8 +36,12 @@
   },
   "submodule": {
     "proposed_superproject": "AlbanAndrieu/nabla-compose",
-    "proposed_path": "apps/openclaw/nabla-openclaw",
-    "install": false
+    "proposed_path": "apps/openclaw",
+    "install": false,
+    "current_path_occupied": true,
+    "current_tracked_file_count": 18,
+    "required_previous_move": "apps/openclaw-sandbox",
+    "source_policy_migration_required": true
   },
   "rollback": {
     "method": "stop_new_gateway_reenable_existing_workstation_if_validated",

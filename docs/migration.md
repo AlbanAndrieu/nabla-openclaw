@@ -46,20 +46,57 @@ dépôt et leurs références internes actualisées.
 8. **Rollback** : vérifier que le Gateway Workstation peut reprendre
    sans exécutions simultanées des mêmes crons.
 
-## Submodule futur
+## Submodule futur : chemin canonique `apps/openclaw`
 
-Ne pas créer de submodule tant que le dépôt n'a pas de tag de référence
-testé et un manifeste composable sans secrets. Le superprojet
-`nabla-compose` contient déjà `apps/openclaw/compose.yml` (un
-sandbox), donc **ne pas** faire `git submodule add` sur
-`apps/openclaw`. Proposition après validation :
+**Décision du 30 octobre :** le sous-module de
+`AlbanAndrieu/nabla-openclaw` sera directement `apps/openclaw`,
+sans niveau `nabla-openclaw` intermédiaire.
+
+**Bloquant actuel :** `nabla-compose` suit déjà 18 fichiers sous
+`apps/openclaw/`, dont quatre fichiers de sandbox
+(`compose.yml`, `Dockerfile`, `catalog-info.yaml`,
+`test-docker.sh`) et les politiques Workstation. Git ne peut
+pas remplacer ce répertoire non vide par un gitlink.
+
+Séquence préparatoire — **ne pas exécuter avant la validation des
+consommateurs du sandbox et des imports Workstation** :
+
+1. Conserver le sandbox sous un nom distinct,
+   `apps/openclaw-sandbox/`, avec un changement de chemins
+   contrôlé. Vérifier les références du catalogue, les scripts
+   TrueNAS, les volumes, la composition et le nom de l'application
+   avant de déplacer les quatre fichiers. Le sandbox historique
+   monte des chemins Workstation ; il ne constitue pas le Gateway
+   TrueNAS cible.
+2. Migrer les politiques et références
+   `apps/openclaw/workstation/` dans `nabla-openclaw/policies/`
+   en gardant les wrappers Compose tant qu'ils sont utilisés.
+   Corriger les scripts et leurs tests avant suppression du
+   répertoire Workstation historique.
+3. Exiger un `apps/openclaw` vide et absent de l'index Git
+   avant l'ajout du submodule ; confirmer par
+   `git ls-files -- apps/openclaw`.
+4. Ajouter **après validation**, dans une PR Compose séparée,
+   le submodule et le pin d'un commit testé de ce dépôt :
 
 ```bash
-# À NE PAS EXÉCUTER AVANT APPROBATION DU CUTOVER
+# FUTUR / MANUEL : seulement après libération du chemin et revue.
+cd ~/w/nabla-compose
+test -z "$(git ls-files -- apps/openclaw)" || {
+  echo 'STOP: tracked files still occupy apps/openclaw'
+  exit 2
+}
 git submodule add \
   git@github.com:AlbanAndrieu/nabla-openclaw.git \
-  apps/openclaw/nabla-openclaw
+  apps/openclaw
+git add .gitmodules apps/openclaw
+git diff --cached --submodule=log
+# Commit après revue, jamais automatisé.
 ```
+
+Le `compose.yml` Gateway TrueNAS doit provenir de ce dépôt,
+pas du sandbox déplacé. Ne pas confondre ajout de gitlink et
+déploiement effectif du Gateway.
 
 Un gitlink **pinne un commit**. Un `git pull` de Compose ne
 déploie pas le Gateway ; un wrapper TrueNAS doit vérifier le pin,

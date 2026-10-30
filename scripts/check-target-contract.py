@@ -10,6 +10,11 @@ def validate():
     cron=json.loads((ROOT/"policies/cron/daily-tech-news-digest.policy.json").read_text())
     if target["target"]["host"]!="truenas" or target["source"]["host"]!="workstation":
         return False
+    sub=target["submodule"]
+    if (sub.get("proposed_path")!="apps/openclaw"
+            or sub.get("current_path_occupied") is not True
+            or sub.get("install") is not False):
+        return False
     if target["target"]["status"]!="not_deployed" or target["target"]["dataset"]!="unapproved":
         return False
     if target["gates"]["no_auto_heartbeat"] is not True or target["gates"]["no_auto_cron"] is not True:
