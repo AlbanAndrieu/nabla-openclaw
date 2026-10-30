@@ -8,6 +8,14 @@ spec=importlib.util.spec_from_file_location("target",path)
 mod=importlib.util.module_from_spec(spec);spec.loader.exec_module(mod)
 
 class Boundary(unittest.TestCase):
+    def test_heartbeat_candidate_is_bounded_and_inactive(self):
+        candidate = (ROOT / "policies/HEARTBEAT-RESTORED.candidate.md").read_text()
+        self.assertIn("3 anomalies prioritaires", candidate)
+        self.assertIn("UNKNOWN / NOT_VERIFIED", candidate)
+        self.assertIn("HEARTBEAT_OK", candidate)
+        self.assertNotIn("\ntasks:\n", candidate)
+        self.assertIn("CANDIDAT INACTIF", candidate)
+
     def test_target_is_not_source(self):
         self.assertTrue(mod.validate())
     def test_no_executable_true_nas_compose_yet(self):
