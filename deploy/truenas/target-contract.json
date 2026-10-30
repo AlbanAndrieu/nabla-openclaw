@@ -1,0 +1,46 @@
+{
+  "schema": "nabla-openclaw-truenas-cutover/v1",
+  "source": {
+    "host": "workstation",
+    "state": "active_keep_running_until_cutover",
+    "gateway_unit": "openclaw-gateway.service",
+    "openclaw_version_observed": "2026.10.7"
+  },
+  "target": {
+    "host": "truenas",
+    "deployment": "custom_app_docker",
+    "status": "not_deployed",
+    "image_digest": "unverified",
+    "uid_gid": "unverified",
+    "dataset": "unapproved",
+    "persisted_state": "must_restore_from_encrypted_backup",
+    "network_policy": "default_deny_to_be_verified",
+    "gateway_bind": "loopback_or_private_only"
+  },
+  "dependencies": {
+    "litellm_local": "truenas",
+    "models_gpt_4_1": "absent_unverified_for_cutover",
+    "models_gpt_4_1_mini": "absent_unverified_for_cutover",
+    "scoped_keys": "verify_per_agent",
+    "quota": "verify_before_activation",
+    "dns_tls": "verify",
+    "sentry": "optional"
+  },
+  "gates": {
+    "no_model_inference_during_preflight": true,
+    "manual_cutover_required": true,
+    "rollback_workstation_ready": true,
+    "backups_off_git": true,
+    "no_auto_heartbeat": true,
+    "no_auto_cron": true
+  },
+  "submodule": {
+    "proposed_superproject": "AlbanAndrieu/nabla-compose",
+    "proposed_path": "apps/openclaw/nabla-openclaw",
+    "install": false
+  },
+  "rollback": {
+    "method": "stop_new_gateway_reenable_existing_workstation_if_validated",
+    "tested": false
+  }
+}
