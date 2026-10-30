@@ -19,8 +19,9 @@ TrueNAS SCALE).
 Les fichiers publics de `policies/` proviennent de la PR Compose #295
 puis de l'import complet du 30 octobre (voir *Provenance*). Les
 candidats (`*.candidate.md`, `*.policy.json`) ne sont pas activés ;
-`HEARTBEAT.md`, `MORNING_BRIEFING.md` et le message digest sont ceux
-**déjà projetés** sur la Workstation, à l'octet près.
+`MORNING_BRIEFING.md` et le message digest sont identiques à ceux de
+`nabla-compose@4aae658` ; `HEARTBEAT.md` n'en diffère que par le chemin
+cité dans son commentaire (toujours comment-only).
 
 ## Workstation : bascule de la source de configuration
 
@@ -40,10 +41,12 @@ Bascule, **sur la Workstation uniquement** :
 
 1. `git clone git@github.com:AlbanAndrieu/nabla-openclaw.git ~/w/nabla-openclaw`
    (ou `git pull --ff-only`), puis `just test`.
-2. `just workstation-plan` : attendu `matching` pour `HEARTBEAT.md` et
-   `MORNING_BRIEFING.md`, et le même `runtime_message_sha256` qu'avec
-   `just openclaw-digest-gitops-plan` dans `nabla-compose`. Les fichiers
-   étant identiques, la bascule ne change **rien** au runtime.
+2. `just workstation-plan`, puis comparer avec les contrôles équivalents
+   de `nabla-compose` (`openclaw-heartbeat-gitops.py --check`,
+   `--briefing-check`, `just openclaw-digest-gitops-plan`). Un écart
+   présent des deux côtés est **antérieur** à la bascule : constaté le
+   30 octobre, la Workstation exécutait encore les versions du
+   26 octobre (`nabla-compose@b96a7c3`, `apps/openclaw/workstation/`).
 3. Si le drop-in `30-nabla-runtime-alignment.conf` est installé
    (`systemctl --user cat openclaw-gateway.service`), le remplacer par
    `deploy/workstation/systemd/30-nabla-runtime-alignment.conf.example`
@@ -55,10 +58,6 @@ Bascule, **sur la Workstation uniquement** :
    `just workstation-apply-*` et `just workstation-check`. Ne plus
    modifier les copies de `nabla-compose/ops/openclaw-workstation/` :
    elles sont gelées jusqu'à leur retrait par une PR Compose.
-
-Le commentaire interne de `policies/HEARTBEAT.md` cite encore
-`ops/openclaw-workstation/MORNING_BRIEFING.md` : conservé pour garantir
-la parité octet de la bascule, à corriger dans un changement séparé.
 
 Rollback : les wrappers `just openclaw-*` de `nabla-compose` restent
 utilisables tant que ses copies n'ont pas divergé ; restaurer un fichier
@@ -72,7 +71,7 @@ Source : `AlbanAndrieu/nabla-compose@4aae6582aee013437f9b67a8c70f2993171033bf`.
 | --- | --- | --- |
 | `apps/openclaw/{Dockerfile,compose.yml,test-docker.sh}` | racine | aucune |
 | `apps/openclaw/catalog-info.yaml` | racine | `source-location`, `project-slug` → nabla-openclaw |
-| `ops/openclaw-workstation/{HEARTBEAT,MORNING_BRIEFING,HEARTBEAT-SCRATCH.template}.md` | `policies/` | aucune |
+| `ops/openclaw-workstation/{HEARTBEAT,MORNING_BRIEFING,HEARTBEAT-SCRATCH.template}.md` | `policies/` | aucune, sauf le chemin cité dans le commentaire de `HEARTBEAT.md` |
 | `ops/openclaw-workstation/runtime-contract.json` | `deploy/workstation/` | aucune |
 | `ops/openclaw-workstation/systemd/*` | `deploy/workstation/systemd/` | drop-in repointé vers `%h/w/nabla-openclaw` ; unités rate-limit inchangées (script resté dans nabla-compose) |
 | `ops/openclaw-workstation/{BACKUP,NFS-BACKUP}.md` | `docs/workstation/` | note de provenance, chemins Git mis à jour |
