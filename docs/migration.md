@@ -1,5 +1,7 @@
 # Plan — de OpenClaw Workstation vers TrueNAS
 
+> **Consolidation du 30/10/2026 :** le code de la PR Compose #295 et la PR #1 de ce dépôt sont fusionnés. Le chemin Compose `apps/openclaw/` est encore occupé par **4 fichiers sandbox** ; 14 artefacts Workstation ont été relocalisés dans `ops/openclaw-workstation/`. Cet ancien inventaire de 18 fichiers décrit l'état **avant** le premier transfert. Voir [la roadmap active](roadmap.md).
+
 La cible est désormais **TrueNAS**, pas ansible-workstation. Cette
 distinction évite de confondre la source opérationnelle (`systemd
 --user` Workstation) avec la destination (`Docker Custom App`
@@ -52,10 +54,10 @@ dépôt et leurs références internes actualisées.
 `AlbanAndrieu/nabla-openclaw` sera directement `apps/openclaw`,
 sans niveau `nabla-openclaw` intermédiaire.
 
-**Bloquant actuel :** `nabla-compose` suit déjà 18 fichiers sous
-`apps/openclaw/`, dont quatre fichiers de sandbox
+**Bloquant actuel :** `nabla-compose` suit encore 4 fichiers sandbox sous
+`apps/openclaw/`, tous des fichiers de sandbox
 (`compose.yml`, `Dockerfile`, `catalog-info.yaml`,
-`test-docker.sh`) et les politiques Workstation. Git ne peut
+`test-docker.sh`) ; les 14 politiques Workstation ont été relocalisées dans `ops/openclaw-workstation/`. Git ne peut
 pas remplacer ce répertoire non vide par un gitlink.
 
 Séquence préparatoire — **ne pas exécuter avant la validation des

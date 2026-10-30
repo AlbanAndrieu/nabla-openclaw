@@ -39,7 +39,7 @@
     "proposed_path": "apps/openclaw",
     "install": false,
     "current_path_occupied": true,
-    "current_tracked_file_count": 18,
+    "current_tracked_file_count": 4,
     "required_previous_move": "apps/openclaw-sandbox",
     "source_policy_migration_required": true
   },
