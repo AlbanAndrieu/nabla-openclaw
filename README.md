@@ -9,7 +9,8 @@ d'automations, heartbeat, tests et runbooks).
 - **Actuel** : Gateway OpenClaw sur la Workstation, fonctionnement conservé.
 - **Cible** : application Docker/TrueNAS SCALE, déployée par
   `nabla-compose` via un futur **submodule** au chemin
-  `apps/openclaw/nabla-openclaw` (ou chemin validé au cutover).
+  `apps/openclaw` une fois l'ancien sandbox déplacé dans
+  `apps/openclaw-sandbox` et les politiques migrées.
 - `ansible-workstation` gère l'OS de développement et l'audit local, et
   **ne déploie pas le Gateway cible**.
 - `nabla-compose` garde les dépendances réseau, volumes, NFS,
