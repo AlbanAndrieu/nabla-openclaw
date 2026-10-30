@@ -80,6 +80,13 @@ Source : `AlbanAndrieu/nabla-compose@4aae6582aee013437f9b67a8c70f2993171033bf`.
 
 Les 18 fichiers historiques de `apps/openclaw/` sont donc tous présents ici.
 
+Parité revérifiée le 30 octobre, fichier par fichier, contre
+`nabla-compose@407590b` (#300) : `apps/openclaw/` (4 fichiers),
+`ops/openclaw-workstation/` (14 fichiers) et les 6 scripts portés ne
+diffèrent d'ici que par les écarts du tableau ci-dessus, plus les champs
+`source`/`message_source` et `migration_target` des `*.policy.json`
+issus de la PR #295.
+
 ## Gates de migration
 
 1. **Inventaire** de l'instance Workstation : version CLI/Gateway,
