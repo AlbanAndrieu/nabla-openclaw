@@ -29,7 +29,7 @@ aucune mutation des agents, ni appel LLM pendant la préparation.
 ## Stratégie
 
 1. Importer par lots des fichiers **publics et expurgés** depuis la
-   PR Compose #295, en conservant les tests et les chemins de provenance.
+   PR Compose #295 (fusionnée), en conservant les tests et les chemins de provenance.
 2. Définir un contrat `compose.yml` TrueNAS cible sans secrets ni
    chemins Workstation ; vérifier volumes, UID/GID, résolveur, sorties
    réseau et rollback.
@@ -44,4 +44,4 @@ aucune mutation des agents, ni appel LLM pendant la préparation.
 **Compatibilité :** les wrappers `just openclaw-*` dans Compose ne
 seront retirés qu'après parité des contrôles et document de rollback.
 
-Voir [plan de migration](docs/migration.md).
+Voir [roadmap priorisée](docs/roadmap.md) et [plan de migration](docs/migration.md).
