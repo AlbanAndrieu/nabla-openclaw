@@ -40,7 +40,8 @@
     "install": false,
     "current_path_occupied": true,
     "current_tracked_file_count": 4,
-    "required_previous_move": "apps/openclaw-sandbox",
+    "required_previous_move": "none_sandbox_imported_at_repo_root",
+    "truenas_checkout_requires_submodule_init": true,
     "source_policy_migration_required": true
   },
   "rollback": {
