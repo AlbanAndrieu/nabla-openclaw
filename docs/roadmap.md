@@ -1,6 +1,6 @@
 # Roadmap prioritaire — OpenClaw vers TrueNAS (30 octobre 2026)
 
-> **Autorité :** `nabla-openclaw` détient le Gateway cible, ses politiques non secrètes, son heartbeat et les automations. `nabla-compose` garde LiteLLM/TrueNAS, datasets, NFS, réseau, secrets runtime et l'intégration du futur submodule. `ansible-workstation` audite l'ancien Gateway Workstation sans le redéployer. La migration est **préparée, non appliquée**.
+> **Autorité :** `nabla-openclaw` détient le Gateway cible, ses politiques non secrètes, son heartbeat et les automations, ainsi que la configuration déclarative du Gateway **Workstation** actuel (`just workstation-*`). `nabla-compose` garde LiteLLM/TrueNAS, datasets, NFS, réseau, secrets runtime et l'intégration du futur submodule. `ansible-workstation` audite l'ancien Gateway Workstation sans le redéployer. La migration est **préparée, non appliquée**.
 
 ## État constaté sur GitHub
 
@@ -12,7 +12,7 @@
 
 | Ordre | Action | Gate de fermeture | Statut |
 | --- | --- | --- | --- |
-| 1 | Importer depuis Compose **par lots** les politiques, diagnostics génériques, scripts de cron/heartbeat et tests pertinents ; séparer strictement les sondes serveur | Parité des exit codes/UNKNOWN, redaction, CLI/versions, `just test` ; anciens wrappers conservés | **Partiel** : politiques initiales importées |
+| 1 | Importer depuis Compose **par lots** les politiques, diagnostics génériques, scripts de cron/heartbeat et tests pertinents ; séparer strictement les sondes serveur | Parité des exit codes/UNKNOWN, redaction, CLI/versions, `just test` ; anciens wrappers conservés | **Partiel** : 18 fichiers historiques `apps/openclaw` et outillage GitOps Workstation importés ; autres diagnostics encore dans Compose |
 | 2 | Attribuer les 429 (budget, RPM/TPM, upstream) et vérifier les deux LiteLLM ; corriger la provenance des clés scoped | États et coûts par agent vérifiés, aucune master key client ni génération répétée | **Runtime non attesté** |
 | 3 | Aligner la politique de heartbeat restauré avec l'interface native OpenClaw effective | `plan → backup privé → apply manuel → verify → rollback`, pas de duplication ni activation automatique des 14 tâches | **Candidat inactif** |
 | 4 | Attester le proxy LiteLLM **local TrueNAS** : modèle, alias, quotas, DB PostgreSQL, deux clés main/cron séparées | Tests transport, /v1/models authentifié et budgets ; pas d'inférence avant autorisation | **Bloquant** |
@@ -22,7 +22,7 @@
 
 | Ordre | Action | Gate de fermeture |
 | --- | --- | --- |
-| 6 | Déplacer dans Compose les 4 fichiers sandbox vers `apps/openclaw-sandbox/`, avec audit des consommateurs | Références et catalogue mis à jour ; aucun redéploiement implicite ; `git ls-files -- apps/openclaw` vide |
+| 6 | Retirer de l'index Compose les 4 fichiers sandbox, déjà importés à la racine de ce dépôt (chemins `apps/openclaw/*` conservés : plus de déplacement vers `apps/openclaw-sandbox/`) | Parité octet vérifiée (hors source de `catalog-info.yaml`) ; checkout TrueNAS avec `git submodule update --init apps/openclaw` ; aucun redéploiement implicite ; `git ls-files -- apps/openclaw` vide avant gitlink |
 | 7 | Ajouter le submodule piné `nabla-openclaw` **directement** à `nabla-compose/apps/openclaw` | SHA déterministe testé ; `git submodule status` vérifié ; aucune dépendance runtime à `~/.openclaw` |
 | 8 | Déployer un Gateway TrueNAS parallèle **sans automations/heartbeat/connecteurs actifs** | Readiness privé, persistance/permissions, audit réseau, aucune double exécution |
 | 9 | Basculer manuellement **cron**, puis **main** et le heartbeat léger, un à un | Une instance exécute chaque cron ; coût/observabilité, smoke autorisé, rollback Workstation testé |
@@ -34,6 +34,9 @@
 # Sur le dépôt nabla-openclaw
 just test
 just plan
+
+# Sur la Workstation dans nabla-openclaw (config du Gateway actuel)
+just workstation-plan
 
 # Sur la Workstation dans nabla-compose actualisé
 just openclaw-migration-evidence-tests

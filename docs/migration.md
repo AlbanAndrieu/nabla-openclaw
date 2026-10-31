@@ -1,7 +1,5 @@
 # Plan — de OpenClaw Workstation vers TrueNAS
 
-> **Consolidation du 30/10/2026 :** le code de la PR Compose #295 et la PR #1 de ce dépôt sont fusionnés. Le chemin Compose `apps/openclaw/` est encore occupé par **4 fichiers sandbox** ; 14 artefacts Workstation ont été relocalisés dans `ops/openclaw-workstation/`. Cet ancien inventaire de 18 fichiers décrit l'état **avant** le premier transfert. Voir [la roadmap active](roadmap.md).
-
 La cible est désormais **TrueNAS**, pas ansible-workstation. Cette
 distinction évite de confondre la source opérationnelle (`systemd
 --user` Workstation) avec la destination (`Docker Custom App`
@@ -11,15 +9,83 @@ TrueNAS SCALE).
 
 | Environnement | Référentiel |
 | --- | --- |
-| Gateway cible, conteneur, politiques publiques, heartbeat et automations | **nabla-openclaw** |
+| Gateway cible, conteneur/sandbox, politiques publiques, heartbeat et automations | **nabla-openclaw** |
+| Configuration déclarative du Gateway **Workstation** actuel (heartbeat, briefing, message digest, pin runtime, gate systemd) | **nabla-openclaw** |
 | OS Ubuntu, `mise`/Node, audits du Gateway source, outils de développement | ansible-workstation |
+| Diagnostics Workstation (`scripts/workstation/*` non importés), wrappers `just openclaw-*` | nabla-compose (transitoire) |
 | Volumes ZFS, réseau, secrets runtime, LiteLLM local et catalogue TrueNAS | nabla-compose |
 | Profil shell et configuration interactive Workstation | dotfiles |
 
-Les copies des fichiers publics dans `policies/` proviennent de la
-PR Compose #295. Elles ne sont pas activées. Les chemins
-`apps/openclaw/workstation/*` ont été *relocalisés* dans ce
-dépôt et leurs références internes actualisées.
+Les fichiers publics de `policies/` proviennent de la PR Compose #295
+puis de l'import complet du 30 octobre (voir *Provenance*). Les
+candidats (`*.candidate.md`, `*.policy.json`) ne sont pas activés ;
+`MORNING_BRIEFING.md` et le message digest sont identiques à ceux de
+`nabla-compose@4aae658` ; `HEARTBEAT.md` n'en diffère que par le chemin
+cité dans son commentaire (toujours comment-only).
+
+## Workstation : bascule de la source de configuration
+
+Depuis le 30 octobre, le Gateway Workstation est piloté par **ce dépôt**
+(`~/w/nabla-openclaw`) et non plus par `nabla-compose/ops/openclaw-workstation/`.
+Les scripts GitOps sont importés avec leur logique de sûreté inchangée
+(hash attendu, sauvegarde privée `0600`, refus des symlinks, remplacement
+atomique, job existant uniquement, aucune inférence) ; seuls leurs chemins
+sources changent. Le pin runtime est lu uniquement dans
+`deploy/workstation/runtime-contract.json` (pas de `mise.toml` dupliqué).
+
+Les sauvegardes restent aux mêmes emplacements :
+`~/.openclaw/backups/heartbeat-gitops/` et
+`~/.local/state/nabla-compose/openclaw/digest-gitops/`.
+
+Bascule, **sur la Workstation uniquement** :
+
+1. `git clone git@github.com:AlbanAndrieu/nabla-openclaw.git ~/w/nabla-openclaw`
+   (ou `git pull --ff-only`), puis `just test`.
+2. `just workstation-plan`, puis comparer avec les contrôles équivalents
+   de `nabla-compose` (`openclaw-heartbeat-gitops.py --check`,
+   `--briefing-check`, `just openclaw-digest-gitops-plan`). Un écart
+   présent des deux côtés est **antérieur** à la bascule : constaté le
+   30 octobre, la Workstation exécutait encore les versions du
+   26 octobre (`nabla-compose@b96a7c3`, `apps/openclaw/workstation/`).
+3. Si le drop-in `30-nabla-runtime-alignment.conf` est installé
+   (`systemctl --user cat openclaw-gateway.service`), le remplacer par
+   `deploy/workstation/systemd/30-nabla-runtime-alignment.conf.example`
+   (chemin `%h/w/nabla-openclaw`), puis `systemctl --user daemon-reload`.
+   **Ne pas redémarrer** le Gateway ; lancer d'abord
+   `python3 scripts/workstation/check-openclaw-runtime-alignment.py`
+   et n'installer le drop-in que sur `"alignment": "PASS"`.
+4. Ensuite, toute modification passe par une PR ici, puis
+   `just workstation-apply-*` et `just workstation-check`. Ne plus
+   modifier les copies de `nabla-compose/ops/openclaw-workstation/` :
+   elles sont gelées jusqu'à leur retrait par une PR Compose.
+
+Rollback : les wrappers `just openclaw-*` de `nabla-compose` restent
+utilisables tant que ses copies n'ont pas divergé ; restaurer un fichier
+workspace depuis la sauvegarde `0600`, et le job digest via la Control UI.
+
+## Provenance de l'import du 30 octobre
+
+Source : `AlbanAndrieu/nabla-compose@4aae6582aee013437f9b67a8c70f2993171033bf`.
+
+| Source `nabla-compose` | Ici | Modification |
+| --- | --- | --- |
+| `apps/openclaw/{Dockerfile,compose.yml,test-docker.sh}` | racine | aucune |
+| `apps/openclaw/catalog-info.yaml` | racine | `source-location`, `project-slug` → nabla-openclaw |
+| `ops/openclaw-workstation/{HEARTBEAT,MORNING_BRIEFING,HEARTBEAT-SCRATCH.template}.md` | `policies/` | aucune, sauf le chemin cité dans le commentaire de `HEARTBEAT.md` |
+| `ops/openclaw-workstation/runtime-contract.json` | `deploy/workstation/` | aucune |
+| `ops/openclaw-workstation/systemd/*` | `deploy/workstation/systemd/` | drop-in repointé vers `%h/w/nabla-openclaw` ; unités rate-limit inchangées (script resté dans nabla-compose) |
+| `ops/openclaw-workstation/{BACKUP,NFS-BACKUP}.md` | `docs/workstation/` | note de provenance, chemins Git mis à jour |
+| `scripts/workstation/{openclaw-heartbeat-gitops,reconcile-openclaw-digest-cron,diagnose-openclaw-digest-top,openclaw-host-context}.py` | `scripts/workstation/` | chemins sources uniquement |
+| `scripts/workstation/{openclaw_runtime_paths,check-openclaw-runtime-alignment}.py` | `scripts/workstation/` | pin lu dans le seul contrat runtime |
+
+Les 18 fichiers historiques de `apps/openclaw/` sont donc tous présents ici.
+
+Parité revérifiée le 30 octobre, fichier par fichier, contre
+`nabla-compose@407590b` (#300) : `apps/openclaw/` (4 fichiers),
+`ops/openclaw-workstation/` (14 fichiers) et les 6 scripts portés ne
+diffèrent d'ici que par les écarts du tableau ci-dessus, plus les champs
+`source`/`message_source` et `migration_target` des `*.policy.json`
+issus de la PR #295.
 
 ## Gates de migration
 
@@ -54,27 +120,31 @@ dépôt et leurs références internes actualisées.
 `AlbanAndrieu/nabla-openclaw` sera directement `apps/openclaw`,
 sans niveau `nabla-openclaw` intermédiaire.
 
-**Bloquant actuel :** `nabla-compose` suit encore 4 fichiers sandbox sous
-`apps/openclaw/`, tous des fichiers de sandbox
-(`compose.yml`, `Dockerfile`, `catalog-info.yaml`,
-`test-docker.sh`) ; les 14 politiques Workstation ont été relocalisées dans `ops/openclaw-workstation/`. Git ne peut
-pas remplacer ce répertoire non vide par un gitlink.
+**Bloquant actuel :** `nabla-compose` suit encore 4 fichiers sous
+`apps/openclaw/` (`compose.yml`, `Dockerfile`, `catalog-info.yaml`,
+`test-docker.sh`) ; les 14 fichiers Workstation sont déjà sous
+`ops/openclaw-workstation/`. Git ne peut pas remplacer ce répertoire
+non vide par un gitlink.
+
+**Mise à jour du 30 octobre :** ces 4 fichiers sont importés **à la
+racine** de ce dépôt. Une fois monté en `apps/openclaw`, les chemins
+`apps/openclaw/compose.yml` (include TrueNAS, `build.sh`, catalogue)
+restent identiques : le déplacement vers `apps/openclaw-sandbox/`
+n'est plus nécessaire. En contrepartie, le checkout TrueNAS doit
+initialiser le submodule (`git submodule update --init apps/openclaw`)
+**avant** toute réévaluation de l'App, sinon l'include disparaît.
 
 Séquence préparatoire — **ne pas exécuter avant la validation des
 consommateurs du sandbox et des imports Workstation** :
 
-1. Conserver le sandbox sous un nom distinct,
-   `apps/openclaw-sandbox/`, avec un changement de chemins
-   contrôlé. Vérifier les références du catalogue, les scripts
-   TrueNAS, les volumes, la composition et le nom de l'application
-   avant de déplacer les quatre fichiers. Le sandbox historique
-   monte des chemins Workstation ; il ne constitue pas le Gateway
-   TrueNAS cible.
-2. Migrer les politiques et références
-   `apps/openclaw/workstation/` dans `nabla-openclaw/policies/`
-   en gardant les wrappers Compose tant qu'ils sont utilisés.
-   Corriger les scripts et leurs tests avant suppression du
-   répertoire Workstation historique.
+1. Vérifier que `compose.yml`, `Dockerfile` et `test-docker.sh`
+   de `nabla-compose/apps/openclaw/` sont identiques à la racine du
+   pin choisi ici (`catalog-info.yaml` ne diffère que par la source).
+   Le sandbox monte des chemins Workstation ; il ne constitue pas
+   le Gateway TrueNAS cible.
+2. Politiques Workstation : **migrées** (voir *Provenance*). Retirer
+   `nabla-compose/ops/openclaw-workstation/` et ses wrappers dans une
+   PR Compose dédiée, après parité des contrôles.
 3. Exiger un `apps/openclaw` vide et absent de l'index Git
    avant l'ajout du submodule ; confirmer par
    `git ls-files -- apps/openclaw`.
