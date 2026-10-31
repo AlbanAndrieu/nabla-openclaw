@@ -59,6 +59,20 @@ Bascule, **sur la Workstation uniquement** :
    modifier les copies de `nabla-compose/ops/openclaw-workstation/` :
    elles sont gelées jusqu'à leur retrait par une PR Compose.
 
+**Appliqué le 30 octobre** : `just workstation-check` retourne 0
+(alignement `PASS`, heartbeat et briefing `matching`, digest
+`already_aligned`). Le drop-in `30-nabla-runtime-alignment.conf` n'était
+pas installé et ne l'est toujours pas. Le commentaire interne de
+`policies/HEARTBEAT.md` cite désormais `policies/MORNING_BRIEFING.md`
+(commentaire HTML ignoré par OpenClaw) : réappliquer avec
+`just workstation-apply-heartbeat` une fois committé.
+
+Le shell Workstation utilise `umask 0002` : chaque réinstallation
+d'OpenClaw rend son paquet inscriptible par le groupe et les gates
+échouent (`unsafe_or_absent`, `runtime_job_unverified`). Corriger avec
+`chmod -R go-w ~/.local/share/mise/installs/node/<pin>/lib/node_modules/openclaw`
+avant `just workstation-plan`.
+
 Rollback : les wrappers `just openclaw-*` de `nabla-compose` restent
 utilisables tant que ses copies n'ont pas divergé ; restaurer un fichier
 workspace depuis la sauvegarde `0600`, et le job digest via la Control UI.
