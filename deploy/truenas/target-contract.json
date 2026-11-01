@@ -20,7 +20,8 @@
     "image_provenance": "ghcr_official_slsa_attested",
     "compose": "deploy/truenas/compose.yml",
     "seed_config": "deploy/truenas/openclaw.json",
-    "secrets_file": "/mnt/cpool/secrets/runtime/openclaw/.env.secrets"
+    "secrets_file": "/mnt/cpool/secrets/runtime/openclaw/gateway.env",
+    "legacy_state": "cpool/openclaw/.openclaw_uid568_2026-09_kept_untouched"
   },
   "dependencies": {
     "litellm_local": "truenas",

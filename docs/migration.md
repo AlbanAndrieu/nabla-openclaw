@@ -220,13 +220,17 @@ restauration Workstation, canaux réappairés à la bascule), port publié sur
 Prérequis : `nabla-compose` monte ce dépôt en sous-module `apps/openclaw`,
 et le checkout TrueNAS a lancé `git submodule update --init apps/openclaw`.
 
-1. **Stockage** : créer le dataset `cpool/openclaw`, puis
-   `state/` et `state/workspace/` en `1000:1000`, mode `0700`.
-2. **Secrets** : `/mnt/cpool/secrets/runtime/openclaw/.env.secrets` (`0600`,
-   root) avec `OPENCLAW_GATEWAY_TOKEN` (nouveau, aléatoire),
+1. **Stockage** : le dataset `cpool/openclaw` existait déjà, avec l'état
+   `.openclaw` d'une ancienne app TrueNAS (UID 568, septembre 2026,
+   snapshots quotidiens) : il est conservé intact. Créer à côté `state/` et
+   `state/workspace/` en `1000:1000`, mode `0700`, sans ACL (`setfacl -b`).
+2. **Secrets** : `/mnt/cpool/secrets/runtime/openclaw/gateway.env` (`0600`,
+   root), avec seulement `OPENCLAW_GATEWAY_TOKEN` (nouveau, aléatoire),
    `LITELLM_OPENCLAW_MAIN_API_KEY` et `LITELLM_OPENCLAW_CRON_API_KEY`
    (valeurs reprises de l'environnement du conteneur `litellm`, jamais
-   affichées).
+   affichées). Le fichier voisin, plus ancien, contient les tokens de canaux
+   et des clés LiteLLM périmées : il ne doit pas alimenter le Gateway
+   parallèle.
 3. **Config de départ** : copier `deploy/truenas/openclaw.json` en
    `state/openclaw.json` (`0600`, `1000:1000`), une seule fois. Projeter
    `policies/HEARTBEAT.md` et `policies/MORNING_BRIEFING.md` dans
