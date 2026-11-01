@@ -1,7 +1,7 @@
 # OpenClaw Gateway on TrueNAS, installed as a Custom App whose wrapper is:
 #   include: [/mnt/cpool/compose/nabla-compose/apps/openclaw/deploy/truenas/compose.yml]
-# Fresh state (no Workstation restore). Never run with the same channel tokens
-# as the Workstation Gateway: channels are paired only at cutover.
+# Fresh state (no Workstation restore). Owns cron and channels since the cutover:
+# never start the Workstation openclaw-gateway.service while this App runs.
 name: openclaw-gateway
 services:
   openclaw-gateway:
@@ -41,11 +41,11 @@ services:
       OPENCLAW_TZ: Europe/Paris
       TZ: Europe/Paris
       OPENCLAW_DISABLE_BONJOUR: "1"
-      # Parallel phase: no scheduled cron or heartbeat until the cutover PR drops it.
-      OPENCLAW_SKIP_CRON: "1"
     env_file:
-      # Only OPENCLAW_GATEWAY_TOKEN and the two LiteLLM keys: no channel token
-      # may reach the parallel Gateway while the Workstation owns the bots.
+      # Channel and skill credentials; its LiteLLM keys are stale.
+      - path: /mnt/cpool/secrets/runtime/openclaw/.env.secrets
+        required: true
+      # Loaded last so the Gateway token and the LiteLLM virtual keys win.
       - path: /mnt/cpool/secrets/runtime/openclaw/gateway.env
         required: true
     ports:
