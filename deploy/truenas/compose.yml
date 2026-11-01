@@ -1,0 +1,72 @@
+# OpenClaw Gateway on TrueNAS, installed as a Custom App whose wrapper is:
+#   include: [/mnt/cpool/compose/nabla-compose/apps/openclaw/deploy/truenas/compose.yml]
+# Fresh state (no Workstation restore). Never run with the same channel tokens
+# as the Workstation Gateway: channels are paired only at cutover.
+name: openclaw-gateway
+services:
+  openclaw-gateway:
+    image: ghcr.io/openclaw/openclaw:2026.10.7@sha256:fb26f0841659dc757f23feec9adeab51f11d76779a409db5d22e191b43841afa
+    container_name: openclaw-gateway
+    x-nabla:
+      id: openclaw-gateway
+      name: OpenClaw Gateway
+      kind: ai-agent-gateway
+      category: ai
+      presentationRole: service
+      criticality: medium
+      status: planned
+      description: OpenClaw Gateway (agents main and cron) using the TrueNAS LiteLLM virtual keys.
+      runtime:
+        provider: truenas-app
+        containerService: openclaw-gateway
+      relations:
+        - target: litellm
+          type: consumesApi
+          strength: required
+          description: Agents main and cron call LiteLLM with their own scoped virtual keys.
+          evidence:
+            - deploy/truenas/openclaw.json:models.providers
+    labels:
+      com.albandrieu.nabla.entity-ref: component:default/openclaw-gateway
+    restart: unless-stopped
+    user: "1000:1000"
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 256
+    mem_limit: 4g
+    cpus: 2.0
+    environment:
+      HOME: /home/node
+      OPENCLAW_TZ: Europe/Paris
+      TZ: Europe/Paris
+      OPENCLAW_DISABLE_BONJOUR: "1"
+      # Parallel phase: no scheduled cron or heartbeat until the cutover PR drops it.
+      OPENCLAW_SKIP_CRON: "1"
+    env_file:
+      # OPENCLAW_GATEWAY_TOKEN, LITELLM_OPENCLAW_MAIN_API_KEY, LITELLM_OPENCLAW_CRON_API_KEY
+      - path: /mnt/cpool/secrets/runtime/openclaw/.env.secrets
+        required: true
+    ports:
+      # Loopback only: reach the Control UI with ssh -L 18789:127.0.0.1:18789 truenas.
+      - "127.0.0.1:18789:18789"
+    volumes:
+      - type: bind
+        source: /mnt/cpool/openclaw/state
+        target: /home/node/.openclaw
+        bind:
+          create_host_path: false
+    tmpfs:
+      - /tmp:size=1g,mode=1777
+    networks: [litellm]
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:18789/healthz').then(r=>process.exit(r.ok?0:1),()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      start_period: 120s
+      retries: 3
+
+networks:
+  litellm:
+    external: true
+    name: ix-litellm_default

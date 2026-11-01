@@ -211,6 +211,42 @@ les secrets disponibles et l'état des services, puis faire un apply
 séparé. N'utiliser ni symlink pour `~/.openclaw` ni checkout dans
 un dataset de runtime.
 
+## Déploiement du Gateway TrueNAS (état neuf)
+
+Décisions du 1er novembre : dataset `cpool/openclaw`, état **neuf** (pas de
+restauration Workstation, canaux réappairés à la bascule), port publié sur
+`127.0.0.1` de TrueNAS seulement, bascule complète cron puis main.
+
+Prérequis : `nabla-compose` monte ce dépôt en sous-module `apps/openclaw`,
+et le checkout TrueNAS a lancé `git submodule update --init apps/openclaw`.
+
+1. **Stockage** : créer le dataset `cpool/openclaw`, puis
+   `state/` et `state/workspace/` en `1000:1000`, mode `0700`.
+2. **Secrets** : `/mnt/cpool/secrets/runtime/openclaw/.env.secrets` (`0600`,
+   root) avec `OPENCLAW_GATEWAY_TOKEN` (nouveau, aléatoire),
+   `LITELLM_OPENCLAW_MAIN_API_KEY` et `LITELLM_OPENCLAW_CRON_API_KEY`
+   (valeurs reprises de l'environnement du conteneur `litellm`, jamais
+   affichées).
+3. **Config de départ** : copier `deploy/truenas/openclaw.json` en
+   `state/openclaw.json` (`0600`, `1000:1000`), une seule fois. Projeter
+   `policies/HEARTBEAT.md` et `policies/MORNING_BRIEFING.md` dans
+   `state/workspace/`.
+4. **App** : Custom App `openclaw-gateway` avec le wrapper
+   `include: [/mnt/cpool/compose/nabla-compose/apps/openclaw/deploy/truenas/compose.yml]`.
+5. **Vérifier** : `/healthz` et `/readyz` depuis TrueNAS, puis
+   `ssh -L 18789:127.0.0.1:18789 truenas` pour la Control UI.
+
+Bascule, une étape à la fois, avec accord explicite :
+
+1. **cron** : arrêter le job digest sur la Workstation, retirer
+   `OPENCLAW_SKIP_CRON` côté TrueNAS (PR), recréer le job digest depuis
+   `policies/cron/` sur TrueNAS, puis vérifier un run.
+2. **main et canaux** : arrêter et désactiver `openclaw-gateway.service` sur la
+   Workstation, puis appairer les canaux sur TrueNAS et activer le heartbeat.
+3. **Rollback** : arrêter l'App TrueNAS, puis
+   `systemctl --user enable --now openclaw-gateway.service` sur la Workstation.
+   L'état Workstation reste intact, puisque rien n'est restauré.
+
 ## Tests disponibles
 
 ```bash

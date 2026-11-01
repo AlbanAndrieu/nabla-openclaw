@@ -20,6 +20,21 @@ def repo_file(root, relative):
     return path.is_relative_to(root.resolve()) and path.is_file()
 
 
+def compose_matches(root, t):
+    """The TrueNAS Compose pins the contract image, publishes on loopback only
+    and keeps cron/heartbeat off while the no_auto_cron gate holds."""
+    target = t["target"]
+    if not repo_file(root, target["compose"]):
+        return False
+    text = (root / target["compose"]).read_text(encoding="utf-8")
+    ports = [line.strip() for line in text.splitlines() if ":18789" in line and line.strip().startswith("- ")]
+    return (f'image: {target["image"]}@{target["image_digest"]}' in text
+            and ports == ['- "127.0.0.1:18789:18789"']
+            and f'user: "{target["uid_gid"]}"' in text
+            and target["secrets_file"] in text
+            and (t["gates"]["no_auto_cron"] is not True or 'OPENCLAW_SKIP_CRON: "1"' in text))
+
+
 RULES = (
     ("target_truenas_source_workstation", lambda t, hb, cron, root:
         t["target"]["host"] == "truenas" and t["source"]["host"] == "workstation"),
@@ -27,8 +42,11 @@ RULES = (
         t["submodule"].get("proposed_path") == "apps/openclaw"
         and t["submodule"].get("current_path_occupied") is True
         and t["submodule"].get("install") is False),
-    ("target_not_deployed_dataset_unapproved", lambda t, hb, cron, root:
-        t["target"]["status"] == "not_deployed" and t["target"]["dataset"] == "unapproved"),
+    ("target_not_deployed_dataset_approved", lambda t, hb, cron, root:
+        t["target"]["status"] == "not_deployed" and t["target"]["dataset"] == "cpool/openclaw"
+        and t["target"]["image_digest"].startswith("sha256:")),
+    ("compose_matches_contract", lambda t, hb, cron, root:
+        compose_matches(root, t)),
     ("no_auto_heartbeat_or_cron", lambda t, hb, cron, root:
         t["gates"]["no_auto_heartbeat"] is True and t["gates"]["no_auto_cron"] is True),
     ("heartbeat_candidate_not_applied", lambda t, hb, cron, root:
@@ -43,7 +61,9 @@ RULES = (
     ("policy_sources_exist_in_repo", lambda t, hb, cron, root:
         repo_file(root, cron["message_source"]) and repo_file(root, hb["source"])),
     ("no_secrets_in_deployed_target", lambda t, hb, cron, root:
-        not ("secrets" in json.dumps(t.get("target", {})).lower()
+        # secrets_file is the off-Git path of the runtime env file, not a secret.
+        not ("secrets" in json.dumps({k: v for k, v in t.get("target", {}).items()
+                                      if k != "secrets_file"}).lower()
              and t["target"]["status"] == "deployed")),
 )
 
