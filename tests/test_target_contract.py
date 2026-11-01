@@ -21,12 +21,18 @@ class Boundary(unittest.TestCase):
 
     def test_target_is_not_source(self):
         self.assertTrue(mod.validate())
-    def test_no_executable_true_nas_compose_yet(self):
-        self.assertFalse((ROOT/"deploy/truenas/compose.yml").exists())
+    def test_truenas_seed_config_has_only_env_secret_refs(self):
+        seed = json.loads((ROOT/"deploy/truenas/openclaw.json").read_text())
+        self.assertEqual(seed["gateway"]["auth"]["token"],
+                         {"source": "env", "provider": "default", "id": "OPENCLAW_GATEWAY_TOKEN"})
+        keys = {p["apiKey"]["id"] for p in seed["models"]["providers"].values()}
+        self.assertEqual(keys, {"LITELLM_OPENCLAW_MAIN_API_KEY", "LITELLM_OPENCLAW_CRON_API_KEY"})
+        self.assertEqual(seed["agents"]["defaults"]["heartbeat"]["every"], "0m")
+        self.assertNotIn("channels", seed)
     def test_target_models_and_rollback_unverified(self):
         t=__import__("json").loads((ROOT/"deploy/truenas/target-contract.json").read_text())
         self.assertFalse(t["rollback"]["tested"])
-        self.assertEqual(t["target"]["image_digest"],"unverified")
+        self.assertTrue(t["target"]["image_digest"].startswith("sha256:"))
         self.assertTrue(t["gates"]["manual_cutover_required"])
         self.assertEqual(t["submodule"]["proposed_path"],"apps/openclaw")
         self.assertTrue(t["submodule"]["current_path_occupied"])
@@ -34,12 +40,19 @@ class Boundary(unittest.TestCase):
 
 class Violations(unittest.TestCase):
     def copy(self, directory):
-        for name in (mod.TARGET, mod.HEARTBEAT, mod.CRON,
+        for name in (mod.TARGET, mod.HEARTBEAT, mod.CRON, "deploy/truenas/compose.yml",
                      "policies/cron/daily-tech-news-digest.message.md",
                      "policies/LEGACY_HEARTBEAT_RECOVERY.md"):
             (Path(directory) / name).parent.mkdir(parents=True, exist_ok=True)
             shutil.copy(ROOT / name, Path(directory) / name)
         return Path(directory)
+
+    def test_compose_exposed_on_lan_is_a_violation(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = self.copy(d)
+            compose = root / "deploy/truenas/compose.yml"
+            compose.write_text(compose.read_text().replace('"127.0.0.1:18789:18789"', '"18789:18789"'))
+            self.assertEqual(mod.violations(root), ["compose_matches_contract"])
 
     def test_repository_has_no_violation(self):
         self.assertEqual(mod.violations(), [])
@@ -52,7 +65,8 @@ class Violations(unittest.TestCase):
             target["target"]["status"] = "deployed"
             del target["gates"]["no_auto_cron"]
             (root / mod.TARGET).write_text(json.dumps(target))
-            self.assertEqual(mod.violations(root), ["target_not_deployed_dataset_unapproved",
+            self.assertEqual(mod.violations(root), ["target_not_deployed_dataset_approved",
+                                                    "compose_matches_contract",
                                                     "no_auto_heartbeat_or_cron"])
             cron = json.loads((root / mod.CRON).read_text())
             cron["message_source"] = "../outside.md"
