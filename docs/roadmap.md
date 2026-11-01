@@ -28,6 +28,13 @@
 | 9 | Basculer manuellement **cron**, puis **main** et le heartbeat léger, un à un | Une instance exécute chaque cron ; coût/observabilité, smoke autorisé, rollback Workstation testé |
 | 10 | Déprécier les anciens chemins et scripts Workstation dans Compose | Parité totale, documentation à jour, retrait après vérification des consommateurs |
 
+**État au 1er novembre (soir)** :
+
+- **6-7 faits** : `apps/openclaw` est le sous-module `nabla-openclaw` ([nabla-compose #314](https://github.com/AlbanAndrieu/nabla-compose/pull/314), pin `836ae53`). Le checkout TrueNAS l'initialise ; son ancien `.env` non suivi a été déplacé en `0600` dans `/mnt/cpool/openclaw/legacy-sandbox-20260704.env`. Le catalogue Compose ignore les descripteurs des sous-modules.
+- **8 attesté puis arrêté** : l'App TrueNAS `openclaw-gateway` (état neuf) a atteint `/readyz` 200 en loopback, sans canal et avec le cron désactivé ; les clés main et cron ont lu `/v1/models` dans leur portée. Le démarrage est lent : environ 5 minutes, dont 97 s de boucle d'événements bloquée pendant les plugins. L'App est **STOPPED** depuis le rollback.
+- **9 tenté puis annulé** : la Workstation a été arrêtée, puis l'App relancée avec le fichier de secrets complet des canaux. Le `doctor` du point d'entrée a activé les plugins brave, discord, searxng et tavily, puis il est resté bloqué en état `D` (`cv_timedwait_common`, attente ZFS) plus de 35 minutes, et de nouveau après un redémarrage. Le pool était sain et peu chargé. **Rollback appliqué** après environ 1 h d'interruption : Workstation réactivée (Discord, Telegram, WhatsApp et cron revenus), App TrueNAS arrêtée, contrat remis en `not_deployed`.
+- **Prochaine gate** : reproduire le blocage du `doctor` avec le fichier de secrets complet, hors fenêtre de bascule (`docker run --rm … openclaw doctor --fix` sur une copie de `state/`), et tester un `state/` hors ZFS (zvol ou tmpfs) pour isoler l'attente disque. Ne retenter la bascule qu'après un démarrage complet du Gateway avec ce fichier. Le skill `tech-news-digest` est déjà copié dans `state/workspace/skills/`.
+
 ## Commandes sans mutation
 
 ```bash

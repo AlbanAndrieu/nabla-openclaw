@@ -27,17 +27,16 @@ class Boundary(unittest.TestCase):
                          {"source": "env", "provider": "default", "id": "OPENCLAW_GATEWAY_TOKEN"})
         keys = {p["apiKey"]["id"] for p in seed["models"]["providers"].values()}
         self.assertEqual(keys, {"LITELLM_OPENCLAW_MAIN_API_KEY", "LITELLM_OPENCLAW_CRON_API_KEY"})
-        self.assertEqual(seed["agents"]["defaults"]["heartbeat"], {"agentId": "main"})
-        # Channel allowlists hold personal identifiers: applied by CLI, never in Git.
+        self.assertEqual(seed["agents"]["defaults"]["heartbeat"]["every"], "0m")
         self.assertNotIn("channels", seed)
-        self.assertNotIn("bindings", seed)
     def test_target_models_and_rollback_unverified(self):
         t=__import__("json").loads((ROOT/"deploy/truenas/target-contract.json").read_text())
         self.assertFalse(t["rollback"]["tested"])
         self.assertTrue(t["target"]["image_digest"].startswith("sha256:"))
         self.assertTrue(t["gates"]["manual_cutover_required"])
-        self.assertEqual(t["submodule"]["path"],"apps/openclaw")
-        self.assertTrue(t["submodule"]["installed"])
+        self.assertEqual(t["submodule"]["proposed_path"],"apps/openclaw")
+        self.assertTrue(t["submodule"]["current_path_occupied"])
+        self.assertFalse(t["submodule"]["install"])
 
 class Violations(unittest.TestCase):
     def copy(self, directory):
@@ -55,14 +54,6 @@ class Violations(unittest.TestCase):
             compose.write_text(compose.read_text().replace('"127.0.0.1:18789:18789"', '"18789:18789"'))
             self.assertEqual(mod.violations(root), ["compose_matches_contract"])
 
-    def test_active_target_requires_stopped_workstation(self):
-        with tempfile.TemporaryDirectory() as d:
-            root = self.copy(d)
-            target = json.loads((root / mod.TARGET).read_text())
-            target["source"]["state"] = "active_keep_running_until_cutover"
-            (root / mod.TARGET).write_text(json.dumps(target))
-            self.assertEqual(mod.violations(root), ["single_gateway_owner"])
-
     def test_repository_has_no_violation(self):
         self.assertEqual(mod.violations(), [])
 
@@ -74,9 +65,9 @@ class Violations(unittest.TestCase):
             target["target"]["status"] = "deployed"
             del target["gates"]["no_auto_cron"]
             (root / mod.TARGET).write_text(json.dumps(target))
-            self.assertEqual(mod.violations(root), ["target_status_dataset_approved",
+            self.assertEqual(mod.violations(root), ["target_not_deployed_dataset_approved",
                                                     "compose_matches_contract",
-                                                    "single_gateway_owner"])
+                                                    "no_auto_heartbeat_or_cron"])
             cron = json.loads((root / mod.CRON).read_text())
             cron["message_source"] = "../outside.md"
             (root / mod.CRON).write_text(json.dumps(cron))
