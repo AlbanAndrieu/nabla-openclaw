@@ -1,5 +1,7 @@
 """Offline contracts: Workstation HEARTBEAT/MORNING_BRIEFING projected from this repo."""
+import contextlib
 import importlib.util
+import io
 from pathlib import Path
 import tempfile
 import unittest
@@ -56,6 +58,38 @@ class HeartbeatGitOps(Fixture):
         self.assertEqual(len(list((self.root / "backups/heartbeat-gitops").glob("HEARTBEAT.*.md"))), 1)
 
 
+class HeartbeatCli(Fixture):
+    def run_main(self, *argv):
+        with contextlib.redirect_stdout(io.StringIO()) as out, \
+             contextlib.redirect_stderr(io.StringIO()) as err:
+            code = mod.main([*argv, "--root", str(self.root)])
+        return code, out.getvalue(), err.getvalue()
+
+    def test_exit_codes_and_idempotent_apply(self):
+        target = self.root / "workspace/HEARTBEAT.md"
+        target.write_bytes(mod.SOURCE.read_bytes() + b"drift\n")
+        code, out, _ = self.run_main("--check")
+        self.assertEqual(code, 2)
+        self.assertTrue(out.startswith("different"))
+        self.assertEqual(self.run_main("--apply")[0], 0)
+        self.assertEqual(self.run_main("--check")[0], 0)
+        code, out, _ = self.run_main("--apply")
+        self.assertEqual(code, 0)
+        self.assertTrue(out.startswith("already_matching"))
+        backups = list((self.root / "backups/heartbeat-gitops").glob("HEARTBEAT.*.md"))
+        self.assertEqual(len(backups), 1, "an idempotent apply must not add a backup")
+
+    def test_refusal_prints_reason_code_not_content(self):
+        target = self.root / "workspace/HEARTBEAT.md"
+        target.symlink_to(self.source)
+        code, out, err = self.run_main("--apply")
+        self.assertEqual((code, out), (2, ""))
+        self.assertIn("ERROR: symlink_refused; operation not completed", err)
+        self.assertNotIn("comments only", err)
+        code, _, err = self.run_main("--backup")
+        self.assertEqual(code, 2)
+
+
 class MorningBriefingGitOps(Fixture):
     def test_creates_template_without_overwriting_existing_heartbeat(self):
         heartbeat = self.root / "workspace/HEARTBEAT.md"
@@ -89,7 +123,7 @@ class MorningBriefingGitOps(Fixture):
         body = text.split("<!--", 1)
         self.assertEqual(len(body), 2)
         # Outside the title and the HTML comment, nothing may wake the model.
-        self.assertEqual([l for l in body[0].splitlines() if l.strip() and not l.startswith("#")], [])
+        self.assertEqual([line for line in body[0].splitlines() if line.strip() and not line.startswith("#")], [])
         self.assertTrue(text.rstrip().endswith("-->"))
         briefing = mod.BRIEFING_SOURCE.read_text(encoding="utf-8")
         for section in ("Météo", "État du système", "Calendriers",

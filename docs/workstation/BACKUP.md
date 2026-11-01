@@ -60,7 +60,7 @@ python3 scripts/workstation/openclaw-heartbeat-gitops.py --apply
 python3 scripts/workstation/openclaw-heartbeat-gitops.py --check
 ```
 
-`--check` compares SHA-256 of source and destination; no content printed.
+`--check` compares SHA-256 of source and destination (exit 0 matching, 2 different); no content printed.
 `--backup` creates a private local 0600 copy, excluding Git; `--apply`
 requires a prior backup, refuses symlinks, and uses atomic replacement.
 Source is an intentionally comment-only heartbeat. This is a **config

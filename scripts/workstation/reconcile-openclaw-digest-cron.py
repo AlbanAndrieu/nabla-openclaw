@@ -5,26 +5,25 @@ from __future__ import annotations
 import argparse
 from datetime import datetime, timezone
 import hashlib
-import importlib.util
 import json
-import os
 from pathlib import Path
 import re
 import stat
 import subprocess
+import sys
 
-ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from openclaw_runtime import (  # noqa: E402
+    DIGEST_JOB_ID as JOB_ID, DIGEST_JOB_NAME as JOB_NAME, ROOT,
+    detect_host, install_issues, pinned_cli_paths, read_cron_job,
+)
+from private_files import create_private_file, ensure_private_dir, file_safety  # noqa: E402
+
 SOURCE = ROOT / "policies/cron/daily-tech-news-digest.message.md"
-JOB_ID = "7ed5dd9a-da30-479f-b0eb-4cc494fb4966"
-JOB_NAME = "daily-tech-news-digest"
+# Kept at the historical nabla-compose location so all digest snapshots stay together.
+BACKUP_DIR = ".local/state/nabla-compose/openclaw/digest-gitops"
 MAX_BYTES = 1024 * 1024
-
-
-def module(name, filename):
-    spec = importlib.util.spec_from_file_location(name, Path(__file__).with_name(filename))
-    result = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(result)
-    return result
+PRESERVED_FIELDS = ("schedule", "delivery", "agentId", "sessionTarget", "enabled")
 
 
 def sha(value):
@@ -45,36 +44,33 @@ def desired_message(path=SOURCE):
 
 
 def runtime_job():
-    mod = module("nabla_digest_audit", "diagnose-openclaw-digest-top.py")
-    state, job = mod.read_runtime()
-    if (state != "structured" or not isinstance(job, dict)
-            or job.get("id") != JOB_ID or job.get("name") != JOB_NAME):
-        return None
+    """Return ``(read_state, job)``; ``job`` is None unless it is the expected digest."""
+    state, job = read_cron_job(JOB_ID)
+    if state != "structured" or not isinstance(job, dict):
+        return state, None
+    if job.get("id") != JOB_ID or job.get("name") != JOB_NAME:
+        return "wrong_job", None
     payload = job.get("payload")
-    if not isinstance(payload, dict) or not isinstance(payload.get("message"), str):
-        return None
-    if payload.get("kind") not in ("agentTurn", None):
-        return None
-    return job
+    if (not isinstance(payload, dict) or not isinstance(payload.get("message"), str)
+            or payload.get("kind") not in ("agentTurn", None)):
+        return "unexpected_payload", None
+    return state, job
 
 
 def host():
-    return module("nabla_host", "openclaw-host-context.py").detect()
+    return detect_host()
 
 
 def cli_edit(message):
-    paths = module("nabla_paths", "openclaw_runtime_paths.py")
-    node, entry = paths.pinned_cli_paths()
-    if not node.is_file() or not entry.is_file():
+    node, entry = pinned_cli_paths()
+    if file_safety(node) != "ok" or file_safety(entry) != "ok":
         return False
     # Only a versioned, public, secret-free message goes into process argv.
     # Never put an existing private job prompt on a command line.
     try:
         result = subprocess.run(
-            [str(node), str(entry), "automations", "edit", JOB_ID,
-             "--message", message],
-            stdin=subprocess.DEVNULL, capture_output=True,
-            timeout=35, check=False,
+            [str(node), str(entry), "automations", "edit", JOB_ID, "--message", message],
+            stdin=subprocess.DEVNULL, capture_output=True, timeout=35, check=False,
         )
         return result.returncode == 0
     except (OSError, subprocess.TimeoutExpired):
@@ -82,40 +78,52 @@ def cli_edit(message):
 
 
 def backup(job):
-    target = Path.home() / ".local/state/nabla-compose/openclaw/digest-gitops"
-    # Existing unsafe parents are not re-permissioned.
-    for parent in (Path.home() / ".local", Path.home() / ".local/state",
-                   Path.home() / ".local/state/nabla-compose",
-                   Path.home() / ".local/state/nabla-compose/openclaw", target):
-        if parent.is_symlink():
-            raise ValueError("unsafe_parent_symlink")
-        if not parent.exists():
-            parent.mkdir(mode=0o700)
-        m = parent.stat()
-        if m.st_uid != os.geteuid() or m.st_mode & 0o022:
-            raise ValueError("unsafe_parent_permissions")
-    now = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%fZ")
-    dest = target / ("digest-before-" + now + ".json")
+    # Existing unsafe parents are refused, not re-permissioned.
+    target = ensure_private_dir(Path.home(), BACKUP_DIR, strict_parents=True)
     raw = json.dumps(job, ensure_ascii=False, sort_keys=True).encode("utf-8")
     if len(raw) > MAX_BYTES:
         raise ValueError("snapshot_too_large")
-    fd = os.open(dest, os.O_WRONLY | os.O_CREAT | os.O_EXCL
-                 | getattr(os, "O_NOFOLLOW", 0), 0o600)
-    with os.fdopen(fd, "wb") as stream:
-        stream.write(raw)
-        stream.flush()
-        os.fsync(stream.fileno())
+    now = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%fZ")
+    create_private_file(target / f"digest-before-{now}.json", raw)
     return True
 
 
 def preserved(old, new):
-    return all(old.get(field) == new.get(field) for field in (
-        "schedule", "delivery", "agentId", "sessionTarget", "enabled"
-    )) and {
-        k: v for k, v in old["payload"].items() if k != "message"
-    } == {
-        k: v for k, v in new["payload"].items() if k != "message"
-    }
+    def payload_without_message(job):
+        return {k: v for k, v in job["payload"].items() if k != "message"}
+    return (all(old.get(field) == new.get(field) for field in PRESERVED_FIELDS)
+            and payload_without_message(old) == payload_without_message(new))
+
+
+def apply(job, desired, expected_sha):
+    """Guarded edit of the existing job; returns the final ``apply=`` status."""
+    before = job["payload"]["message"]
+    if not re.fullmatch("[0-9a-f]{64}", expected_sha):
+        return "blocked_missing_expected_digest"
+    if sha(before) != expected_sha:
+        return "blocked_concurrent_drift"
+    # Only migrate the known affected skill contract. A different private
+    # message may contain custom instructions; do not overwrite it blindly.
+    if (before.count("ITEMS_PER_SECTION = 3-5") != 1
+            or "references/digest-prompt.md" not in before):
+        return "blocked_unexpected_runtime_template_review_in_ui"
+    state = job.get("state")
+    if isinstance(state, dict) and state.get("runningAtMs"):
+        return "blocked_running_job"
+    _, current = runtime_job()
+    if current is None or sha(current["payload"]["message"]) != expected_sha:
+        return "blocked_concurrent_drift"
+    try:
+        backup(job)
+    except (OSError, ValueError):
+        return "blocked_private_backup"
+    print("private_backup=created_0600")
+    if not cli_edit(desired):
+        return "cli_failed_no_runtime_proof"
+    _, after = runtime_job()
+    if after is None or after["payload"]["message"] != desired or not preserved(job, after):
+        return "unverified_after_edit_review_snapshot_privately"
+    return "verified_existing_job_updated"
 
 
 def main(argv=None):
@@ -136,17 +144,18 @@ def main(argv=None):
     except (OSError, ValueError, UnicodeError):
         print("cron_gitops=invalid_source")
         return 2
-    job = runtime_job()
+    state, job = runtime_job()
     if job is None:
         print("cron_gitops=runtime_job_unverified")
+        print("cron_job_read=" + state)
+        if state == "unverified_installation":
+            print("runtime_install=" + install_issues())
         return 2
     before = job["payload"]["message"]
-    old_sha = sha(before)
-    new_sha = sha(desired)
     print("cron_gitops=existing_job_only")
     print("job_identity=verified")
-    print("runtime_message_sha256=" + old_sha)
-    print("desired_message_sha256=" + new_sha)
+    print("runtime_message_sha256=" + sha(before))
+    print("desired_message_sha256=" + sha(desired))
     print("job_schedule_and_delivery=preserved_by_design")
     print("model_requests=0")
     if before == desired:
@@ -155,42 +164,9 @@ def main(argv=None):
     print("cron_gitops=drift")
     if not args.apply:
         return 2 if args.check else 0
-    if not re.fullmatch("[0-9a-f]{64}", args.expected_message_sha):
-        print("apply=blocked_missing_expected_digest")
-        return 2
-    if old_sha != args.expected_message_sha:
-        print("apply=blocked_concurrent_drift")
-        return 2
-    # Only migrate the known affected skill contract. A different private
-    # message may contain custom instructions; do not overwrite it blindly.
-    if (before.count("ITEMS_PER_SECTION = 3-5") != 1
-            or "references/digest-prompt.md" not in before):
-        print("apply=blocked_unexpected_runtime_template_review_in_ui")
-        return 2
-    state = job.get("state")
-    if isinstance(state, dict) and state.get("runningAtMs"):
-        print("apply=blocked_running_job")
-        return 2
-    current = runtime_job()
-    if current is None or sha(current["payload"]["message"]) != old_sha:
-        print("apply=blocked_concurrent_drift")
-        return 2
-    try:
-        backup(job)
-    except (OSError, ValueError):
-        print("apply=blocked_private_backup")
-        return 2
-    print("private_backup=created_0600")
-    if not cli_edit(desired):
-        print("apply=cli_failed_no_runtime_proof")
-        return 2
-    after = runtime_job()
-    if (after is None or after["payload"]["message"] != desired
-            or not preserved(job, after)):
-        print("apply=unverified_after_edit_review_snapshot_privately")
-        return 2
-    print("apply=verified_existing_job_updated")
-    return 0
+    status = apply(job, desired, args.expected_message_sha)
+    print("apply=" + status)
+    return 0 if status == "verified_existing_job_updated" else 2
 
 
 if __name__ == "__main__":
