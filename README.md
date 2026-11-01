@@ -53,9 +53,32 @@ just workstation-apply-digest <runtime_message_sha256>  # seulement si drift
 just workstation-check           # non nul tant qu'un écart subsiste
 ```
 
-Les recettes refusent un hôte autre que la Workstation
-(`openclaw-host-context.py`) et une configuration non committée.
-Aucune ne redémarre le Gateway, n'appelle un modèle ni ne crée de job.
+Les recettes appellent `scripts/workstation/openclaw-workstation-gitops.py`
+(`plan`, `check`, `apply-heartbeat`, `apply-digest`), qui refuse un hôte autre
+que la Workstation et, pour les `apply`, une configuration non committée ou un
+`HEAD` absent de `origin/master` local (faire `git pull --ff-only` après la
+fusion ; `--allow-unmerged` seulement en connaissance de cause). Aucune ne
+redémarre le Gateway, n'appelle un modèle ni ne crée de job. Codes retour :
+`0` aligné/appliqué, `2` écart ou refus.
+
+### Lire un blocage runtime
+
+`check-openclaw-runtime-alignment.py` publie, sans chemin ni secret, l'état
+de chaque fichier (`files` : `absent`, `symlink`, `foreign_owner`,
+`writable_by_group`, `writable_by_others`, `hardlinked`), la version Node de
+l'unité systemd, les versions mise installées et un `hint` :
+
+| `hint` | Action opérateur (jamais exécutée par le gate) |
+| --- | --- |
+| `systemd_uses_other_node_update_contract_by_pr` | aligner `deploy/workstation/runtime-contract.json` par PR |
+| `pinned_node_not_installed` | installer la version Node épinglée (ansible-workstation) |
+| `openclaw_not_installed_for_pinned_node` | installer OpenClaw pour la Node épinglée |
+| `remove_group_and_other_write_on_install` | `chmod -R go-w` sur l'installation Node concernée |
+| `install_not_owned_by_gateway_user` | réinstaller sous l'utilisateur du Gateway |
+| `replace_links_with_regular_files` | réinstaller sans lien symbolique ni physique |
+
+Le digest affiche la même cause (`cron_job_read`, `runtime_install`) quand il
+ne peut pas lire le job.
 Voir [docs/migration.md](docs/migration.md#workstation--bascule-de-la-source-de-configuration).
 
 L'état du Gateway (sessions SQLite, identities, tokens, conversations,

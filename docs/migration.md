@@ -75,10 +75,31 @@ Source : `AlbanAndrieu/nabla-compose@4aae6582aee013437f9b67a8c70f2993171033bf`.
 | `ops/openclaw-workstation/runtime-contract.json` | `deploy/workstation/` | aucune |
 | `ops/openclaw-workstation/systemd/*` | `deploy/workstation/systemd/` | drop-in repointé vers `%h/w/nabla-openclaw` ; unités rate-limit inchangées (script resté dans nabla-compose) |
 | `ops/openclaw-workstation/{BACKUP,NFS-BACKUP}.md` | `docs/workstation/` | note de provenance, chemins Git mis à jour |
-| `scripts/workstation/{openclaw-heartbeat-gitops,reconcile-openclaw-digest-cron,diagnose-openclaw-digest-top,openclaw-host-context}.py` | `scripts/workstation/` | chemins sources uniquement |
-| `scripts/workstation/{openclaw_runtime_paths,check-openclaw-runtime-alignment}.py` | `scripts/workstation/` | pin lu dans le seul contrat runtime |
+| `scripts/workstation/{openclaw-heartbeat-gitops,reconcile-openclaw-digest-cron,diagnose-openclaw-digest-top,openclaw-host-context,check-openclaw-runtime-alignment}.py` | `scripts/workstation/` | refactorés le 1er novembre (voir ci-dessous) |
+| `scripts/workstation/openclaw_runtime_paths.py` | remplacé par `openclaw_runtime.py` | pin lu dans le seul contrat runtime |
 
 Les 18 fichiers historiques de `apps/openclaw/` sont donc tous présents ici.
+
+### Refactoring du 1er novembre
+
+Mêmes noms de scripts, options et clés de sortie ; aucune garde assouplie.
+
+- `private_files.py` : primitives communes (lecture `O_NOFOLLOW` + `fstat`
+  sans course vérification/lecture, FIFO refusée, fichiers `0600` exclusifs,
+  répertoires privés, remplacement atomique avec `fsync` du répertoire).
+- `openclaw_runtime.py` : contrat runtime unique, chemins CLI épinglés,
+  détection d'hôte et lecture du job cron, remplaçant les chargements de
+  modules par chemin (`run_path`, `importlib`) et les validations dupliquées.
+- Diagnostics précis : état par fichier, version Node systemd, `hint`
+  (alignement) ; `cron_job_read` et `runtime_install` (digest).
+- `openclaw-workstation-gitops.py` : point d'entrée unique des recettes
+  `just workstation-*` ; gardes hôte, configuration committée et **fusionnée
+  dans `origin/master`**, désormais testées (auparavant en shell).
+- `openclaw-heartbeat-gitops.py --check` retourne `2` sur écart (comme le
+  digest) ; un `apply` déjà aligné ne crée plus de sauvegarde inutile ; les
+  refus affichent leur code (`symlink_refused`…) au lieu du seul type.
+- `check-target-contract.py` : règles nommées, évaluées une seule fois,
+  violations listées sur stderr, contrat illisible = `invalid` (pas de trace).
 
 Parité revérifiée le 30 octobre, fichier par fichier, contre
 `nabla-compose@407590b` (#300) : `apps/openclaw/` (4 fichiers),

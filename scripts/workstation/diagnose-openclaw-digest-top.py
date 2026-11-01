@@ -7,21 +7,19 @@ No cron edit, model request, job execution, service restart or quota change.
 from __future__ import annotations
 
 import argparse
-import json
-import os
 from pathlib import Path
 import re
-import stat
-import subprocess
-from runpy import run_path
+import sys
 
-JOB_ID = "7ed5dd9a-da30-479f-b0eb-4cc494fb4966"
-JOB_NAME = "daily-tech-news-digest"
-# Resolves Node from the aligned mise/runtime contract; never PATH or stale release.
-NODE, CLI = run_path(str(Path(__file__).with_name("openclaw_runtime_paths.py")))["pinned_cli_paths"]()
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from openclaw_runtime import (  # noqa: E402
+    DIGEST_JOB_ID as JOB_ID, DIGEST_JOB_NAME as JOB_NAME, MAX_JSON,
+    decode_job, install_issues, read_cron_job,
+)
+from private_files import UnsafePath, read_owned  # noqa: E402
+
 SKILL_TEMPLATE = (Path.home() / ".openclaw/workspace/skills/tech-news-digest/"
                   "references/digest-prompt.md")
-MAX_JSON = 1024 * 1024
 TOP_PATTERN = re.compile(r'(?<!\S)--top(?:\s+|=)(?:["\']?)([^\s"\']+)')
 INVALID_RANGE = re.compile(r"^\d+[-\u2013\u2014]\d+$")
 INTEGER = re.compile(r"^[0-9]+$")
@@ -30,28 +28,6 @@ FIXED_TOP = re.compile(r"(?<!\S)--top\s+([0-9]+)(?![0-9])")
 # Detect the specific natural-language range which caused the 27 Oct failure.
 # Do not try to interpret arbitrary dates, version numbers or prompt contents.
 NATURAL_TOP_RANGE = re.compile(r"(?<![0-9])3\s*[-\u2013\u2014]\s*5(?![0-9])")
-
-
-def owned_file(path: Path) -> bool:
-    try:
-        info = path.lstat()
-        return (stat.S_ISREG(info.st_mode) and info.st_uid == os.geteuid()
-                and not info.st_mode & 0o022 and info.st_nlink == 1)
-    except OSError:
-        return False
-
-
-def decode_job(raw: bytes) -> dict | None:
-    if not raw or len(raw) > MAX_JSON:
-        return None
-    try:
-        value = json.loads(raw)
-    except (UnicodeError, ValueError):
-        return None
-    if not isinstance(value, dict):
-        return None
-    job = value.get("job", value)
-    return job if isinstance(job, dict) else None
 
 
 def classify_job(job: dict | None, skill_template: str | None = None) -> tuple[str, str]:
@@ -101,51 +77,28 @@ def classify_job(job: dict | None, skill_template: str | None = None) -> tuple[s
     return "invalid_top_value", "5"
 
 
-def read_runtime(node: Path = NODE, cli: Path = CLI) -> tuple[str, dict | None]:
-    if not owned_file(node) or not owned_file(cli):
-        return "unverified_installation", None
-    try:
-        result = subprocess.run(
-            [str(node), str(cli), "cron", "get", JOB_ID],
-            capture_output=True, check=False, timeout=25,
-            env={**os.environ, "NODE_NO_WARNINGS": "1"},
-        )
-    except (OSError, subprocess.TimeoutExpired):
-        return "cli_unavailable", None
-    if result.returncode:
-        return "cli_failed", None
-    job = decode_job(result.stdout)
-    return ("structured" if job is not None else "invalid_report"), job
+def read_runtime(node: Path | None = None, cli: Path | None = None) -> tuple[str, dict | None]:
+    # Pinned by the runtime contract; never PATH or a stale release.
+    return read_cron_job(JOB_ID, node, cli)
 
 
 def read_fixture(path: Path) -> tuple[str, dict | None]:
-    if not owned_file(path):
-        return "unsafe_fixture", None
     try:
-        if path.stat().st_size > MAX_JSON:
-            return "invalid_report", None
-        job = decode_job(path.read_bytes())
+        raw = read_owned(path, MAX_JSON)
+    except UnsafePath as exc:
+        return ("invalid_report" if str(exc) == "invalid_file_size" else "unsafe_fixture"), None
     except OSError:
-        return "invalid_report", None
+        return "unsafe_fixture", None
+    job = decode_job(raw)
     return ("structured" if job is not None else "invalid_report"), job
 
 
 def read_skill_template(path: Path = SKILL_TEMPLATE) -> tuple[str, str | None]:
     """Read only an owner-controlled regular Markdown file, never print content."""
     try:
-        fd = os.open(path, os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0))
-        try:
-            info = os.fstat(fd)
-            if (not stat.S_ISREG(info.st_mode) or info.st_uid != os.geteuid()
-                    or info.st_mode & 0o022 or info.st_size > MAX_JSON
-                    or info.st_nlink != 1):
-                return "unsafe_file", None
-            raw = os.read(fd, MAX_JSON + 1)
-        finally:
-            os.close(fd)
-        if not raw or len(raw) > MAX_JSON:
-            return "invalid_file", None
-        return "available", raw.decode("utf-8")
+        return "available", read_owned(path, MAX_JSON).decode("utf-8")
+    except UnsafePath as exc:
+        return ("invalid_file" if str(exc) == "invalid_file_size" else "unsafe_file"), None
     except (OSError, UnicodeError):
         return "unavailable", None
 
@@ -159,6 +112,8 @@ def main(argv=None) -> int:
     classification, recommendation = classify_job(job, template)
     print("openclaw_digest_audit=read_only")
     print("cron_job_read=" + state)
+    if state == "unverified_installation":
+        print("runtime_install=" + install_issues())
     print("skill_template_read=" + template_state)
     print("digest_top_argument=" + classification)
     print("recommended_integer_top=" + recommendation)

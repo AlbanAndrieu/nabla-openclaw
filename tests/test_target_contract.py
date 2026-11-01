@@ -1,5 +1,8 @@
 """Hermetic target contract: no unintended TrueNAS deployment or active cron."""
 import importlib.util
+import json
+import shutil
+import tempfile
 from pathlib import Path
 import unittest
 ROOT=Path(__file__).resolve().parents[1]
@@ -28,5 +31,35 @@ class Boundary(unittest.TestCase):
         self.assertEqual(t["submodule"]["proposed_path"],"apps/openclaw")
         self.assertTrue(t["submodule"]["current_path_occupied"])
         self.assertFalse(t["submodule"]["install"])
+
+class Violations(unittest.TestCase):
+    def copy(self, directory):
+        for name in (mod.TARGET, mod.HEARTBEAT, mod.CRON,
+                     "policies/cron/daily-tech-news-digest.message.md",
+                     "policies/LEGACY_HEARTBEAT_RECOVERY.md"):
+            (Path(directory) / name).parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy(ROOT / name, Path(directory) / name)
+        return Path(directory)
+
+    def test_repository_has_no_violation(self):
+        self.assertEqual(mod.violations(), [])
+
+    def test_named_violations(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = self.copy(d)
+            self.assertEqual(mod.violations(root), [])
+            target = json.loads((root / mod.TARGET).read_text())
+            target["target"]["status"] = "deployed"
+            del target["gates"]["no_auto_cron"]
+            (root / mod.TARGET).write_text(json.dumps(target))
+            self.assertEqual(mod.violations(root), ["target_not_deployed_dataset_unapproved",
+                                                    "no_auto_heartbeat_or_cron"])
+            cron = json.loads((root / mod.CRON).read_text())
+            cron["message_source"] = "../outside.md"
+            (root / mod.CRON).write_text(json.dumps(cron))
+            self.assertIn("policy_sources_exist_in_repo", mod.violations(root))
+            (root / mod.HEARTBEAT).write_text("{not json")
+            self.assertEqual(mod.violations(root), ["contract_unreadable"])
+            self.assertFalse(mod.validate(root))
 
 if __name__=="__main__":unittest.main()
