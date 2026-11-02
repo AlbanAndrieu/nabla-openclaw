@@ -2,15 +2,14 @@
   "schema": "nabla-openclaw-truenas-cutover/v1",
   "source": {
     "host": "workstation",
-    "state": "stopped_disabled_rollback_ready",
+    "state": "active_keep_running_until_cutover",
     "gateway_unit": "openclaw-gateway.service",
     "openclaw_version_observed": "2026.10.7"
   },
   "target": {
     "host": "truenas",
     "deployment": "custom_app_docker",
-    "app_name": "openclaw-gateway",
-    "status": "active",
+    "status": "not_deployed",
     "image_digest": "sha256:fb26f0841659dc757f23feec9adeab51f11d76779a409db5d22e191b43841afa",
     "uid_gid": "1000:1000",
     "dataset": "cpool/openclaw",
@@ -22,18 +21,15 @@
     "compose": "deploy/truenas/compose.yml",
     "seed_config": "deploy/truenas/openclaw.json",
     "secrets_file": "/mnt/cpool/secrets/runtime/openclaw/gateway.env",
-    "channel_secrets_file": "/mnt/cpool/secrets/runtime/openclaw/.env.secrets",
-    "channels": ["discord", "telegram", "whatsapp"],
-    "channel_config": "applied_by_cli_off_git_personal_allowlists",
     "legacy_state": "cpool/openclaw/.openclaw_uid568_2026-09_kept_untouched"
   },
   "dependencies": {
     "litellm_local": "truenas",
     "models_gpt_4_1": "served_truenas_relay_verified",
     "models_gpt_4_1_mini": "served_truenas_relay_verified",
-    "scoped_keys": "verified_main_cron",
-    "quota": "budget_2_per_key",
-    "dns_tls": "not_applicable_loopback",
+    "scoped_keys": "verify_per_agent",
+    "quota": "verify_before_activation",
+    "dns_tls": "verify",
     "sentry": "optional"
   },
   "gates": {
@@ -41,17 +37,21 @@
     "manual_cutover_required": true,
     "rollback_workstation_ready": true,
     "backups_off_git": true,
-    "no_auto_heartbeat": false,
-    "no_auto_cron": false
+    "no_auto_heartbeat": true,
+    "no_auto_cron": true
   },
   "submodule": {
-    "superproject": "AlbanAndrieu/nabla-compose",
-    "path": "apps/openclaw",
-    "installed": true,
-    "truenas_checkout_requires_submodule_init": true
+    "proposed_superproject": "AlbanAndrieu/nabla-compose",
+    "proposed_path": "apps/openclaw",
+    "install": false,
+    "current_path_occupied": true,
+    "current_tracked_file_count": 4,
+    "required_previous_move": "none_sandbox_imported_at_repo_root",
+    "truenas_checkout_requires_submodule_init": true,
+    "source_policy_migration_required": true
   },
   "rollback": {
-    "method": "stop_truenas_app_then_systemctl_user_enable_now_workstation_gateway",
+    "method": "stop_new_gateway_reenable_existing_workstation_if_validated",
     "tested": false
   }
 }

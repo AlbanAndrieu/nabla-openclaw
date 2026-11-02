@@ -42,7 +42,7 @@
       "modelPolicy": {
         "allow": ["litellm-main/gpt-4.1", "litellm-main/gpt-4.1-mini", "litellm-cron/gpt-4.1-mini"]
       },
-      "heartbeat": { "agentId": "main" }
+      "heartbeat": { "agentId": "main", "every": "0m" }
     },
     "ownership": "explicit",
     "entries": {
