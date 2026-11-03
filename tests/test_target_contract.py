@@ -34,9 +34,10 @@ class Boundary(unittest.TestCase):
         # Discord stays off until its native admission is attested (docs/roadmap.md).
         self.assertFalse(seed["plugins"]["entries"]["discord"]["enabled"])
         self.assertIn('DISCORD_BOT_TOKEN: ""', (ROOT/"deploy/truenas/compose.yml").read_text())
-    def test_target_models_and_rollback_unverified(self):
+    def test_target_models_and_rollback_tested(self):
         t=__import__("json").loads((ROOT/"deploy/truenas/target-contract.json").read_text())
-        self.assertFalse(t["rollback"]["tested"])
+        # Exercised for real when the 1 November cutover was rolled back.
+        self.assertTrue(t["rollback"]["tested"])
         self.assertTrue(t["target"]["image_digest"].startswith("sha256:"))
         self.assertTrue(t["gates"]["manual_cutover_required"])
         self.assertEqual(t["submodule"]["path"],"apps/openclaw")
