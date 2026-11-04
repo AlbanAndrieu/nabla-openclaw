@@ -1,28 +1,17 @@
-# HEARTBEAT.md — surveillance native OpenClaw
+# Heartbeat — santé du homelab (TrueNAS et Workstation)
+
+1. Appelle l'outil `exec` une seule fois, avec `timeout` = 60, et exactement cette commande :
+   `node /home/node/.openclaw/workspace/scripts/homelab-health.mjs`
+2. Si la sortie est exactement `NO_REPLY`, réponds `NO_REPLY`.
+3. Sinon, réponds avec la sortie telle quelle : ne la reformule pas, ne la résume pas et n'ajoute aucun conseil.
+4. Si la commande échoue, réponds `🩺 Collecteur homelab en échec :` suivi des 5 dernières lignes affichées, sans autre tentative.
 
 <!--
-Le heartbeat principal est volontairement non génératif tant que
-son coût et le 429 ne sont pas attribués. Les commentaires sont ignorés
-par OpenClaw : reason=empty-heartbeat-file, aucun appel de modèle.
-
-Ce fichier n'est PAS le modèle du briefing quotidien.
-Le briefing détaillé, avec météo, CPU, RAM, disque, services, Gatus,
-Prometheus, CalDAV, Gmail, WhatsApp et tâches, est versionné dans
-policies/MORNING_BRIEFING.md (nabla-openclaw) et projeté dans le workspace
-par le script GitOps.
-
-Le briefing doit être demandé explicitement ou exécuté dans une tâche
-isolée avec sa propre cadence et son propre budget, jamais dans le
-heartbeat toutes les 30 minutes.
-
-Règles permanentes :
-- Pas de mail, calendrier, messages, SSH, Docker ou accès aux fichiers
-  personnels sans autorisation et connecteur réellement disponible.
-- Aucune affirmation « synchronisé », « vert », « pas d'alertes »
-  sans preuve récente des collecteurs déterministes.
-- Aucun contournement des budgets LiteLLM ou des SecretRef.
-- Ne pas lancer de memory reindex ou d'inférence pour remplir le briefing.
-- Contrôler les coûts 429, la mémoire et le job du matin séparément.
-- Ne pas copier le texte de l'ancienne sauvegarde verbatim dans un
-  heartbeat périodique non borné.
+Monitor scratch du heartbeat TrueNAS, appliqué par `just truenas-apply-heartbeat`.
+Le collecteur (scripts/heartbeat/homelab-health.mjs) lit en lecture seule Prometheus
+(alertes, cibles, CPU, RAM, disques, pools ZFS, services systemd), Gatus, Docker,
+Scrutiny et la readiness LiteLLM (TrueNAS et Workstation, base PostgreSQL comprise).
+Il ne signale que les anomalies nouvelles ou résolues, plus un récapitulatif par jour.
+Aucune réparation, aucun autre outil, aucun secret ni log brut dans la réponse.
+Le briefing du matin reste dans policies/MORNING_BRIEFING.md, hors heartbeat.
 -->

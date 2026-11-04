@@ -116,15 +116,8 @@ class MorningBriefingGitOps(Fixture):
             mod.operate("apply", self.root, self.source,
                         target_name="../outside.md", create_missing=True)
 
-    def test_live_heartbeat_is_comment_only_not_routine_reactivation(self):
-        text = mod.SOURCE.read_text(encoding="utf-8")
-        self.assertIn("reason=empty-heartbeat-file", text)
-        self.assertNotIn("tasks:", text)
-        body = text.split("<!--", 1)
-        self.assertEqual(len(body), 2)
-        # Outside the title and the HTML comment, nothing may wake the model.
-        self.assertEqual([line for line in body[0].splitlines() if line.strip() and not line.startswith("#")], [])
-        self.assertTrue(text.rstrip().endswith("-->"))
+    def test_briefing_stays_outside_the_heartbeat(self):
+        self.assertNotIn("tasks:", mod.SOURCE.read_text(encoding="utf-8"))
         briefing = mod.BRIEFING_SOURCE.read_text(encoding="utf-8")
         for section in ("Météo", "État du système", "Calendriers",
                         "Messagerie", "Alertes", "Tâches"):

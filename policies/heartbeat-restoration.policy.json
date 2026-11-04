@@ -2,23 +2,24 @@
   "schema": "openclaw-heartbeat-restoration/v1",
   "source": "policies/LEGACY_HEARTBEAT_RECOVERY.md",
   "source_fidelity": "behavioral_inventory_only_private_original_not_in_repo",
-  "deployment": "candidate_not_applied",
+  "deployment": "applied_truenas",
   "native_heartbeat": {
-    "candidate": "policies/HEARTBEAT-RESTORED.candidate.md",
+    "scratch": "policies/HEARTBEAT.md",
+    "collector": "scripts/heartbeat/homelab-health.mjs",
+    "apply": "just truenas-apply-heartbeat",
     "required_settings": {
-      "every": "2h",
+      "agentId": "main",
+      "every": "1h",
+      "model": "litellm-main/gpt-4.1-mini",
       "lightContext": true,
       "isolatedSession": true,
-      "skipWhenBusy": true,
-      "target": "none",
+      "target": "owner",
       "activeHours": {
-        "start": "08:00",
-        "end": "22:00",
+        "start": "07:00",
+        "end": "23:00",
         "timezone": "Europe/Paris"
       }
-    },
-    "require_429_attribution_before_activation": true,
-    "cost_budget_verified": false
+    }
   },
   "recovered_capabilities": [
     {
@@ -36,8 +37,8 @@
     {
       "name": "homelab_health",
       "historical_interval": "1h",
-      "target": "native_task_2h_readonly",
-      "enabled": false
+      "target": "native_heartbeat_1h_collector",
+      "enabled": true
     },
     {
       "name": "gmail_triage",
@@ -106,5 +107,5 @@
       "enabled": false
     }
   ],
-  "migration_target": "truenas_unverified"
+  "migration_target": "truenas_active"
 }

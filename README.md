@@ -28,6 +28,33 @@ le lancer en production ni le pointer vers des répertoires de
 Placé à la racine, il garde le chemin `apps/openclaw/compose.yml`
 une fois ce dépôt monté en submodule `apps/openclaw`.
 
+## TrueNAS : heartbeat de santé du homelab
+
+Le heartbeat `main` tourne toutes les heures, de 7 h à 23 h, avec
+`gpt-4.1-mini`, sans historique ni fichiers de bootstrap. Il exécute
+`scripts/heartbeat/homelab-health.mjs`, qui interroge en lecture seule
+plusieurs sources :
+
+- Prometheus TrueNAS : alertes, cibles, CPU, RAM, disques, pools ZFS et
+  unités systemd de TrueNAS et de la Workstation ;
+- Gatus, Docker (via le socket proxy) et Scrutiny ;
+- la readiness des deux LiteLLM, base PostgreSQL comprise.
+
+Le heartbeat n'envoie un message Telegram que lorsqu'une anomalie
+apparaît ou disparaît, plus un récapitulatif par jour. L'état de
+déduplication est dans `state/nabla-heartbeat/`.
+
+| Source (ce dépôt) | Cible runtime |
+| --- | --- |
+| `scripts/heartbeat/homelab-health.mjs` | `state/workspace/scripts/homelab-health.mjs` |
+| `policies/HEARTBEAT.md` | monitor scratch du job `heartbeat:main` |
+| `deploy/truenas/openclaw.json` (`agents.defaults.heartbeat`) | `openclaw config set`, sans redémarrage |
+
+```bash
+just test
+just truenas-apply-heartbeat
+```
+
 ## Workstation : appliquer la configuration de ce dépôt
 
 Le Gateway ne lit pas Git au démarrage : un opérateur projette la

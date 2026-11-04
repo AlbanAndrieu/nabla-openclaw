@@ -12,6 +12,7 @@ ROOT = Path(__file__).resolve().parents[1]
 TARGET = "deploy/truenas/target-contract.json"
 HEARTBEAT = "policies/heartbeat-restoration.policy.json"
 CRON = "policies/cron/daily-tech-news-digest.policy.json"
+SEED = "deploy/truenas/openclaw.json"
 
 
 def repo_file(root, relative):
@@ -56,12 +57,16 @@ RULES = (
     ("compose_matches_contract", lambda t, hb, cron, root:
         compose_matches(root, t)),
     ("single_gateway_owner", lambda t, hb, cron, root: one_owner(t)),
-    ("heartbeat_candidate_not_applied", lambda t, hb, cron, root:
-        hb["deployment"] == "candidate_not_applied"
-        and hb["migration_target"] == "truenas_unverified"),
-    ("heartbeat_capabilities_all_disabled", lambda t, hb, cron, root:
-        bool(hb.get("recovered_capabilities"))
-        and not any(p.get("enabled") for p in hb["recovered_capabilities"])),
+    ("heartbeat_applied_as_seeded", lambda t, hb, cron, root:
+        hb["deployment"] == "applied_truenas"
+        and hb["migration_target"] == "truenas_active"
+        and repo_file(root, hb["native_heartbeat"]["scratch"])
+        and repo_file(root, hb["native_heartbeat"]["collector"])
+        and repo_file(root, SEED)
+        and json.loads((root / SEED).read_text(encoding="utf-8"))["agents"]["defaults"]["heartbeat"]
+        == hb["native_heartbeat"]["required_settings"]),
+    ("heartbeat_only_homelab_health_enabled", lambda t, hb, cron, root:
+        [p["name"] for p in hb["recovered_capabilities"] if p.get("enabled")] == ["homelab_health"]),
     ("digest_review_only_integer_top", lambda t, hb, cron, root:
         cron["lifecycle"] == "review_only_no_automatic_reconcile"
         and cron["parameters"]["ITEMS_PER_SECTION"] == "5"),
