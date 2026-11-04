@@ -20,8 +20,11 @@ Appelle l'outil `exec` une seule fois, avec `yieldMs` = 240000 et
 `timeout` = 240, et exactement cette commande :
 
 ```sh
-cd /home/node/.openclaw/workspace && date +%F && python3 skills/tech-news-digest/scripts/run-pipeline.py --defaults skills/tech-news-digest/config/defaults --config skills/tech-news-digest/workspace/config --hours 48 --freshness pd --archive-dir archive/tech-news-digest --output /tmp/td-merged.json --force --enrich --skip twitter > /tmp/td-pipeline.log 2>&1 && python3 skills/tech-news-digest/scripts/summarize-merged.py --input /tmp/td-merged.json --top 5 || { tail -n 20 /tmp/td-pipeline.log; exit 1; }
+cd /home/node/.openclaw/workspace && date +%F && python3 skills/tech-news-digest/scripts/run-pipeline.py --defaults skills/tech-news-digest/config/defaults --config skills/tech-news-digest/workspace/config --hours 48 --freshness pd --archive-dir archive/tech-news-digest --output /tmp/td-merged.json --force --enrich --skip twitter > /tmp/td-pipeline.log 2>&1 && python3 skills/tech-news-digest/scripts/summarize-merged.py --input /tmp/td-merged.json --top 5 > /tmp/td-summary.txt && grep -F 'pts) [' /tmp/td-summary.txt | cut -d']' -f3- | sed 's/^ /- [/; s/$/]/' > archive/tech-news-digest/daily-$(date +%F).md && cat /tmp/td-summary.txt || { tail -n 20 /tmp/td-pipeline.log; exit 1; }
 ```
+
+La commande archive aussi les titres retenus : le pipeline du lendemain
+pénalise ceux qui ont déjà été publiés.
 
 N'invente ni script ni option et n'écris pas de Python. Si la commande
 échoue, réponds `AUTOMATION_FAILED` suivi des dernières lignes affichées,
@@ -33,12 +36,15 @@ sans autre tentative.
 
 - titre `🚀 Tech Digest - <date affichée en première ligne>` ;
 - résumé de 2 à 4 phrases sur les 3 à 5 articles les mieux notés, sans lien ;
-- une section par topic (emoji et libellé), dans l'ordre de la sortie, avec
-  au plus 5 articles de score ≥ 5, chacun au format
+- une section par topic, dans l'ordre de la sortie, titrée exactement
+  `🧠 LLM / Large Models` (`llm`), `🤖 AI Agent` (`ai-agent`),
+  `💰 Cryptocurrency` (`crypto`) ou `🔬 Frontier Tech` (`frontier-tech`),
+  avec au plus 5 articles de score ≥ 5, chacun au format
   `• 🔥<score> | <résumé en une phrase> — [<source>](<lien>)` ;
 - pied : `📊 <total> articles fusionnés | tech-news-digest v3.16.0`.
 
-Pas de tableau ni de section supplémentaire.
+Pas de tableau, de section supplémentaire ni de liste d'articles hors des
+sections.
 
 ## 3. Livraison
 

@@ -42,7 +42,7 @@ configuration en cours d'exécution.
 | 01:00 | Velocity assessment | Rapport hebdomadaire ou quotidien isolé selon coût réel | Différé |
 | 04:00 | Brainstorm notes | Facultatif, sans accès automatique à notes privées, budget dédié | Différé |
 | 08:00 | Morning Briefing | `MORNING_BRIEFING.md` dédié, preuves horodatées, déclenchement isolé | Politique versionnée, job non créé |
-| 09:00 | Digest Discord | `daily-tech-news-digest.policy.json`, skill pin, résultat de validation avant livraison | Job existant, réconciliation non appliquée |
+| 09:00 | Digest Telegram | `daily-tech-news-digest.policy.json`, skill pin, résultat de validation avant livraison | Job TrueNAS actif, message appliqué à la main depuis `policies/cron/` |
 | Hebdo | QA base de connaissances et sécurité infra | Collecte deterministic + revue humaine | Proposé |
 
 **Aucune de ces cadences ne doit être copiée telle quelle dans
