@@ -32,11 +32,11 @@ configuration en cours d'exécution.
 | --- | --- | --- | --- |
 | 15 min | Workboard : tâches en cours, suivi et « continue work » | Collecte déterministe read-only ; action de travail séparée et autorisée | Proposée |
 | 30 min | Synchroniser CalDAV / vdirsyncer | Job système isolé avec ACL et surveillance d'échec, sans LLM | Non réactivé |
-| 1 h | Santé Gatus/Prometheus/ArgoCD/endpoints | Collecteurs déterministes et alerte sur changement, sans inférence périodique | Proposé |
+| 1 h | Santé Gatus/Prometheus/ArgoCD/endpoints | Collecteurs déterministes et alerte sur changement, sans inférence périodique | **Appliqué sur TrueNAS (4/11)** : `scripts/heartbeat/homelab-health.mjs`, relayé tel quel par le heartbeat `gpt-4.1-mini` |
 | 1 h | Triage Gmail | Identité Gmail autorisée **configurée en privé**, règles least privilege, pas de suppression automatique | Non réactivé |
 | 1 h | Notifications et WhatsApp sync | Collecteur indépendant, préservation des exclusions privées ; pas de contenu dans Git | Non réactivé |
 | 6 h | Nouvelles notes Obsidian / base de connaissances | Import limité aux dossiers allowlistés, aperçu avant écriture | Non réactivé |
-| 6 h | Doctor, disque, mémoire, health | `openclaw doctor` en **lecture seule** seulement ; aucun `--fix` | Proposé |
+| 6 h | Doctor, disque, mémoire, health | `openclaw doctor` en **lecture seule** seulement ; aucun `--fix` | Disque et mémoire couverts par la santé 1 h ; `doctor` non réactivé |
 | 12 h | Audit documentation et qualité | Git diff + analyses offline, changements via PR Draft | Proposé |
 | 12 h | Logs et insights Loki | Synthèse expurgée ; aucune remédiation mutable implicite | Proposé |
 | 01:00 | Velocity assessment | Rapport hebdomadaire ou quotidien isolé selon coût réel | Différé |
