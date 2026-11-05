@@ -24,6 +24,20 @@ test("an unreachable source keeps its anomalies instead of resolving them", asyn
   assert.equal(diff(prev, current, NOON).gone.length, 0);
 });
 
+test("hosts: a device mounted twice is reported once, at its shortest mountpoint", async () => {
+  const sample = (metric, v) => ({ metric, value: [0, String(v)] });
+  const get = async (url) => {
+    const q = decodeURIComponent(url.split("query=")[1]);
+    const result = q.startsWith("node_memory_MemTotal_bytes") ? [sample({}, 1)]
+      : q.includes(">= 85") ? [sample({ device: "/dev/vg/docker", mountpoint: "/var/lib/containerd" }, 90),
+        sample({ device: "/dev/vg/docker", mountpoint: "/docker" }, 90)]
+      : [];
+    return { data: { result } };
+  };
+  assert.deepEqual((await checks.hosts(get)).map(([, , text]) => text),
+    ["TrueNAS : disque /docker plein à 90 %", "Workstation : disque /docker plein à 90 %"]);
+});
+
 test("docker: crashed, unhealthy and restarting containers only", () => {
   const found = dockerAnomalies([
     { Names: ["/ok"], State: "running", Status: "Up 2 hours (healthy)", Health: { Status: "healthy" } },
