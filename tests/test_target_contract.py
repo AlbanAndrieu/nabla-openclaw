@@ -49,7 +49,8 @@ class Violations(unittest.TestCase):
         for name in (mod.TARGET, mod.HEARTBEAT, mod.CRON, "deploy/truenas/compose.yml",
                      "policies/cron/daily-tech-news-digest.message.md",
                      "policies/LEGACY_HEARTBEAT_RECOVERY.md", mod.SEED, "policies/HEARTBEAT.md",
-                     "scripts/heartbeat/homelab-health.mjs"):
+                     "scripts/heartbeat/homelab-health.mjs", "policies/cron/morning-briefing.message.md",
+                     "scripts/heartbeat/morning-briefing.mjs"):
             (Path(directory) / name).parent.mkdir(parents=True, exist_ok=True)
             shutil.copy(ROOT / name, Path(directory) / name)
         return Path(directory)

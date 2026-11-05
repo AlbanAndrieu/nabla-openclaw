@@ -11,7 +11,7 @@ Monitor scratch du heartbeat TrueNAS, appliqué par `just truenas-apply-heartbea
 Le collecteur (scripts/heartbeat/homelab-health.mjs) lit en lecture seule Prometheus
 (alertes, cibles, CPU, RAM, disques, pools ZFS, services systemd), Gatus, Docker,
 Scrutiny et la readiness LiteLLM (TrueNAS et Workstation, base PostgreSQL comprise).
-Il ne signale que les anomalies nouvelles ou résolues, plus un récapitulatif par jour.
+Il ne signale que les anomalies nouvelles ou résolues ; celles en cours sont
+listées chaque matin par le job morning-briefing (policies/cron/morning-briefing.message.md).
 Aucune réparation, aucun autre outil, aucun secret ni log brut dans la réponse.
-Le briefing du matin reste dans policies/MORNING_BRIEFING.md, hors heartbeat.
 -->

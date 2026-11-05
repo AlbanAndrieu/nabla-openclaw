@@ -65,8 +65,10 @@ RULES = (
         and repo_file(root, SEED)
         and json.loads((root / SEED).read_text(encoding="utf-8"))["agents"]["defaults"]["heartbeat"]
         == hb["native_heartbeat"]["required_settings"]),
-    ("heartbeat_only_homelab_health_enabled", lambda t, hb, cron, root:
-        [p["name"] for p in hb["recovered_capabilities"] if p.get("enabled")] == ["homelab_health"]),
+    ("only_reviewed_capabilities_enabled", lambda t, hb, cron, root:
+        [p["name"] for p in hb["recovered_capabilities"] if p.get("enabled")] == ["homelab_health", "morning_briefing"]
+        and all(repo_file(root, p[field]) for p in hb["recovered_capabilities"]
+                if p["name"] == "morning_briefing" for field in ("message", "collector"))),
     ("digest_review_only_integer_top", lambda t, hb, cron, root:
         cron["lifecycle"] == "review_only_no_automatic_reconcile"
         and cron["parameters"]["ITEMS_PER_SECTION"] == "5"),

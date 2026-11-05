@@ -1,25 +1,17 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { checks, collect, diff, dockerAnomalies, recapDue, render } from "./homelab-health.mjs";
+import { checks, collect, diff, dockerAnomalies, render } from "./homelab-health.mjs";
 
 const NOON = Date.parse("2026-11-04T11:00:00Z");
 
 test("only changes are reported, then silence", () => {
   const first = diff({}, [["gatus:a", "warn", "Sonde a en échec"]], NOON);
-  assert.match(render(first, false, NOON), /Nouveau \(1\)\n🟠 Sonde a en échec/);
+  assert.match(render(first, NOON), /Nouveau \(1\)\n🟠 Sonde a en échec/);
   const second = diff({ seen: first.seen }, [["gatus:a", "warn", "Sonde a en échec"]], NOON + 1);
-  assert.equal(render(second, false, NOON + 1), "NO_REPLY");
+  assert.equal(render(second, NOON + 1), "NO_REPLY");
   assert.equal(second.seen["gatus:a"].since, NOON);
   const third = diff({ seen: second.seen }, [], NOON + 2);
-  assert.match(render(third, false, NOON + 2), /Résolu \(1\)\n✅ Sonde a en échec/);
-});
-
-test("daily recap lists ongoing anomalies once per Paris day, after 08:00", () => {
-  const { seen } = diff({}, [["smart:x", "crit", "Disque sda"]], NOON);
-  assert.match(render(diff({ seen }, [["smart:x", "crit", "Disque sda"]], NOON), true, NOON), /Toujours en cours \(1\)\n🔴 Disque sda/);
-  assert.equal(recapDue({ recapDay: "2026-11-04" }, NOON), false);
-  assert.equal(recapDue({ recapDay: "2026-11-03" }, NOON), true);
-  assert.equal(recapDue({}, Date.parse("2026-11-04T06:00:00Z")), false);
+  assert.match(render(third, NOON + 2), /Résolu \(1\)\n✅ Sonde a en échec/);
 });
 
 test("an unreachable source keeps its anomalies instead of resolving them", async (t) => {

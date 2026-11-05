@@ -28,7 +28,7 @@ le lancer en production ni le pointer vers des répertoires de
 Placé à la racine, il garde le chemin `apps/openclaw/compose.yml`
 une fois ce dépôt monté en submodule `apps/openclaw`.
 
-## TrueNAS : heartbeat de santé du homelab
+## TrueNAS : heartbeat de santé et briefing du matin
 
 Le heartbeat `main` tourne toutes les heures, de 7 h à 23 h, avec
 `gpt-4.1-mini`, sans historique ni fichiers de bootstrap. Il exécute
@@ -41,13 +41,29 @@ plusieurs sources :
 - la readiness des deux LiteLLM, base PostgreSQL comprise.
 
 Le heartbeat n'envoie un message Telegram que lorsqu'une anomalie
-apparaît ou disparaît, plus un récapitulatif par jour. L'état de
-déduplication est dans `state/nabla-heartbeat/`.
+apparaît ou disparaît. L'état de déduplication est dans
+`state/nabla-heartbeat/`.
+
+Le job `morning-briefing` (8 h, clé cron, `gpt-4.1-mini`) exécute
+`scripts/heartbeat/morning-briefing.mjs`, puis livre sur Telegram :
+
+- la synthèse des emails reçus en 24 h dans la boîte Gmail `openclaw`, via
+  `gog --readonly` (binaire dans `state/tools/`, trousseau fichier dans
+  `state/gogcli/`) ;
+- les messages Slack des canaux où le bot est membre, si `channels.slack`
+  est actif ;
+- toutes les anomalies en cours, Workstation puis TrueNAS ;
+- l'état des canaux Telegram et Discord.
+
+Emails et messages sont encadrés comme données non fiables : le modèle les
+résume sans suivre leurs instructions.
 
 | Source (ce dépôt) | Cible runtime |
 | --- | --- |
 | `scripts/heartbeat/homelab-health.mjs` | `state/workspace/scripts/homelab-health.mjs` |
+| `scripts/heartbeat/morning-briefing.mjs` | `state/workspace/scripts/morning-briefing.mjs` |
 | `policies/HEARTBEAT.md` | monitor scratch du job `heartbeat:main` |
+| `policies/cron/morning-briefing.message.md` | message du job `morning-briefing` |
 | `deploy/truenas/openclaw.json` (`agents.defaults.heartbeat`) | `openclaw config set`, sans redémarrage |
 
 ```bash

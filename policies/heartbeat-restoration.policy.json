@@ -91,8 +91,10 @@
     {
       "name": "morning_briefing",
       "historical_interval": "08:00",
-      "target": "MORNING_BRIEFING.md_isolated",
-      "enabled": false
+      "target": "isolated_cron_job_collector",
+      "message": "policies/cron/morning-briefing.message.md",
+      "collector": "scripts/heartbeat/morning-briefing.mjs",
+      "enabled": true
     },
     {
       "name": "daily_tech_digest",

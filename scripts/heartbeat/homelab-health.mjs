@@ -1,18 +1,18 @@
 #!/usr/bin/env node
 // Homelab health collector for the OpenClaw heartbeat (TrueNAS and Workstation).
-// Read-only HTTP probes. Prints NO_REPLY unless an anomaly appeared or cleared,
-// or the daily recap is due; the model only relays this text.
+// Read-only HTTP probes. Prints NO_REPLY unless an anomaly appeared or cleared;
+// the model only relays this text. Ongoing anomalies go to the morning briefing.
 import { mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { pathToFileURL } from "node:url";
 
 const TRUENAS = "172.17.0.24";
-const WORKSTATION = "172.17.0.57";
+export const WORKSTATION = "172.17.0.57";
 const PROM = `http://${TRUENAS}:9090`;
 const HOSTS = { TrueNAS: 'job="truenas_node"', Workstation: `instance="${WORKSTATION}:9100"` };
 const FS = 'fstype!~"tmpfs|devtmpfs|overlay|squashfs|ramfs|nsfs|tracefs|fusectl|autofs"';
 const LITELLM = { TrueNAS: "http://litellm:4000", Workstation: `http://${WORKSTATION}:4000` };
-const STATE = process.env.HOMELAB_HEALTH_STATE
+export const STATE = process.env.HOMELAB_HEALTH_STATE
   ?? join(process.env.HOME ?? ".", ".openclaw/nabla-heartbeat/homelab-health.json");
 const ICON = { crit: "🔴", warn: "🟠", unknown: "⚪" };
 const RANK = { crit: 0, warn: 1, unknown: 2 };
@@ -141,25 +141,23 @@ export function diff(prev, current, now) {
   return { seen, fresh, gone, ongoing };
 }
 
-const parisDay = (now) => new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Paris" }).format(now);
-const parisHour = (now) => Number(new Intl.DateTimeFormat("en-GB", { timeZone: "Europe/Paris", hour: "2-digit", hourCycle: "h23" }).format(now));
-export const recapDue = (prev, now) => parisHour(now) >= 8 && prev.recapDay !== parisDay(now);
+export function listLines(items, icon, max = MAX_LINES) {
+  const sorted = [...items].sort((a, b) => RANK[a.sev] - RANK[b.sev]);
+  const lines = sorted.slice(0, max).map((item) => `${icon ?? ICON[item.sev]} ${item.text}`);
+  if (items.length > max) lines.push(`… et ${items.length - max} autres`);
+  return lines;
+}
 
-export function render({ fresh, gone, ongoing }, recap, now) {
-  if (!fresh.length && !gone.length && !(recap && ongoing.length)) return "NO_REPLY";
+export function render({ fresh, gone, ongoing }, now) {
+  if (!fresh.length && !gone.length) return "NO_REPLY";
   const stamp = new Date(now).toLocaleString("fr-FR", { timeZone: "Europe/Paris", dateStyle: "short", timeStyle: "short" });
   const lines = [`🩺 Homelab, ${stamp}`];
   const section = (title, items, icon) => {
-    if (!items.length) return;
-    lines.push("", `${title} (${items.length})`);
-    const sorted = [...items].sort((a, b) => RANK[a.sev] - RANK[b.sev]);
-    for (const item of sorted.slice(0, MAX_LINES)) lines.push(`${icon ?? ICON[item.sev]} ${item.text}`);
-    if (items.length > MAX_LINES) lines.push(`… et ${items.length - MAX_LINES} autres`);
+    if (items.length) lines.push("", `${title} (${items.length})`, ...listLines(items, icon));
   };
   section("Nouveau", fresh);
   section("Résolu", gone, "✅");
-  if (recap) section("Toujours en cours", ongoing);
-  else if (ongoing.length) lines.push("", `Toujours en cours : ${ongoing.length} (détail dans le récapitulatif quotidien)`);
+  if (ongoing.length) lines.push("", `Toujours en cours : ${ongoing.length} (détail dans le briefing du matin)`);
   return lines.join("\n");
 }
 
@@ -172,10 +170,9 @@ async function main() {
     // First run or unreadable state: every current anomaly is reported as new.
   }
   const changes = diff(prev, await collect(prev), now);
-  const recap = recapDue(prev, now);
-  console.log(render(changes, recap, now));
+  console.log(render(changes, now));
   mkdirSync(dirname(STATE), { recursive: true, mode: 0o700 });
-  writeFileSync(`${STATE}.tmp`, JSON.stringify({ seen: changes.seen, recapDay: recap ? parisDay(now) : prev.recapDay }), { mode: 0o600 });
+  writeFileSync(`${STATE}.tmp`, JSON.stringify({ seen: changes.seen }), { mode: 0o600 });
   renameSync(`${STATE}.tmp`, STATE);
 }
 
