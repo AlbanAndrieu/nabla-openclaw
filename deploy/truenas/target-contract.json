@@ -53,6 +53,7 @@
   },
   "rollback": {
     "method": "stop_truenas_app_then_systemctl_user_enable_now_workstation_gateway",
-    "tested": false
+    "tested": true,
+    "tested_on": "2026-11-01"
   }
 }

@@ -42,7 +42,15 @@
       "modelPolicy": {
         "allow": ["litellm-main/gpt-4.1", "litellm-main/gpt-4.1-mini", "litellm-cron/gpt-4.1-mini"]
       },
-      "heartbeat": { "agentId": "main" }
+      "heartbeat": {
+        "agentId": "main",
+        "every": "1h",
+        "model": "litellm-main/gpt-4.1-mini",
+        "lightContext": true,
+        "isolatedSession": true,
+        "target": "owner",
+        "activeHours": { "start": "07:00", "end": "23:00", "timezone": "Europe/Paris" }
+      }
     },
     "ownership": "explicit",
     "entries": {

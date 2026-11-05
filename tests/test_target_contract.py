@@ -11,13 +11,11 @@ spec=importlib.util.spec_from_file_location("target",path)
 mod=importlib.util.module_from_spec(spec);spec.loader.exec_module(mod)
 
 class Boundary(unittest.TestCase):
-    def test_heartbeat_candidate_is_bounded_and_inactive(self):
-        candidate = (ROOT / "policies/HEARTBEAT-RESTORED.candidate.md").read_text()
-        self.assertIn("3 anomalies prioritaires", candidate)
-        self.assertIn("UNKNOWN / NOT_VERIFIED", candidate)
-        self.assertIn("HEARTBEAT_OK", candidate)
-        self.assertNotIn("\ntasks:\n", candidate)
-        self.assertIn("CANDIDAT INACTIF", candidate)
+    def test_heartbeat_scratch_only_relays_the_collector(self):
+        scratch = (ROOT / "policies/HEARTBEAT.md").read_text()
+        self.assertIn("`node /home/node/.openclaw/workspace/scripts/homelab-health.mjs`", scratch)
+        self.assertIn("réponds `NO_REPLY`", scratch)
+        self.assertNotIn("\ntasks:\n", scratch)
 
     def test_target_is_not_source(self):
         self.assertTrue(mod.validate())
@@ -27,16 +25,20 @@ class Boundary(unittest.TestCase):
                          {"source": "env", "provider": "default", "id": "OPENCLAW_GATEWAY_TOKEN"})
         keys = {p["apiKey"]["id"] for p in seed["models"]["providers"].values()}
         self.assertEqual(keys, {"LITELLM_OPENCLAW_MAIN_API_KEY", "LITELLM_OPENCLAW_CRON_API_KEY"})
-        self.assertEqual(seed["agents"]["defaults"]["heartbeat"], {"agentId": "main"})
+        heartbeat = seed["agents"]["defaults"]["heartbeat"]
+        self.assertIn(heartbeat["model"], seed["agents"]["defaults"]["modelPolicy"]["allow"])
+        # Main key, cheap model, no session history: a few thousand tokens per hourly run.
+        self.assertTrue(heartbeat["isolatedSession"] and heartbeat["lightContext"])
         # Channel allowlists hold personal identifiers: applied by CLI, never in Git.
         self.assertNotIn("channels", seed)
         self.assertNotIn("bindings", seed)
         # Discord stays off until its native admission is attested (docs/roadmap.md).
         self.assertFalse(seed["plugins"]["entries"]["discord"]["enabled"])
         self.assertIn('DISCORD_BOT_TOKEN: ""', (ROOT/"deploy/truenas/compose.yml").read_text())
-    def test_target_models_and_rollback_unverified(self):
+    def test_target_models_and_rollback_tested(self):
         t=__import__("json").loads((ROOT/"deploy/truenas/target-contract.json").read_text())
-        self.assertFalse(t["rollback"]["tested"])
+        # Exercised for real when the 1 November cutover was rolled back.
+        self.assertTrue(t["rollback"]["tested"])
         self.assertTrue(t["target"]["image_digest"].startswith("sha256:"))
         self.assertTrue(t["gates"]["manual_cutover_required"])
         self.assertEqual(t["submodule"]["path"],"apps/openclaw")
@@ -46,7 +48,9 @@ class Violations(unittest.TestCase):
     def copy(self, directory):
         for name in (mod.TARGET, mod.HEARTBEAT, mod.CRON, "deploy/truenas/compose.yml",
                      "policies/cron/daily-tech-news-digest.message.md",
-                     "policies/LEGACY_HEARTBEAT_RECOVERY.md"):
+                     "policies/LEGACY_HEARTBEAT_RECOVERY.md", mod.SEED, "policies/HEARTBEAT.md",
+                     "scripts/heartbeat/homelab-health.mjs", "policies/cron/morning-briefing.message.md",
+                     "scripts/heartbeat/morning-briefing.mjs"):
             (Path(directory) / name).parent.mkdir(parents=True, exist_ok=True)
             shutil.copy(ROOT / name, Path(directory) / name)
         return Path(directory)

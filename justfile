@@ -4,6 +4,11 @@ default:
 
 test:
     python3 -m unittest discover -s tests -p 'test_*.py' -v
+    node --test scripts/heartbeat/*.test.mjs
+
+# TrueNAS heartbeat and morning briefing <- this checkout: collectors, scratch, config and cron job, no restart.
+truenas-apply-heartbeat:
+    scripts/heartbeat/apply-truenas.sh
 
 plan:
     python3 scripts/check-target-contract.py
