@@ -32,7 +32,8 @@
     "ITEMS_PER_SECTION": "5",
     "ENRICH": true,
     "LANGUAGE": "French",
-    "SOURCES": "rss,github,trending,reddit,web"
+    "SOURCES": "freshrss,github,trending,reddit,web",
+    "FRESHRSS_CATEGORIES": ["LLM", "AI Agent", "Crypto", "Frontier Tech"]
   },
   "delivery": {
     "channel": "telegram",
