@@ -10,7 +10,8 @@
 Monitor scratch du heartbeat TrueNAS, appliqué par `just truenas-apply-heartbeat`.
 Le collecteur (scripts/heartbeat/homelab-health.mjs) lit en lecture seule Prometheus
 (alertes, cibles, CPU, RAM, disques, pools ZFS, services systemd), Gatus, Docker,
-Scrutiny et la readiness LiteLLM (TrueNAS et Workstation, base PostgreSQL comprise).
+Scrutiny, la readiness LiteLLM (TrueNAS et Workstation, base PostgreSQL comprise)
+et la santé de postgres et redis sur la Workstation.
 Il vérifie également un instantané **privé et local** du budget Fluid Active
 CPU Vercel de l'équipe (seuils 50/75/90 %), jamais directement l'API Vercel :
 un fichier absent, invalide ou périmé est signalé comme preuve insuffisante.
