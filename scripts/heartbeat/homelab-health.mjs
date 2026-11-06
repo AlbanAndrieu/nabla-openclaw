@@ -106,6 +106,24 @@ export const checks = {
     return Object.entries(data.summary).filter(([, s]) => s.device.device_status !== 0)
       .map(([wwn, { device: d }]) => [`smart:${wwn}`, "crit", `Disque ${d.device_name} (${d.model_name}) : SMART en échec (Scrutiny)`]);
   },
+  async services(get) {
+    const sel = HOSTS.Workstation;
+    const [health, [age], [up]] = await Promise.all([
+      query(get, `workstation_container_healthy{${sel}}`),
+      query(get, `time() - node_textfile_mtime_seconds{${sel},file=~".*/docker-health.prom"}`),
+      query(get, `up{${sel}}`),
+    ]);
+    // An exporter that is down is already reported by the hosts check.
+    if (!health.length) {
+      return value(up) === 1 ? [["services:Workstation:missing", "unknown", "Workstation : santé de postgres et redis non collectée"]] : [];
+    }
+    // The timer rewrites the file every minute: older values say nothing.
+    if (value(age) > 300) {
+      return [["services:Workstation:stale", "unknown", `Workstation : santé de postgres et redis figée depuis ${Math.round(value(age) / 60)} min`]];
+    }
+    return health.filter((s) => value(s) < 1)
+      .map((s) => [`services:Workstation:${s.metric.container}`, "warn", `Workstation : conteneur ${s.metric.container} arrêté ou non sain`]);
+  },
   async litellm(get) {
     const out = [];
     for (const [host, base] of Object.entries(LITELLM)) {

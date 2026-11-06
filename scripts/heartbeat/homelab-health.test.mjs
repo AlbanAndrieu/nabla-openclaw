@@ -38,6 +38,22 @@ test("hosts: a device mounted twice is reported once, at its shortest mountpoint
     ["TrueNAS : disque /docker plein à 90 %", "Workstation : disque /docker plein à 90 %"]);
 });
 
+test("services: Workstation postgres and redis health, stale or missing file", async () => {
+  const sample = (metric, v) => ({ metric, value: [0, String(v)] });
+  const fake = ({ health, age = 30, up = 1 }) => async (url) => {
+    const q = decodeURIComponent(url.split("query=")[1]);
+    const result = q.startsWith("workstation_container_healthy") ? health
+      : q.startsWith("time()") ? [sample({}, age)] : [sample({}, up)];
+    return { data: { result } };
+  };
+  const texts = async (opts) => (await checks.services(fake(opts))).map(([, , text]) => text);
+  const both = [sample({ container: "postgres" }, 1), sample({ container: "redis" }, 0)];
+  assert.deepEqual(await texts({ health: both }), ["Workstation : conteneur redis arrêté ou non sain"]);
+  assert.deepEqual(await texts({ health: both, age: 900 }), ["Workstation : santé de postgres et redis figée depuis 15 min"]);
+  assert.deepEqual(await texts({ health: [] }), ["Workstation : santé de postgres et redis non collectée"]);
+  assert.deepEqual(await texts({ health: [], up: 0 }), []);
+});
+
 test("docker: crashed, unhealthy and restarting containers only", () => {
   const found = dockerAnomalies([
     { Names: ["/ok"], State: "running", Status: "Up 2 hours (healthy)", Health: { Status: "healthy" } },

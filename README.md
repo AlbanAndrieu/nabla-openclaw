@@ -38,7 +38,10 @@ plusieurs sources :
 - Prometheus TrueNAS : alertes, cibles, CPU, RAM, disques, pools ZFS et
   unités systemd de TrueNAS et de la Workstation ;
 - Gatus, Docker (via le socket proxy) et Scrutiny ;
-- la readiness des deux LiteLLM, base PostgreSQL comprise.
+- la readiness des deux LiteLLM, base PostgreSQL comprise ;
+- la santé de postgres et redis sur la Workstation
+  (`workstation_container_healthy`, textfile écrit chaque minute par
+  ansible-workstation).
 
 Le heartbeat n'envoie un message Telegram que lorsqu'une anomalie
 apparaît ou disparaît. L'état de déduplication est dans
