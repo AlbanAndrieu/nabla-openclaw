@@ -26,11 +26,13 @@ aucun autre outil et ne recopie aucun lien.
 En français, en Markdown simple, sans tableau :
 
 - titre `☀️ Briefing du <DATE de la sortie>` ;
-- `📥 Emails` : 2 ou 3 phrases de synthèse, puis au plus 5 puces
-  `À traiter` au format `expéditeur — objet`. Ignore les promotions, réseaux
-  et notifications, sauf facture, sécurité, échéance ou demande explicite.
-  Sans email : `Rien de nouveau`. Si la section commence par `⚪`, recopie
-  cette ligne ;
+- `📥 Emails` : si la section commence par `⚪`, recopie cette ligne ; si
+  elle ne contient aucun email, écris `Rien depuis 24 h`. Sinon, écris
+  toujours 2 ou 3 phrases de synthèse (combien d'emails, de qui, sur quoi),
+  même si tous sont des promotions ou des notifications. Ajoute ensuite au
+  plus 5 puces `À traiter` au format `expéditeur — objet`, sans promotions,
+  réseaux ni notifications, sauf facture, sécurité, rendez-vous, échéance ou
+  demande explicite. Sans puce, écris `À traiter : rien` ;
 - `💬 Slack` : une puce par canal actif, en une phrase, au plus 5 puces ;
   sinon, recopie la ligne de la section SLACK ;
 - `🩺 Homelab` : recopie les lignes de la section INFRA telles quelles, sans
