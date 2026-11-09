@@ -24,7 +24,9 @@ class Boundary(unittest.TestCase):
         self.assertEqual(seed["gateway"]["auth"]["token"],
                          {"source": "env", "provider": "default", "id": "OPENCLAW_GATEWAY_TOKEN"})
         keys = {p["apiKey"]["id"] for p in seed["models"]["providers"].values()}
-        self.assertEqual(keys, {"LITELLM_OPENCLAW_MAIN_API_KEY", "LITELLM_OPENCLAW_CRON_API_KEY"})
+        # One scoped LiteLLM virtual key per agent (coder: docs/coder-agent.md).
+        self.assertEqual(keys, {"LITELLM_OPENCLAW_MAIN_API_KEY", "LITELLM_OPENCLAW_CRON_API_KEY",
+                                "LITELLM_OPENCLAW_CODER_API_KEY"})
         heartbeat = seed["agents"]["defaults"]["heartbeat"]
         self.assertIn(heartbeat["model"], seed["agents"]["defaults"]["modelPolicy"]["allow"])
         # Main key, cheap model, no session history: a few thousand tokens per hourly run.

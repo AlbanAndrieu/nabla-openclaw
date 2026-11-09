@@ -1,0 +1,134 @@
+# OpenClaw coder devbox on TrueNAS, installed as a Custom App whose wrapper is:
+#   include: [/mnt/cpool/compose/nabla-compose/apps/openclaw/deploy/truenas/devbox/compose.yml]
+# The Gateway agent `coder` drives it through the `ssh` sandbox backend
+# (docs/coder-agent.md). Deploy this App before the Gateway joins `openclaw-devbox`.
+# No published port, no Docker socket, no Gateway/LiteLLM/channel credentials.
+name: openclaw-devbox
+services:
+  openclaw-devbox:
+    build:
+      context: .
+      args:
+        # Pin with @sha256 before contract.json moves to "active" (just devbox-pin).
+        PYTHON_IMAGE: python:3.13-slim-trixie
+    image: nabla/openclaw-devbox:0.1.0
+    container_name: openclaw-devbox
+    x-nabla:
+      id: openclaw-devbox
+      name: OpenClaw Coder Devbox
+      kind: development-environment
+      category: ai
+      presentationRole: support
+      criticality: low
+      status: planned
+      description: SSH sandbox of the OpenClaw agent coder for fastapi-sample (clone, tests, Draft PRs).
+      runtime:
+        provider: truenas-app
+        containerService: openclaw-devbox
+      relations:
+        - target: openclaw-gateway
+          type: consumedBy
+          strength: required
+          description: The Gateway runs the coder agent tools here over SSH.
+          evidence:
+            - deploy/truenas/openclaw.json:agents.entries.coder.sandbox
+        - target: openclaw-devbox-egress
+          type: dependsOn
+          strength: required
+          description: Only egress route (GitHub and PyPI over HTTPS).
+    labels:
+      com.albandrieu.nabla.entity-ref: component:default/openclaw-devbox
+    restart: unless-stopped
+    user: "1001:1001"
+    read_only: true
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 512
+    mem_limit: 3g
+    cpus: 2.0
+    environment:
+      TZ: Europe/Paris
+      DEVBOX_GIT_NAME: openclaw-coder
+      DEVBOX_GIT_EMAIL: openclaw-coder@users.noreply.github.com
+    volumes:
+      - type: bind
+        source: /mnt/cpool/openclaw-devbox/home
+        target: /home/coder
+        bind:
+          create_host_path: false
+      - type: bind
+        source: /mnt/cpool/openclaw-devbox/sshd
+        target: /etc/openclaw-devbox
+        read_only: true
+        bind:
+          create_host_path: false
+    secrets:
+      - source: github_token
+        target: github_token
+    tmpfs:
+      - /tmp:size=2g,mode=1777
+    networks: [devbox]
+    depends_on: [openclaw-devbox-egress]
+    healthcheck:
+      test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/2222"]
+      interval: 30s
+      timeout: 5s
+      start_period: 20s
+      retries: 3
+
+  openclaw-devbox-egress:
+    build:
+      context: egress
+      args:
+        # Pin with @sha256 before contract.json moves to "active" (just devbox-pin).
+        DEBIAN_IMAGE: debian:trixie-slim
+    image: nabla/openclaw-devbox-egress:0.1.0
+    container_name: openclaw-devbox-egress
+    x-nabla:
+      id: openclaw-devbox-egress
+      name: OpenClaw Devbox Egress
+      kind: forward-proxy
+      category: network
+      presentationRole: support
+      criticality: low
+      status: planned
+      description: Squid allowlist (GitHub, PyPI; HTTPS CONNECT only) for the coder devbox.
+      runtime:
+        provider: truenas-app
+        containerService: openclaw-devbox-egress
+    labels:
+      com.albandrieu.nabla.entity-ref: component:default/openclaw-devbox-egress
+    restart: unless-stopped
+    user: "13:13"
+    read_only: true
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 64
+    mem_limit: 256m
+    cpus: 0.5
+    tmpfs:
+      - /tmp:size=64m,mode=1777
+      - /var/spool/squid:size=16m,uid=13,gid=13,mode=0700
+      - /run/squid:size=1m,uid=13,gid=13,mode=0700
+    networks: [devbox, egress]
+    healthcheck:
+      test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/3128"]
+      interval: 30s
+      timeout: 5s
+      start_period: 10s
+      retries: 3
+
+secrets:
+  github_token:
+    # Fine-grained PAT: AlbanAndrieu/fastapi-sample only, Contents + Pull requests RW,
+    # no Workflows/Administration. Owner 1001:1001, mode 0400. Never in Git.
+    file: /mnt/cpool/secrets/runtime/openclaw-devbox/github_token
+
+networks:
+  devbox:
+    name: openclaw-devbox
+    internal: true
+  egress:
+    name: openclaw-devbox-egress

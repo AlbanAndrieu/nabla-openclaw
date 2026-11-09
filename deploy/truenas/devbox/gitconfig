@@ -1,0 +1,11 @@
+# System Git config of the coder devbox (read-only image layer).
+[credential "https://github.com"]
+	helper =
+	helper = /usr/local/bin/git-credential-devbox
+[url "https://github.com/"]
+	insteadOf = git@github.com:
+	insteadOf = ssh://git@github.com/
+[init]
+	defaultBranch = master
+[push]
+	autoSetupRemote = true
