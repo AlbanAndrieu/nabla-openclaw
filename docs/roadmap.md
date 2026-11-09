@@ -19,6 +19,29 @@ Runbook : [FinOps Vercel](vercel-finops.md). Ce lot ne modifie ni l'état du Gat
 - [PR Compose #295](https://github.com/AlbanAndrieu/nabla-compose/pull/295) **fusionnée** : scripts diagnostiques Workstation/TrueNAS et 14 artefacts non secrets relocalisés temporairement dans `ops/openclaw-workstation/`. L'ancien `apps/openclaw/` contient encore **4 fichiers sandbox**, pas 18 (historique avant relocation).
 - Gateway actuel Workstation conservé ; les vérifications d'un runtime Gateway TrueNAS, du heartbeat natif, des agents et des quotas ne sont **pas attestées**. GPT-4.1/mini sont servis par TrueNAS depuis le 31/10 (relais vers la Workstation, voir P0.4).
 
+## P1 complémentaire — FinOps Vercel partagé (9 novembre 2026)
+
+- [x] **Contrat d'analyse CPU hors réseau :** `scripts/finops/vercel-usage-budget.mjs`
+  partagé avec Site Alban et Bababou ; refus des coûts en USD, unités et
+  périodes non vérifiées, seuils 50/75/90 %, sortie `NOT_MEASURED` par défaut.
+- [x] **CLI opérateur en lecture seule :** `scripts/finops/vercel-check.mjs`
+  appelle `vercel usage` **uniquement sur `--live`**, avec portée fixe
+  `albanandrieus-projects`, délai 20 s, et résultat expurgé.
+- [x] **Briefing facultatif :** `VERCEL_FINOPS_REPORT` ajoute une synthèse
+  contrôlée (âge inférieur à 36 h) au briefing existant ; aucun secret
+  Vercel, nouveau cron ou appel réseau au heartbeat.
+- [ ] **Preuve L3 et exploitation :** après fusion, `just test` sous le
+  Node du Gateway, export JSON Vercel authentifié valide sur 30 jours,
+  installation privée de l'instantané et test du briefing. **Aucune métrique
+  réelle n'a encore été collectée**, aucun job Vercel activé.
+- [ ] **Étape ultérieure :** suivi des autres quotas (mémoire, invocations),
+  déduplication des alertes et éventuel déclenchement quotidien explicite,
+  seulement après validation du format réel et de la frontière de secrets.
+
+Runbook : [Vercel FinOps](vercel-finops.md). Les pages de demande de documents
+et le registre public restent dans `nabla-site-bababou` ; OpenClaw ne
+collecte pas les données de demande privées ni les preuves OpenRAG.
+
 ## P0 — gates avant tout transfert de runtime
 
 | Ordre | Action | Gate de fermeture | Statut |
