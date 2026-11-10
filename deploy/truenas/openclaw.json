@@ -37,7 +37,7 @@
         "api": "openai-completions",
         "apiKey": { "source": "file", "provider": "litellm-coder-key", "id": "value" },
         "models": [
-          { "id": "gpt-4.1", "name": "GPT-41 (Azure)", "input": ["text", "image"], "contextWindow": 128000, "maxTokens": 16384 }
+          { "id": "gpt-4.1", "name": "GPT-41 (Azure)", "input": ["text", "image"], "contextWindow": 128000, "maxTokens": 16384, "compat": { "supportsUsageInStreaming": true } }
         ]
       }
     }
