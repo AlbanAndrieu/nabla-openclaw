@@ -124,6 +124,22 @@ export const checks = {
     return health.filter((s) => value(s) < 1)
       .map((s) => [`services:Workstation:${s.metric.container}`, "warn", `Workstation : conteneur ${s.metric.container} arrêté ou non sain`]);
   },
+  // Restic touches /var/lib/restic/last-success.prom after each successful nightly
+  // backup; node_exporter exports its mtime. Zabbix alerts at 26 h too.
+  async backup(get) {
+    const sel = HOSTS.Workstation;
+    const [[age], [up]] = await Promise.all([
+      query(get, `time() - node_textfile_mtime_seconds{${sel},file=~".*/last-success.prom"}`),
+      query(get, `up{${sel}}`),
+    ]);
+    if (!age) {
+      return value(up) === 1 ? [["backup:Workstation:missing", "unknown", "Workstation : aucune sauvegarde Restic réussie connue"]] : [];
+    }
+    const hours = value(age) / 3600;
+    if (hours <= 26) return [];
+    return [["backup:Workstation:stale", hours > 72 ? "crit" : "warn",
+      `Workstation : dernière sauvegarde Restic réussie il y a ${Math.round(hours)} h`]];
+  },
   async litellm(get) {
     const out = [];
     for (const [host, base] of Object.entries(LITELLM)) {

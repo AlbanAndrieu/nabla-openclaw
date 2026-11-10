@@ -54,6 +54,21 @@ test("services: Workstation postgres and redis health, stale or missing file", a
   assert.deepEqual(await texts({ health: [], up: 0 }), []);
 });
 
+test("backup: Workstation Restic freshness from the textfile mtime", async () => {
+  const sample = (v) => ({ metric: {}, value: [0, String(v)] });
+  const fake = ({ age, up = 1 }) => async (url) => {
+    const q = decodeURIComponent(url.split("query=")[1]);
+    const result = q.startsWith("time()") ? (age === undefined ? [] : [sample(age)]) : [sample(up)];
+    return { data: { result } };
+  };
+  const found = async (opts) => (await checks.backup(fake(opts))).map(([, sev, text]) => [sev, text]);
+  assert.deepEqual(await found({ age: 3 * 3600 }), []);
+  assert.deepEqual(await found({ age: 30 * 3600 }), [["warn", "Workstation : dernière sauvegarde Restic réussie il y a 30 h"]]);
+  assert.deepEqual(await found({ age: 80 * 3600 }), [["crit", "Workstation : dernière sauvegarde Restic réussie il y a 80 h"]]);
+  assert.deepEqual(await found({}), [["unknown", "Workstation : aucune sauvegarde Restic réussie connue"]]);
+  assert.deepEqual(await found({ up: 0 }), []);
+});
+
 test("docker: crashed, unhealthy and restarting containers only", () => {
   const found = dockerAnomalies([
     { Names: ["/ok"], State: "running", Status: "Up 2 hours (healthy)", Health: { Status: "healthy" } },
