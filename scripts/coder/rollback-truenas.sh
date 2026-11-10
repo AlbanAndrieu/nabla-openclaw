@@ -14,6 +14,7 @@ const c = require("./deploy/truenas/openclaw.json");
 const patch = {
   agents: { defaults: { modelPolicy: { allow: c.agents.defaults.modelPolicy.allow.filter((m) => !m.startsWith("litellm-coder/")) } } },
   models: { providers: { "litellm-coder": null } },
+  secrets: { providers: { "litellm-coder-key": null } },
 };
 const group = process.env.CODER_TELEGRAM_GROUP_ID;
 if (group) {

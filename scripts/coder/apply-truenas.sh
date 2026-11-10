@@ -12,9 +12,9 @@ credentials=/home/node/.openclaw/credentials/devbox
 
 health=$(remote "sudo -n docker inspect -f '{{.State.Health.Status}}' openclaw-devbox" || true)
 [ "$health" = "healthy" ] || { echo "devbox_health=${health:-absent}"; exit 2; }
-# shellcheck disable=SC2016  # expanded inside the Gateway container, never here
-gateway_sh 'test -n "$LITELLM_OPENCLAW_CODER_API_KEY"' \
-  || { echo "gateway_coder_key=missing (add it to gateway.env and recreate the App)"; exit 2; }
+# Written by nabla-compose `just openclaw-coder-key-apply`; read through a file SecretRef.
+gateway_sh "test -s /home/node/.openclaw/credentials/litellm/coder.key" \
+  || { echo "gateway_coder_key_file=missing (run nabla-compose: just openclaw-coder-key-apply)"; exit 2; }
 
 networks=$(remote "sudo -n docker inspect -f '{{json .NetworkSettings.Networks}}' openclaw-gateway")
 if ! grep -q '"openclaw-devbox"' <<< "$networks"; then
@@ -39,6 +39,7 @@ echo "coder_workspace=installed"
 batch=$(node -e '
 const c = require("./deploy/truenas/openclaw.json");
 console.log(JSON.stringify([
+  { path: "secrets.providers.litellm-coder-key", value: c.secrets.providers["litellm-coder-key"] },
   { path: "models.providers.litellm-coder", value: c.models.providers["litellm-coder"] },
   { path: "agents.defaults.modelPolicy.allow", value: c.agents.defaults.modelPolicy.allow },
   { path: "agents.defaults.maxConcurrent", value: c.agents.defaults.maxConcurrent },
@@ -60,6 +61,9 @@ else
 fi
 
 remote "sudo -n docker exec -i openclaw-gateway node openclaw.mjs config validate" < /dev/null
+# Resolve the new file SecretRef now (hot swap of the runtime snapshot, no restart).
+remote "sudo -n docker exec -i openclaw-gateway node openclaw.mjs secrets reload" < /dev/null \
+  || { echo "secrets_reload=failed (retry: sudo docker exec openclaw-gateway node openclaw.mjs secrets reload)"; exit 2; }
 # shellcheck disable=SC2016  # JavaScript template literal
 remote "sudo -n docker exec -i openclaw-gateway node openclaw.mjs sandbox explain --agent coder --json" < /dev/null \
   | node -e 'const d = JSON.parse(require("fs").readFileSync(0)); const s = d.sandbox;

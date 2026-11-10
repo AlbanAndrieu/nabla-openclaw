@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """Offline structural preflight of the coder devbox and its Gateway agent.
 
-Prints ``openclaw_devbox_contract=prepared_not_deployed`` or ``active`` (exit 0)
-or ``invalid`` (exit 2) and, on stderr, the name of every violated rule.
+Prints ``openclaw_devbox_contract=<status>`` (exit 0), where the status moves
+prepared_not_deployed -> ready_to_deploy (base images pinned) -> active, or
+``invalid`` (exit 2) and, on stderr, the name of every violated rule.
 Reads repository files only: no Docker, SSH, network or secret access.
 """
 import json
@@ -15,6 +16,9 @@ CONTRACT = "deploy/truenas/devbox/contract.json"
 SEED = "deploy/truenas/openclaw.json"
 GATEWAY_COMPOSE = "deploy/truenas/compose.yml"
 REQUIREMENTS = "deploy/truenas/devbox/requirements.txt"
+ALLOWLIST = "deploy/truenas/devbox/egress/allowed-domains.txt"
+STATUSES = ("prepared_not_deployed", "ready_to_deploy", "active")
+DOMAIN = re.compile(r"^\.?(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$")
 # Tools the coder may run inside its sandbox; everything else stays denied.
 SANDBOX_TOOLS = {"exec", "process", "read", "ls", "write", "edit", "apply_patch", "view_image", "session_status"}
 REQUIRED_DENIES = {"group:automation", "group:nodes", "group:ui", "group:web", "sessions_send", "sessions_spawn"}
@@ -80,17 +84,21 @@ def sshd_locked_down(c, seed, root):
 
 
 def egress_allowlist(c, seed, root):
+    """Squid: name-only allowlist file equal to the contract, every refusal before the single allow."""
     conf = [line.strip() for line in text(root, c["egress"]["squid_config"]).splitlines()
             if line.strip() and not line.strip().startswith("#")]
-    acl = [line.split()[3:] for line in conf if line.startswith("acl allowed_domains dstdomain ")]
+    domains = [line.strip() for line in text(root, ALLOWLIST).splitlines()
+               if line.strip() and not line.strip().startswith("#")]
     access = [line for line in conf if line.startswith("http_access ")]
-    domains = acl[0] if len(acl) == 1 else []
-    return (domains == c["egress"]["allowed_domains"]
-            and not any(d in (".", "all", "*") or "*" in d or d.count(".") < 1 for d in domains)
-            and access[-1] == "http_access deny all"
-            and "http_access allow all" not in access
-            and access.index("http_access deny !CONNECT") < access.index("http_access allow allowed_domains")
-            and access.index("http_access deny private_destinations") < access.index("http_access allow allowed_domains"))
+    allow = access.index("http_access allow allowed_domains")
+    return ('acl allowed_domains dstdomain -n "/etc/squid/allowed-domains.txt"' in conf
+            and domains == c["egress"]["allowed_domains"]
+            and all(DOMAIN.fullmatch(domain) for domain in domains)
+            and access[-1] == "http_access deny all" and allow == len(access) - 2
+            and [line for line in access if line.startswith("http_access allow")] == [access[allow]]
+            and all(rule in access[:allow] for rule in (
+                "http_access deny !devbox_clients", "http_access deny !CONNECT", "http_access deny !https_port",
+                "http_access deny ip_literal", "http_access deny private_destinations")))
 
 
 def gateway_agent_sandboxed(c, seed, root):
@@ -107,7 +115,10 @@ def gateway_agent_sandboxed(c, seed, root):
             and tools["elevated"]["enabled"] is False and tools["fs"]["workspaceOnly"] is True
             and allow <= SANDBOX_TOOLS and REQUIRED_DENIES <= set(tools["deny"])
             and agent["model"] == model_ref and model_ref in seed["agents"]["defaults"]["modelPolicy"]["allow"]
-            and provider["apiKey"] == {"source": "env", "provider": "default", "id": c["model"]["key_env"]}
+            and provider["apiKey"] == {"source": "file", "provider": c["model"]["key_secret_provider"], "id": "value"}
+            and seed["secrets"]["providers"][c["model"]["key_secret_provider"]] == {
+                "source": "file", "path": c["model"]["key_file"], "mode": "singleValue"}
+            and c["model"]["key_file"].startswith("/home/node/.openclaw/credentials/")
             and agent["skills"] == [c["workspace"]["skill"]]
             and seed["agents"]["defaults"].get("maxConcurrent", 0) >= 2)
 
@@ -130,9 +141,10 @@ def images_pinned_when_active(c, seed, root):
     pins = re.findall(r"^\s+(?:PYTHON|DEBIAN)_IMAGE: (\S+)$", compose, flags=re.M)
     requirements = text(root, REQUIREMENTS)
     hashed = "uv==" in requirements and "--hash=sha256:" in requirements
-    if c["status"] == "active":
-        return hashed and len(pins) == 2 and all("@sha256:" in pin for pin in pins)
-    return hashed and len(pins) == 2 and c["status"] == "prepared_not_deployed"
+    pinned = len(pins) == 2 and all(re.search(r"@sha256:[0-9a-f]{64}$", pin) for pin in pins)
+    if c["status"] not in STATUSES or c.get("status_flow") != list(STATUSES):
+        return False
+    return hashed and len(pins) == 2 and (pinned or c["status"] == "prepared_not_deployed")
 
 
 RULES = (

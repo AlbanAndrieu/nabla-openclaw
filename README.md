@@ -84,12 +84,12 @@ tourne dans le Gateway ; l'agent ouvre des PR Draft et ne fusionne jamais.
 | --- | --- |
 | `deploy/truenas/devbox/` | App TrueNAS `openclaw-devbox` (devbox + egress) |
 | `workspaces/coder/` | `state/workspace-coder/` (`AGENTS.md`, skill `fastapi-sample-dev`) |
-| `deploy/truenas/openclaw.json` (`agents.entries.coder`, `litellm-coder`) | `openclaw config set --batch-json`, sans redémarrage |
+| `deploy/truenas/openclaw.json` (`agents.entries.coder`, `litellm-coder`, SecretRef `file`) | `openclaw config set --batch-json` + `secrets reload`, sans redémarrage |
 
 ```bash
 just devbox-plan
-just truenas-bootstrap-coder
-CODER_TELEGRAM_GROUP_ID=-100XXXXXXXXXX just truenas-apply-coder
+just truenas-deploy-coder            # préflight en lecture seule
+NABLA_RUNTIME_CHANGE_APPROVED=yes CODER_TELEGRAM_GROUP_ID=-100XXXXXXXXXX just truenas-deploy-coder --apply
 ```
 
 Runbook complet, modèle de menace et rollback : [docs/coder-agent.md](docs/coder-agent.md).

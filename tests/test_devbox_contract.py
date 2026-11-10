@@ -2,6 +2,7 @@
 import importlib.util
 import json
 from pathlib import Path
+import re
 import shutil
 import tempfile
 import unittest
@@ -14,7 +15,7 @@ pin_spec = importlib.util.spec_from_file_location("pin", ROOT / "scripts/coder/p
 pin = importlib.util.module_from_spec(pin_spec)
 pin_spec.loader.exec_module(pin)
 
-FILES = (mod.CONTRACT, mod.SEED, mod.GATEWAY_COMPOSE, mod.REQUIREMENTS,
+FILES = (mod.CONTRACT, mod.SEED, mod.GATEWAY_COMPOSE, mod.REQUIREMENTS, mod.ALLOWLIST,
          "deploy/truenas/devbox/compose.yml", "deploy/truenas/devbox/sshd_config",
          "deploy/truenas/devbox/egress/squid.conf", "workspaces/coder/AGENTS.md",
          "workspaces/coder/skills/fastapi-sample-dev/SKILL.md")
@@ -68,10 +69,27 @@ class DevboxContract(unittest.TestCase):
         self.edit("deploy/truenas/devbox/sshd_config", "DisableForwarding yes", "DisableForwarding no")
         self.assertEqual(mod.violations(self.root), ["sshd_locked_down"])
 
-    def test_wildcard_or_unreviewed_domain_is_a_violation(self):
-        self.edit("deploy/truenas/devbox/egress/squid.conf", "files.pythonhosted.org",
-                  "files.pythonhosted.org .example.com")
+    def test_unreviewed_domain_is_a_violation(self):
+        self.edit(mod.ALLOWLIST, "files.pythonhosted.org\n", "files.pythonhosted.org\n.example.com\n")
         self.assertEqual(mod.violations(self.root), ["egress_allowlist_matches_contract"])
+
+    def test_wildcard_or_ip_entry_is_a_violation_even_when_reviewed(self):
+        for entry in ("*.example.com", "140.82.112.3", "com"):
+            with self.subTest(entry=entry):
+                self.tearDown()
+                self.setUp()
+                self.edit(mod.ALLOWLIST, "files.pythonhosted.org\n", f"files.pythonhosted.org\n{entry}\n")
+                self.edit_json(mod.CONTRACT, lambda c: c["egress"]["allowed_domains"].append(entry))
+                self.assertEqual(mod.violations(self.root), ["egress_allowlist_matches_contract"])
+
+    def test_ip_literals_and_reverse_dns_must_stay_refused(self):
+        for old, new in (("http_access deny ip_literal\n", ""),
+                         ('dstdomain -n "/etc/squid/allowed-domains.txt"', 'dstdomain "/etc/squid/allowed-domains.txt"')):
+            with self.subTest(old=old):
+                self.tearDown()
+                self.setUp()
+                self.edit("deploy/truenas/devbox/egress/squid.conf", old, new)
+                self.assertEqual(mod.violations(self.root), ["egress_allowlist_matches_contract"])
 
     def test_private_destinations_must_be_denied_before_allow(self):
         self.edit("deploy/truenas/devbox/egress/squid.conf",
@@ -90,18 +108,27 @@ class DevboxContract(unittest.TestCase):
                 self.coder(change)
                 self.assertEqual(mod.violations(self.root), ["gateway_agent_sandboxed"])
 
-    def test_coder_key_must_be_its_own_env_secret_ref(self):
-        self.edit_json(mod.SEED, lambda seed: seed["models"]["providers"]["litellm-coder"]["apiKey"].update(
-            id="LITELLM_OPENCLAW_MAIN_API_KEY"))
-        self.assertEqual(mod.violations(self.root), ["gateway_agent_sandboxed"])
+    def test_coder_key_must_be_its_own_file_secret_ref(self):
+        for change in (lambda seed: seed["models"]["providers"]["litellm-coder"].update(
+                           apiKey={"source": "env", "provider": "default", "id": "LITELLM_OPENCLAW_MAIN_API_KEY"}),
+                       lambda seed: seed["secrets"]["providers"]["litellm-coder-key"].update(path="/tmp/coder.key")):
+            with self.subTest(change=change):
+                self.tearDown()
+                self.setUp()
+                self.edit_json(mod.SEED, change)
+                self.assertEqual(mod.violations(self.root), ["gateway_agent_sandboxed"])
 
     def test_gateway_must_join_the_internal_network(self):
         self.edit(mod.GATEWAY_COMPOSE, "    networks: [litellm, devbox]\n", "    networks: [litellm]\n")
         self.assertEqual(mod.violations(self.root), ["gateway_joins_devbox_network"])
 
-    def test_active_requires_digest_pinned_base_images(self):
-        self.edit_json(mod.CONTRACT, lambda c: c.update(status="active"))
-        self.assertEqual(mod.violations(self.root), ["images_pinned_when_active"])
+    def test_ready_or_active_requires_digest_pinned_base_images(self):
+        compose = self.root / "deploy/truenas/devbox/compose.yml"
+        # Independent of the repository state: start from unpinned base images.
+        compose.write_text(re.sub(r"@sha256:[0-9a-f]{64}", "", compose.read_text()))
+        for status in ("ready_to_deploy", "active"):
+            self.edit_json(mod.CONTRACT, lambda c, status=status: c.update(status=status))
+            self.assertEqual(mod.violations(self.root), ["images_pinned_when_active"])
         digest = "@sha256:" + "0" * 64
         self.edit("deploy/truenas/devbox/compose.yml", "PYTHON_IMAGE: python:3.13-slim-trixie",
                   "PYTHON_IMAGE: python:3.13-slim-trixie" + digest)

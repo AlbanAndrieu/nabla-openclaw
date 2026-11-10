@@ -12,7 +12,7 @@ RUN apt-get update \
  && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends squid \
  && rm -rf /var/lib/apt/lists/*
 
-COPY --chmod=0444 squid.conf /etc/squid/squid.conf
+COPY --chmod=0444 squid.conf allowed-domains.txt /etc/squid/
 RUN squid -k parse -f /etc/squid/squid.conf
 
 USER 13:13

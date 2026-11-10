@@ -21,6 +21,14 @@ devbox-plan:
 devbox-pin:
     python3 scripts/coder/pin-devbox-images.py
 
+# Production path, one command: read-only preflight, or `--apply` with NABLA_RUNTIME_CHANGE_APPROVED=yes.
+truenas-deploy-coder *args:
+    scripts/coder/deploy-truenas.sh {{ args }}
+
+# Runtime egress proof of the devbox (read-only): direct route blocked, allowlist only.
+devbox-egress-check:
+    scripts/coder/check-devbox-egress.sh
+
 # TrueNAS, once: devbox directories, host key, Gateway client key, known_hosts.
 truenas-bootstrap-coder:
     scripts/coder/bootstrap-truenas.sh

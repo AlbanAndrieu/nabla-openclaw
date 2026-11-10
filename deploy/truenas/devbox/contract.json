@@ -1,6 +1,7 @@
 {
   "schema": "nabla-openclaw-coder-devbox/v1",
   "status": "prepared_not_deployed",
+  "status_flow": ["prepared_not_deployed", "ready_to_deploy", "active"],
   "agent": "coder",
   "repository": "AlbanAndrieu/fastapi-sample",
   "app_name": "openclaw-devbox",
@@ -25,7 +26,14 @@
     "scope": "fine_grained_fastapi_sample_only_contents_rw_pull_requests_rw_no_workflows_no_admin",
     "branch_protection_required": "master"
   },
-  "model": { "provider": "litellm-coder", "model": "gpt-4.1", "key_env": "LITELLM_OPENCLAW_CODER_API_KEY", "key_alias": "openclaw-coder" },
+  "model": {
+    "provider": "litellm-coder",
+    "model": "gpt-4.1",
+    "key_alias": "openclaw-coder",
+    "budget": "11 USD per 7 days (10 EUR per week, nabla-compose provision-openclaw-litellm-keys.py)",
+    "key_secret_provider": "litellm-coder-key",
+    "key_file": "/home/node/.openclaw/credentials/litellm/coder.key"
+  },
   "workspace": {
     "source": "workspaces/coder",
     "runtime": "/mnt/cpool/openclaw/state/workspace-coder",

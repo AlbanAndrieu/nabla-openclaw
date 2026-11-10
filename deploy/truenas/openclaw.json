@@ -35,11 +35,16 @@
       "litellm-coder": {
         "baseUrl": "http://litellm:4000/v1",
         "api": "openai-completions",
-        "apiKey": { "source": "env", "provider": "default", "id": "LITELLM_OPENCLAW_CODER_API_KEY" },
+        "apiKey": { "source": "file", "provider": "litellm-coder-key", "id": "value" },
         "models": [
           { "id": "gpt-4.1", "name": "GPT-41 (Azure)", "input": ["text", "image"], "contextWindow": 128000, "maxTokens": 16384 }
         ]
       }
+    }
+  },
+  "secrets": {
+    "providers": {
+      "litellm-coder-key": { "source": "file", "path": "/home/node/.openclaw/credentials/litellm/coder.key", "mode": "singleValue" }
     }
   },
   "agents": {

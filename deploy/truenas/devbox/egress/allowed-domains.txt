@@ -1,0 +1,9 @@
+# Egress allowlist of the OpenClaw coder devbox (squid dstdomain -n, HTTPS CONNECT only).
+# One domain per line; a leading dot also covers subdomains. No wildcard, no IP.
+# Changing this file requires the same change in ../contract.json (egress.allowed_domains).
+# GitHub: clone, push, API, gh, release assets.
+.github.com
+.githubusercontent.com
+# PyPI: uv sync --frozen.
+pypi.org
+files.pythonhosted.org
