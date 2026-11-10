@@ -106,12 +106,35 @@ async function source(title, read) {
   }
 }
 
+// The owner may install a sanitized snapshot after a manual Vercel CLI check.
+// This briefing NEVER calls Vercel, loads credentials or claims missing data as OK.
+export function vercelFinopsLines(report, now = Date.now()) {
+  if (report?.team !== "albanandrieus-projects") {
+    return ["⚪ Vercel FinOps : rapport absent ou non reconnu (NOT_MEASURED)"];
+  }
+  const statuses = { OK: "✅", WATCH: "🟠", INVESTIGATE: "🟠", CRITICAL: "🔴" };
+  if (!report.periodVerified || report.cpuMeasured !== true || report.freshnessVerified !== true ||
+      !Object.hasOwn(statuses, report.status) ||
+      !Number.isFinite(report.percentOfQuota) || report.percentOfQuota < 0 ||
+      !Number.isFinite(report.cpuHours) || report.cpuHours < 0) {
+    return ["⚪ Vercel FinOps : CPU non vérifié (NOT_MEASURED)"];
+  }
+  const stamp = Date.parse(report.observedAt ?? "");
+  if (!Number.isFinite(stamp) || now < stamp || now - stamp > 36 * 3600_000) {
+    return ["⚪ Vercel FinOps : instantané obsolète (STALE)"];
+  }
+  return [`${statuses[report.status]} Vercel Fluid Active CPU équipe : ${report.cpuHours.toFixed(2)} h / 4 h (${report.percentOfQuota.toFixed(1)} %) — ${report.status}`];
+}
+
 async function main() {
   const now = Date.now();
   const config = readJson(join(OPENCLAW, "openclaw.json"));
   const slack = config.channels?.slack;
   const date = new Date(now).toLocaleDateString("fr-FR", { timeZone: "Europe/Paris", dateStyle: "full" });
   const out = [`DATE : ${date}`, "", "## INFRA", ...infraLines(await collect(readJson(STATE)))];
+  if (process.env.VERCEL_FINOPS_REPORT) {
+    out.push("", "## VERCEL FINOPS", ...vercelFinopsLines(readJson(process.env.VERCEL_FINOPS_REPORT), now));
+  }
   out.push(...await source("EMAILS", gmail));
   out.push(...(slack?.enabled && typeof slack.botToken === "string"
     ? await source("SLACK", () => slackLines(slackApi(slack.botToken), now))

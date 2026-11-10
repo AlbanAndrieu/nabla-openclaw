@@ -19,9 +19,19 @@ just vercel-finops             # opt-in : appelle seulement vercel usage
 just vercel-finops-file /chemin/prive/usage.json # aucune requête externe
 ```
 
-Le JSON de sortie contient uniquement `status`, `reason`, `team`, `cpuHours`, `percentOfQuota`, `remainingHours`, `quotaHours` et les indicateurs de preuve. Le code de sortie est **0** si `OK`, **1** à partir de `WATCH` avec `--strict`, **2** sur preuve absente/invalide. Un export non reconnu reste `NOT_MEASURED`.
+Le JSON de sortie contient uniquement `status`, `reason`, `team`, `observedAt`, `cpuHours`, `percentOfQuota`, `remainingHours`, `quotaHours` et les indicateurs de preuve. Le code de sortie est **0** si `OK`, **1** à partir de `WATCH` avec `--strict`, **2** sur preuve absente/invalide. Un export non reconnu reste `NOT_MEASURED`.
 
 **Difficulté vérifiée :** les API Vercel Observability et Billing de ce compte Hobby ont renvoyé `404`. La CLI peut rencontrer la même restriction. La source de repli est le tableau de bord Usage ; **aucune valeur CPU réelle n'est actuellement obtenue**.
+
+## Instantané pour le briefing du matin (opt-in)
+
+Sur décision opérateur seulement, `--output` écrit ce même résumé expurgé (jamais l'export brut) en `0600`, dans un répertoire créé en `0700` :
+
+```bash
+node scripts/finops/check-vercel-team.mjs --live --output "$HOME/.local/state/nabla/vercel-finops/latest.json"
+```
+
+`scripts/heartbeat/morning-briefing.mjs` ne lit cet instantané que si `VERCEL_FINOPS_REPORT` désigne un fichier lisible par le Gateway ; sans variable, le briefing est inchangé. Il n'affiche une ligne CPU que pour l'équipe exacte, une quantité CPU mesurée, une période et une fraîcheur vérifiées et un instantané de moins de 36 h ; sinon `NOT_MEASURED` ou `STALE`, jamais de faux vert, et aucun autre champ n'est transmis au modèle. Le Gateway TrueNAS n'a pas la CLI Vercel : l'opérateur y copie le seul résumé, sans token ni identité CLI.
 
 La collecte n'est **pas ajoutée au heartbeat OpenClaw**. Avant toute planification future, confirmer les droits CLI et la structure réelle d'un export, définir la fréquence (au plus quotidienne), un stockage 0600 hors dépôt, des conditions d'alerte/déduplication et une politique de suppression. Ne jamais joindre les charges détaillées à Telegram/Discord ni publier sur Bababou.
 

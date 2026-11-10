@@ -1,13 +1,14 @@
 #!/usr/bin/env node
 // Opt-in, local-first Vercel team CPU monitor; no remote calls except explicit --live.
-import { readFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { spawnSync } from "node:child_process";
+import { dirname } from "node:path";
 import { pathToFileURL } from "node:url";
 import { analyzeUsage } from "./vercel-usage-budget.mjs";
 
 export const TEAM = "albanandrieus-projects";
 const MAX_BYTES = 2_000_000;
-export const HELP = "Usage: node scripts/finops/check-vercel-team.mjs (--input FILE | --live) [--strict]";
+export const HELP = "Usage: node scripts/finops/check-vercel-team.mjs (--input FILE | --live) [--strict] [--output FILE]";
 
 export function evaluate(raw, now = new Date()) {
   try {
@@ -19,6 +20,7 @@ export function evaluate(raw, now = new Date()) {
       status: report.status,
       reason: report.reason,
       team: TEAM,
+      observedAt: now.toISOString(),
       cpuHours: report.cpuHours ?? null,
       percentOfQuota: report.percentOfQuota ?? null,
       remainingHours: report.remainingHours ?? null,
@@ -34,6 +36,9 @@ export function evaluate(raw, now = new Date()) {
 }
 
 export function run(argv, options = {}) {
+  const at = argv.indexOf("--output");
+  const output = at >= 0 ? argv[at + 1] : null;
+  if (at >= 0) argv = output && !output.startsWith("--") ? argv.toSpliced(at, 2) : [];
   const strict = argv.includes("--strict");
   const args = argv.filter(a => a !== "--strict");
   if (args.length !== (args[0] === "--input" ? 2 : 1) ||
@@ -60,6 +65,11 @@ export function run(argv, options = {}) {
     report = output.error || output.status !== 0
       ? { status: "NOT_MEASURED", reason: "vercel-cli-unavailable-or-denied", team: TEAM, cpuHours: null }
       : evaluate(output.stdout, options.now ?? new Date());
+  }
+  if (output) {
+    // Briefing snapshot: only this compact report, never the raw Vercel export.
+    (options.mkdir ?? mkdirSync)(dirname(output), { recursive: true, mode: 0o700 });
+    (options.write ?? writeFileSync)(output, `${JSON.stringify(report)}\n`, { mode: 0o600 });
   }
   console.log(JSON.stringify(report));
   if (["NOT_RUN", "NOT_MEASURED", "WINDOW_UNVERIFIED", "STALE_USAGE", "INVALID"].includes(report.status)) return 2;

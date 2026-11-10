@@ -94,6 +94,18 @@ NABLA_RUNTIME_CHANGE_APPROVED=yes CODER_TELEGRAM_GROUP_ID=-100XXXXXXXXXX just tr
 
 Runbook complet, modèle de menace et rollback : [docs/coder-agent.md](docs/coder-agent.md).
 
+## 📊 Vercel FinOps — contrôle optionnel
+
+Un contrôle de quota **local et en lecture seule** est disponible dans
+`scripts/finops/check-vercel-team.mjs` : il lit un export JSON ou exécute
+explicitement `vercel usage` (20 s maximum) sur une workstation authentifiée,
+puis produit uniquement un bilan CPU expurgé. `just vercel-finops-test` vérifie
+le parseur hors réseau. Le briefing du matin peut inclure un instantané
+`VERCEL_FINOPS_REPORT`, mais **aucune tâche CLI n'est activée automatiquement**.
+
+Voir [le runbook FinOps Vercel](docs/vercel-finops.md) pour les seuils,
+le transfert manuel d'un rapport sans secrets et les limites du compte Hobby.
+
 ## Workstation : appliquer la configuration de ce dépôt
 
 Le Gateway ne lit pas Git au démarrage : un opérateur projette la
