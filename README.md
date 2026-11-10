@@ -97,7 +97,7 @@ Runbook complet, modèle de menace et rollback : [docs/coder-agent.md](docs/code
 ## 📊 Vercel FinOps — contrôle optionnel
 
 Un contrôle de quota **local et en lecture seule** est disponible dans
-`scripts/finops/vercel-check.mjs` : il lit un export JSON ou exécute
+`scripts/finops/check-vercel-team.mjs` : il lit un export JSON ou exécute
 explicitement `vercel usage` (20 s maximum) sur une workstation authentifiée,
 puis produit uniquement un bilan CPU expurgé. `just vercel-finops-test` vérifie
 le parseur hors réseau. Le briefing du matin peut inclure un instantané

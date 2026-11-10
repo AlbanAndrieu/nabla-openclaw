@@ -24,9 +24,10 @@ Runbook : [FinOps Vercel](vercel-finops.md). Ce lot ne modifie ni l'état du Gat
 - [x] **Contrat d'analyse CPU hors réseau :** `scripts/finops/vercel-usage-budget.mjs`
   partagé avec Site Alban et Bababou ; refus des coûts en USD, unités et
   périodes non vérifiées, seuils 50/75/90 %, sortie `NOT_MEASURED` par défaut.
-- [x] **CLI opérateur en lecture seule :** `scripts/finops/vercel-check.mjs`
+- [x] **CLI opérateur en lecture seule :** `scripts/finops/check-vercel-team.mjs`
   appelle `vercel usage` **uniquement sur `--live`**, avec portée fixe
-  `albanandrieus-projects`, délai 20 s, et résultat expurgé.
+  `albanandrieus-projects`, délai 20 s, fraîcheur 48 h et résultat expurgé ;
+  `--output` écrit l'instantané du briefing en `0600`.
 - [x] **Briefing facultatif :** `VERCEL_FINOPS_REPORT` ajoute une synthèse
   contrôlée (âge inférieur à 36 h) au briefing existant ; aucun secret
   Vercel, nouveau cron ou appel réseau au heartbeat.

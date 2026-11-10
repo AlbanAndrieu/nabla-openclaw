@@ -42,6 +42,26 @@ test("CLI errors become NOT_MEASURED, not fake zero CPU", () => {
   assert.deepEqual(argv,["usage","--scope","albanandrieus-projects","--format","json"]);
 });
 
+test("--output writes only the compact report, 0600 in a 0700 directory", () => {
+  let dir, file;
+  const log = console.log; console.log = () => {};
+  try {
+    const result = run(["--input", "ignored", "--output", "/private/vercel/latest.json"], {
+      read: () => data(1).replace("}]}", ',"secret":"DONT_ECHO"}]}'), now,
+      mkdir: (path, settings) => { dir = { path, settings }; },
+      write: (path, text, settings) => { file = { path, text, settings }; },
+    });
+    assert.equal(result, 0);
+  } finally { console.log = log; }
+  assert.deepEqual(dir, { path: "/private/vercel", settings: { recursive: true, mode: 0o700 } });
+  assert.equal(file.settings.mode, 0o600);
+  const report = JSON.parse(file.text);
+  assert.equal(report.observedAt, now.toISOString());
+  assert.equal(report.cpuMeasured, true);
+  assert.doesNotMatch(file.text, /DONT_ECHO/);
+  assert.equal(run(["--input", "x", "--output"]), 2);
+});
+
 test("strict mode fails when Vercel team reaches WATCH", () => {
   const result=run(["--input","ignored","--strict"], {read:()=>data(2.2),now});
   assert.equal(result,1);

@@ -5,7 +5,7 @@ default:
 test:
     python3 -m unittest discover -s tests -p 'test_*.py' -v
     node --test scripts/heartbeat/*.test.mjs scripts/finops/*.test.mjs
-    node --test tests/vercelUsageBudget.test.mjs tests/vercelCheck.test.mjs
+    node --test tests/vercelUsageBudget.test.mjs
 
 # TrueNAS heartbeat and morning briefing <- this checkout: collectors, scratch, config and cron job, no restart.
 truenas-apply-heartbeat:
@@ -69,12 +69,4 @@ vercel-finops-file file:
 
 # Manual, read-only FinOps diagnostics. Never run automatically by OpenClaw.
 vercel-finops-test:
-    node --test tests/vercelUsageBudget.test.mjs tests/vercelCheck.test.mjs scripts/heartbeat/vercelFinops.test.mjs
-
-# This command needs an already authenticated Vercel CLI on the workstation.
-vercel-finops-live:
-    node scripts/finops/vercel-check.mjs --live --strict
-
-# Analyze an operator-provided usage export without any network request.
-vercel-finops-input file:
-    node scripts/finops/vercel-check.mjs --input "{{file}}"
+    node --test tests/vercelUsageBudget.test.mjs scripts/finops/check-vercel-team.test.mjs scripts/heartbeat/vercelFinops.test.mjs

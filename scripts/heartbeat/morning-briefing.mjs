@@ -109,20 +109,19 @@ async function source(title, read) {
 // The owner may install a sanitized snapshot after a manual Vercel CLI check.
 // This briefing NEVER calls Vercel, loads credentials or claims missing data as OK.
 export function vercelFinopsLines(report, now = Date.now()) {
-  if (report?.schema !== "vercel-finops-summary-v1" ||
-      report.scope !== "albanandrieus-projects") {
+  if (report?.team !== "albanandrieus-projects") {
     return ["⚪ Vercel FinOps : rapport absent ou non reconnu (NOT_MEASURED)"];
   }
-  const stamp = Date.parse(report.observedAt ?? "");
-  if (!Number.isFinite(stamp) || now < stamp || now - stamp > 36 * 3600_000) {
-    return ["⚪ Vercel FinOps : instantané obsolète (STALE)"];
-  }
   const statuses = { OK: "✅", WATCH: "🟠", INVESTIGATE: "🟠", CRITICAL: "🔴" };
-  if (!report.periodVerified || report.evidence !== "cpu-quantity" ||
+  if (!report.periodVerified || report.cpuMeasured !== true || report.freshnessVerified !== true ||
       !Object.hasOwn(statuses, report.status) ||
       !Number.isFinite(report.percentOfQuota) || report.percentOfQuota < 0 ||
       !Number.isFinite(report.cpuHours) || report.cpuHours < 0) {
     return ["⚪ Vercel FinOps : CPU non vérifié (NOT_MEASURED)"];
+  }
+  const stamp = Date.parse(report.observedAt ?? "");
+  if (!Number.isFinite(stamp) || now < stamp || now - stamp > 36 * 3600_000) {
+    return ["⚪ Vercel FinOps : instantané obsolète (STALE)"];
   }
   return [`${statuses[report.status]} Vercel Fluid Active CPU équipe : ${report.cpuHours.toFixed(2)} h / 4 h (${report.percentOfQuota.toFixed(1)} %) — ${report.status}`];
 }
