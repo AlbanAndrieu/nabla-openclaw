@@ -1,6 +1,6 @@
 {
   "schema": "nabla-openclaw-coder-devbox/v1",
-  "status": "prepared_not_deployed",
+  "status": "ready_to_deploy",
   "status_flow": ["prepared_not_deployed", "ready_to_deploy", "active"],
   "agent": "coder",
   "repository": "AlbanAndrieu/fastapi-sample",
