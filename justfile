@@ -4,7 +4,7 @@ default:
 
 test:
     python3 -m unittest discover -s tests -p 'test_*.py' -v
-    node --test scripts/heartbeat/*.test.mjs
+    node --test scripts/heartbeat/*.test.mjs scripts/finops/*.test.mjs
 
 # TrueNAS heartbeat and morning briefing <- this checkout: collectors, scratch, config and cron job, no restart.
 truenas-apply-heartbeat:
@@ -56,3 +56,12 @@ workstation-apply-heartbeat:
 # Explicit: existing digest job only; pass runtime_message_sha256 from workstation-plan.
 workstation-apply-digest $expected_sha:
     python3 scripts/workstation/openclaw-workstation-gitops.py apply-digest --expected-message-sha "$expected_sha"
+
+# Manual and read-only: Vercel CLI must be authenticated on this workstation.
+# NEVER run this from the OpenClaw heartbeat or public Next.js functions.
+vercel-finops:
+    node scripts/finops/check-vercel-team.mjs --live --strict
+
+# Offline analysis of a private export (file is never committed).
+vercel-finops-file file:
+    node scripts/finops/check-vercel-team.mjs --input "{{file}}" --strict
