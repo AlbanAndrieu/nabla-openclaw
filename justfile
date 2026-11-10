@@ -13,6 +13,34 @@ truenas-apply-heartbeat:
 plan:
     python3 scripts/check-target-contract.py
 
+# Coder devbox and agent contract (offline, read-only): docs/coder-agent.md.
+devbox-plan:
+    python3 scripts/check-devbox-contract.py
+
+# Pin the devbox base images by digest (registry API, then local tools); `--via truenas` resolves there.
+devbox-pin *args:
+    python3 scripts/coder/pin-devbox-images.py {{args}}
+
+# Production path, one command: read-only preflight, or `--apply` with NABLA_RUNTIME_CHANGE_APPROVED=yes.
+truenas-deploy-coder *args:
+    scripts/coder/deploy-truenas.sh {{ args }}
+
+# Runtime egress proof of the devbox (read-only): direct route blocked, allowlist only.
+devbox-egress-check:
+    scripts/coder/check-devbox-egress.sh
+
+# TrueNAS, once: devbox directories, host key, Gateway client key, known_hosts.
+truenas-bootstrap-coder:
+    scripts/coder/bootstrap-truenas.sh
+
+# TrueNAS coder agent <- this checkout, no restart. Optional: CODER_TELEGRAM_GROUP_ID=-100...
+truenas-apply-coder:
+    scripts/coder/apply-truenas.sh
+
+# Explicit: delete the coder agent (prunes its sessions), its provider and group; stop the devbox.
+truenas-rollback-coder:
+    scripts/coder/rollback-truenas.sh
+
 # Workstation Gateway <- this repository (read-only: hashes and states only).
 workstation-plan:
     python3 scripts/workstation/openclaw-workstation-gitops.py plan

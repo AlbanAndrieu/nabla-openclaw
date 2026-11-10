@@ -23,8 +23,13 @@ class Boundary(unittest.TestCase):
         seed = json.loads((ROOT/"deploy/truenas/openclaw.json").read_text())
         self.assertEqual(seed["gateway"]["auth"]["token"],
                          {"source": "env", "provider": "default", "id": "OPENCLAW_GATEWAY_TOKEN"})
-        keys = {p["apiKey"]["id"] for p in seed["models"]["providers"].values()}
+        refs = {name: p["apiKey"] for name, p in seed["models"]["providers"].items()}
+        keys = {ref["id"] for ref in refs.values() if ref["source"] == "env"}
         self.assertEqual(keys, {"LITELLM_OPENCLAW_MAIN_API_KEY", "LITELLM_OPENCLAW_CRON_API_KEY"})
+        # coder: off-Git single-value file, hot-reloadable without a Gateway restart (docs/coder-agent.md).
+        self.assertEqual(refs["litellm-coder"], {"source": "file", "provider": "litellm-coder-key", "id": "value"})
+        self.assertTrue(seed["secrets"]["providers"]["litellm-coder-key"]["path"].startswith(
+            "/home/node/.openclaw/credentials/"))
         heartbeat = seed["agents"]["defaults"]["heartbeat"]
         self.assertIn(heartbeat["model"], seed["agents"]["defaults"]["modelPolicy"]["allow"])
         # Main key, cheap model, no session history: a few thousand tokens per hourly run.

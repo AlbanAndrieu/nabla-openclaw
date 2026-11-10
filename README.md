@@ -71,6 +71,29 @@ just test
 just truenas-apply-heartbeat
 ```
 
+## TrueNAS : agent `coder` pour fastapi-sample (préparé)
+
+L'agent `coder` code sur `AlbanAndrieu/fastapi-sample` depuis un groupe
+Telegram forum (un sujet = une session). Ses outils (`exec`, `read`, `write`,
+`edit`, `apply_patch`) s'exécutent par la sandbox `ssh` d'OpenClaw dans la
+devbox `openclaw-devbox` : conteneur non-root sur un réseau Docker interne,
+dont la seule sortie est un proxy squid limité à GitHub et PyPI. Aucun code ne
+tourne dans le Gateway ; l'agent ouvre des PR Draft et ne fusionne jamais.
+
+| Source (ce dépôt) | Cible runtime |
+| --- | --- |
+| `deploy/truenas/devbox/` | App TrueNAS `openclaw-devbox` (devbox + egress) |
+| `workspaces/coder/` | `state/workspace-coder/` (`AGENTS.md`, skill `fastapi-sample-dev`) |
+| `deploy/truenas/openclaw.json` (`agents.entries.coder`, `litellm-coder`, SecretRef `file`) | `openclaw config set --batch-json` + `secrets reload`, sans redémarrage |
+
+```bash
+just devbox-plan
+just truenas-deploy-coder            # préflight en lecture seule
+NABLA_RUNTIME_CHANGE_APPROVED=yes CODER_TELEGRAM_GROUP_ID=-100XXXXXXXXXX just truenas-deploy-coder --apply
+```
+
+Runbook complet, modèle de menace et rollback : [docs/coder-agent.md](docs/coder-agent.md).
+
 ## Workstation : appliquer la configuration de ce dépôt
 
 Le Gateway ne lit pas Git au démarrage : un opérateur projette la

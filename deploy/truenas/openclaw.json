@@ -31,16 +31,29 @@
         "models": [
           { "id": "gpt-4.1-mini", "name": "GPT-41 Mini (Azure)", "input": ["text", "image"], "contextWindow": 128000, "maxTokens": 16384 }
         ]
+      },
+      "litellm-coder": {
+        "baseUrl": "http://litellm:4000/v1",
+        "api": "openai-completions",
+        "apiKey": { "source": "file", "provider": "litellm-coder-key", "id": "value" },
+        "models": [
+          { "id": "gpt-4.1", "name": "GPT-41 (Azure)", "input": ["text", "image"], "contextWindow": 128000, "maxTokens": 16384 }
+        ]
       }
+    }
+  },
+  "secrets": {
+    "providers": {
+      "litellm-coder-key": { "source": "file", "path": "/home/node/.openclaw/credentials/litellm/coder.key", "mode": "singleValue" }
     }
   },
   "agents": {
     "defaults": {
       "model": { "primary": "litellm-main/gpt-4.1" },
       "workspace": "/home/node/.openclaw/workspace",
-      "maxConcurrent": 1,
+      "maxConcurrent": 2,
       "modelPolicy": {
-        "allow": ["litellm-main/gpt-4.1", "litellm-main/gpt-4.1-mini", "litellm-cron/gpt-4.1-mini"]
+        "allow": ["litellm-main/gpt-4.1", "litellm-main/gpt-4.1-mini", "litellm-cron/gpt-4.1-mini", "litellm-coder/gpt-4.1"]
       },
       "heartbeat": {
         "agentId": "main",
@@ -62,6 +75,40 @@
         "name": "cron",
         "workspace": "/home/node/.openclaw/workspace/cron",
         "model": "litellm-cron/gpt-4.1-mini"
+      },
+      "coder": {
+        "name": "coder",
+        "workspace": "/home/node/.openclaw/workspace-coder",
+        "model": "litellm-coder/gpt-4.1",
+        "skills": ["fastapi-sample-dev"],
+        "sandbox": {
+          "mode": "all",
+          "backend": "ssh",
+          "scope": "session",
+          "workspaceAccess": "rw",
+          "ssh": {
+            "target": "coder@openclaw-devbox:2222",
+            "workspaceRoot": "/home/coder/sandboxes",
+            "strictHostKeyChecking": true,
+            "updateHostKeys": false,
+            "identityFile": "/home/node/.openclaw/credentials/devbox/id_ed25519",
+            "knownHostsFile": "/home/node/.openclaw/credentials/devbox/known_hosts"
+          },
+          "prune": { "idleHours": 168, "maxAgeDays": 14 }
+        },
+        "tools": {
+          "profile": "coding",
+          "deny": [
+            "group:automation", "group:nodes", "group:ui", "group:media", "group:web", "group:memory", "group:plugins",
+            "sessions_send", "sessions_spawn", "subagents", "conversations_send", "conversations_turn",
+            "code_execution", "secrets", "skill_workshop"
+          ],
+          "sandbox": {
+            "tools": { "allow": ["exec", "process", "read", "ls", "write", "edit", "apply_patch", "session_status"] }
+          },
+          "fs": { "workspaceOnly": true },
+          "elevated": { "enabled": false }
+        }
       }
     }
   },

@@ -1,0 +1,40 @@
+# sshd for the OpenClaw coder devbox, running unprivileged as `coder`.
+# Reachable only on the internal Docker network `openclaw-devbox`, by the
+# Gateway's `ssh` sandbox backend (key auth, pinned host key on both sides).
+Port 2222
+ListenAddress 0.0.0.0
+PidFile none
+UsePAM no
+
+HostKey /etc/openclaw-devbox/ssh_host_ed25519_key
+AuthorizedKeysFile /etc/openclaw-devbox/authorized_keys
+AllowUsers coder
+PermitRootLogin no
+PubkeyAuthentication yes
+PasswordAuthentication no
+KbdInteractiveAuthentication no
+PubkeyAcceptedAlgorithms ssh-ed25519
+HostKeyAlgorithms ssh-ed25519
+MaxAuthTries 3
+LoginGraceTime 20
+MaxStartups 10:30:30
+MaxSessions 16
+
+# Commands and PTYs only: no forwarding, tunnels or client-supplied environment.
+PermitTTY yes
+AllowTcpForwarding no
+AllowStreamLocalForwarding no
+AllowAgentForwarding no
+GatewayPorts no
+PermitTunnel no
+X11Forwarding no
+PermitUserEnvironment no
+DisableForwarding yes
+
+# Static, non-secret session environment: all egress goes through the
+# allowlisting proxy; no interpreter downloads at runtime.
+SetEnv HTTP_PROXY=http://openclaw-devbox-egress:3128 HTTPS_PROXY=http://openclaw-devbox-egress:3128 http_proxy=http://openclaw-devbox-egress:3128 https_proxy=http://openclaw-devbox-egress:3128 NO_PROXY=localhost,127.0.0.1 no_proxy=localhost,127.0.0.1 UV_PYTHON_DOWNLOADS=never UV_LINK_MODE=copy
+
+ClientAliveInterval 30
+ClientAliveCountMax 4
+LogLevel VERBOSE

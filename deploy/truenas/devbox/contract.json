@@ -1,0 +1,47 @@
+{
+  "schema": "nabla-openclaw-coder-devbox/v1",
+  "status": "ready_to_deploy",
+  "status_flow": ["prepared_not_deployed", "ready_to_deploy", "active"],
+  "agent": "coder",
+  "repository": "AlbanAndrieu/fastapi-sample",
+  "app_name": "openclaw-devbox",
+  "compose": "deploy/truenas/devbox/compose.yml",
+  "dataset": "cpool/openclaw-devbox",
+  "uid_gid": "1001:1001",
+  "network": { "name": "openclaw-devbox", "internal": true, "gateway_joins": true },
+  "ssh": {
+    "target": "coder@openclaw-devbox:2222",
+    "sshd_config": "deploy/truenas/devbox/sshd_config",
+    "host_key_dir": "/mnt/cpool/openclaw-devbox/sshd",
+    "gateway_identity_file": "/home/node/.openclaw/credentials/devbox/id_ed25519",
+    "gateway_known_hosts_file": "/home/node/.openclaw/credentials/devbox/known_hosts"
+  },
+  "egress": {
+    "proxy": "openclaw-devbox-egress:3128",
+    "squid_config": "deploy/truenas/devbox/egress/squid.conf",
+    "allowed_domains": [".github.com", ".githubusercontent.com", "pypi.org", "files.pythonhosted.org"]
+  },
+  "github_token": {
+    "file": "/mnt/cpool/secrets/runtime/openclaw-devbox/github_token",
+    "scope": "fine_grained_fastapi_sample_only_contents_rw_pull_requests_rw_no_workflows_no_admin",
+    "branch_protection_required": "master"
+  },
+  "model": {
+    "provider": "litellm-coder",
+    "model": "gpt-4.1",
+    "key_alias": "openclaw-coder",
+    "budget": "11 USD per 7 days (10 EUR per week, nabla-compose provision-openclaw-litellm-keys.py)",
+    "key_secret_provider": "litellm-coder-key",
+    "key_file": "/home/node/.openclaw/credentials/litellm/coder.key"
+  },
+  "workspace": {
+    "source": "workspaces/coder",
+    "runtime": "/mnt/cpool/openclaw/state/workspace-coder",
+    "skill": "fastapi-sample-dev"
+  },
+  "channel": {
+    "primary": "telegram_forum_group_topics_to_coder_applied_by_cli_off_git",
+    "deferred": "discord"
+  },
+  "rollback": "openclaw config unset agents.entries.coder and the Telegram group, then stop the openclaw-devbox App"
+}
