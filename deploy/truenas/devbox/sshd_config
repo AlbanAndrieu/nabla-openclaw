@@ -34,7 +34,8 @@ DisableForwarding yes
 # Static, non-secret session environment: all egress goes through the
 # allowlisting proxy; no interpreter downloads at runtime. UV_PYTHON wins over a
 # repository .python-version patch pin (fastapi-sample: 3.13.17, image: 3.13.x).
-SetEnv HTTP_PROXY=http://openclaw-devbox-egress:3128 HTTPS_PROXY=http://openclaw-devbox-egress:3128 http_proxy=http://openclaw-devbox-egress:3128 https_proxy=http://openclaw-devbox-egress:3128 NO_PROXY=localhost,127.0.0.1 no_proxy=localhost,127.0.0.1 UV_PYTHON_DOWNLOADS=never UV_PYTHON=/usr/local/bin/python3 UV_LINK_MODE=copy
+# TMPDIR: /tmp stays noexec; the entrypoint recreates this directory at start.
+SetEnv HTTP_PROXY=http://openclaw-devbox-egress:3128 HTTPS_PROXY=http://openclaw-devbox-egress:3128 http_proxy=http://openclaw-devbox-egress:3128 https_proxy=http://openclaw-devbox-egress:3128 NO_PROXY=localhost,127.0.0.1 no_proxy=localhost,127.0.0.1 UV_PYTHON_DOWNLOADS=never UV_PYTHON=/usr/local/bin/python3 UV_LINK_MODE=copy TMPDIR=/home/coder/.tmp
 
 ClientAliveInterval 30
 ClientAliveCountMax 4

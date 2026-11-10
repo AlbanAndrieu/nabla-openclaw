@@ -19,6 +19,9 @@ fi
 home=/home/coder
 mkdir -p "$home/sandboxes" "$home/.cache" "$home/.config"
 chmod 0700 "$home" "$home/sandboxes"
+# TMPDIR of the sessions (sshd_config): tests run helpers from pytest tmp_path, and /tmp is noexec.
+rm -rf "$home/.tmp"
+mkdir -m 0700 "$home/.tmp"
 
 # Commit identity is not secret; credentials come from /etc/gitconfig helpers.
 if [ -n "${DEVBOX_GIT_NAME:-}" ] && [ -n "${DEVBOX_GIT_EMAIL:-}" ]; then
