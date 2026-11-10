@@ -1,5 +1,16 @@
 # Roadmap prioritaire — OpenClaw vers TrueNAS (1er novembre 2026)
 
+## P1 — Contrôle Vercel FinOps local (10 novembre 2026)
+
+- [x] **Sources de vérité alignées** : analyseur Fluid Active CPU partagé avec Site Alban et Bababou ; exigence de quantité et unité, fenêtre ~30 jours et contrôles anti-coûts/anti-double comptage.
+- [x] **Collecteur OpenClaw préparé** : `scripts/finops/check-vercel-team.mjs`, options `--input` (lecture locale) ou `--live` (CLI explicitement demandée) ; durée 20 s, sortie bornée 2 MB, logs expurgés, **sans activation du heartbeat/crons**.
+- [x] **Tests de contrat ajoutés** : sous `scripts/finops/*.test.mjs`, intégrés à `just test`.
+- [ ] **Preuve réelle** : tester sur une workstation authentifiée `just vercel-finops`, vérifier export officiel et droits Hobby. Les APIs Billing/Observability ont renvoyé 404 ; ne pas afficher `OK` sans CPU mesuré.
+- [ ] **Évolution vers surveillance quotidienne** : définir stockage privé 0600, déduplication des alertes 50/75/90 %, et ne pas diffuser de données brutes de facturation ni d'informations Bababou. Après revue sécurité, décider manuellement si timer souhaité.
+
+Runbook : [FinOps Vercel](vercel-finops.md). Ce lot ne modifie ni l'état du Gateway ni l'infrastructure TrueNAS.
+
+
 > **Autorité :** `nabla-openclaw` détient le Gateway cible, ses politiques non secrètes, son heartbeat et les automations, ainsi que la configuration déclarative du Gateway **Workstation** actuel (`just workstation-*`). `nabla-compose` garde LiteLLM/TrueNAS, datasets, NFS, réseau, secrets runtime et l'intégration du futur submodule. `ansible-workstation` audite l'ancien Gateway Workstation sans le redéployer. La migration est **appliquée sans Discord depuis le 3 novembre** : le Gateway tourne sur TrueNAS.
 
 ## État constaté sur GitHub
