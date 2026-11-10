@@ -130,6 +130,10 @@ clés SSH, les images et l'App sont créés par le déploiement.
 ```bash
 # 0. Workstation : épingler les images, passer le contrat en ready_to_deploy, fusionner
 just test && just devbox-pin
+#    résolveurs dans l'ordre (chaque échec est affiché) : API registry v2 (HEAD,
+#    jeton anonyme, sans Docker), docker buildx, crane, docker pull ; sinon
+#    `just devbox-pin --via truenas` (même résolution sur TrueNAS, puis sudo docker pull)
+#    ou DEVBOX_PIN_PYTHON_IMAGE=sha256:... DEVBOX_PIN_DEBIAN_IMAGE=sha256:... just devbox-pin
 #    contract.json : "status": "ready_to_deploy" ; just devbox-plan ; PR, merge,
 #    puis mettre à jour le submodule apps/openclaw sur TrueNAS
 

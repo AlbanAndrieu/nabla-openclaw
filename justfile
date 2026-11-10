@@ -17,9 +17,9 @@ plan:
 devbox-plan:
     python3 scripts/check-devbox-contract.py
 
-# Workstation, registry access required: pin the devbox base images by digest.
-devbox-pin:
-    python3 scripts/coder/pin-devbox-images.py
+# Pin the devbox base images by digest (registry API, then local tools); `--via truenas` resolves there.
+devbox-pin *args:
+    python3 scripts/coder/pin-devbox-images.py {{args}}
 
 # Production path, one command: read-only preflight, or `--apply` with NABLA_RUNTIME_CHANGE_APPROVED=yes.
 truenas-deploy-coder *args:

@@ -1,11 +1,16 @@
 """Hermetic coder devbox contract: each rule fires on the regression it guards."""
+import contextlib
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import importlib.util
+import io
 import json
 from pathlib import Path
 import re
 import shutil
 import tempfile
+import threading
 import unittest
+import urllib.parse
 
 ROOT = Path(__file__).resolve().parents[1]
 spec = importlib.util.spec_from_file_location("devbox", ROOT / "scripts/check-devbox-contract.py")
@@ -142,15 +147,115 @@ class DevboxContract(unittest.TestCase):
         self.assertEqual(mod.violations(self.root), ["workspace_sources_exist"])
 
 
+A, B, C = ("sha256:" + c * 64 for c in "abc")
+
+
+class FakeRegistry(BaseHTTPRequestHandler):
+    """Registry v2 with a Bearer challenge, like Docker Hub."""
+    requests = []
+
+    def log_message(self, *args):
+        pass
+
+    def do_GET(self):
+        url = urllib.parse.urlparse(self.path)
+        FakeRegistry.requests.append(("GET", url.path, dict(urllib.parse.parse_qsl(url.query))))
+        body = json.dumps({"token": "anonymous-pull"}).encode()
+        self.send_response(200)
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
+    def do_HEAD(self):
+        FakeRegistry.requests.append(("HEAD", self.path, self.headers.get("Accept", "")))
+        if self.path != "/v2/library/python/manifests/3.13-slim-trixie":
+            self.send_response(404)
+        elif self.headers.get("Authorization") != "Bearer anonymous-pull":
+            self.send_response(401)
+            realm = f"http://127.0.0.1:{self.server.server_port}/token"
+            self.send_header("WWW-Authenticate", f'Bearer realm="{realm}",service="registry.docker.io"')
+        else:
+            self.send_response(200)
+            self.send_header("Docker-Content-Digest", A)
+        self.send_header("Content-Length", "0")
+        self.end_headers()
+
+
 class PinDevboxImages(unittest.TestCase):
     def test_pins_both_base_images_and_repins_idempotently(self):
         compose = (ROOT / "deploy/truenas/devbox/compose.yml").read_text()
-        digests = {"python:3.13-slim-trixie": "sha256:" + "a" * 64, "debian:trixie-slim": "sha256:" + "b" * 64}
-        once = pin.pin(compose, digests.__getitem__)
-        self.assertIn("PYTHON_IMAGE: python:3.13-slim-trixie@sha256:" + "a" * 64 + "\n", once)
-        self.assertIn("DEBIAN_IMAGE: debian:trixie-slim@sha256:" + "b" * 64 + "\n", once)
-        self.assertEqual(pin.pin(once, digests.__getitem__), once)
+        digests = {"python:3.13-slim-trixie": A, "debian:trixie-slim": B}
+        once = pin.pin(compose, digests.__getitem__, env={})
+        self.assertIn("PYTHON_IMAGE: python:3.13-slim-trixie@" + A + "\n", once)
+        self.assertIn("DEBIAN_IMAGE: debian:trixie-slim@" + B + "\n", once)
+        self.assertEqual(pin.pin(once, digests.__getitem__, env={}), once)
         self.assertEqual(len(once.splitlines()), len(compose.splitlines()))
+
+    def test_explicit_digest_overrides_skip_resolution_and_are_validated(self):
+        compose = (ROOT / "deploy/truenas/devbox/compose.yml").read_text()
+        env = {"DEVBOX_PIN_PYTHON_IMAGE": C, "DEVBOX_PIN_DEBIAN_IMAGE": B}
+        pinned = pin.pin(compose, lambda reference: self.fail("resolver called"), env=env)
+        self.assertIn("python:3.13-slim-trixie@" + C, pinned)
+        with self.assertRaisesRegex(pin.Unresolved, "DEVBOX_PIN_PYTHON_IMAGE"):
+            pin.pin(compose, lambda reference: B, env={"DEVBOX_PIN_PYTHON_IMAGE": "latest"})
+
+    def test_references_resolve_to_registry_repository_and_tag(self):
+        self.assertEqual(pin.split_reference("python:3.13-slim-trixie"),
+                         ("registry-1.docker.io", "library/python", "3.13-slim-trixie"))
+        self.assertEqual(pin.split_reference("docker.io/library/debian:trixie-slim"),
+                         ("registry-1.docker.io", "library/debian", "trixie-slim"))
+        self.assertEqual(pin.split_reference("ghcr.io/openclaw/openclaw:2026.10.7"),
+                         ("ghcr.io", "openclaw/openclaw", "2026.10.7"))
+        self.assertEqual(pin.split_reference("localhost:5000/devbox:1"), ("localhost:5000", "devbox", "1"))
+        with self.assertRaises(pin.Unresolved):
+            pin.split_reference("localhost:5000/devbox")
+
+    def test_registry_api_follows_the_bearer_challenge_and_asks_for_the_index(self):
+        server = ThreadingHTTPServer(("127.0.0.1", 0), FakeRegistry)
+        threading.Thread(target=server.serve_forever, daemon=True).start()
+        self.addCleanup(server.server_close)
+        self.addCleanup(server.shutdown)
+        FakeRegistry.requests = []
+        base = f"http://127.0.0.1:{server.server_port}"
+        self.assertEqual(pin.registry_api("python:3.13-slim-trixie", base=base), A)
+        (_, _, accept), token, _ = FakeRegistry.requests
+        self.assertTrue(accept.startswith("application/vnd.oci.image.index.v1+json"))
+        self.assertEqual(token[2], {"service": "registry.docker.io", "scope": "repository:library/python:pull"})
+        with self.assertRaises(pin.urllib.error.HTTPError):
+            pin.registry_api("python:missing", base=base)
+
+    def test_token_realm_cannot_downgrade_an_https_registry(self):
+        with self.assertRaisesRegex(pin.Unresolved, "unsupported auth challenge"):
+            pin.anonymous_token('Bearer realm="http://auth.example/token"', "https://registry", "library/python", 5)
+        with self.assertRaisesRegex(pin.Unresolved, "unsupported auth challenge"):
+            pin.anonymous_token('Basic realm="registry"', "https://registry", "library/python", 5)
+
+    def test_resolver_chain_reports_each_failure_and_stops_at_first_digest(self):
+        def broken(reference):
+            raise pin.Unresolved("buildx exit=1 ERROR: permission denied")
+        stderr = io.StringIO()
+        with contextlib.redirect_stderr(stderr):
+            self.assertEqual(pin.resolve_first("python:3", [("one", broken), ("two", lambda r: B),
+                                                           ("three", lambda r: self.fail("not reached"))]), B)
+            with self.assertRaisesRegex(pin.Unresolved, "digest_unavailable reference=python:3 .*--via truenas"):
+                pin.resolve_first("python:3", [("one", broken), ("two", lambda r: (_ for _ in ()).throw(OSError("dns")))])
+        self.assertIn("resolver=one reference=python:3 error=buildx exit=1 ERROR: permission denied", stderr.getvalue())
+        self.assertIn("resolver=two reference=python:3 digest=" + B, stderr.getvalue())
+        self.assertIn("resolver=two reference=python:3 error=dns", stderr.getvalue())
+
+    def test_repo_digest_matches_the_pulled_repository(self):
+        entries = ["registry.example/python@" + C, "python@" + A]
+        self.assertEqual(pin.repo_digest("docker.io/library/python:3.13", entries), A)
+        with self.assertRaises(pin.Unresolved):
+            pin.repo_digest("debian:trixie-slim", entries)
+
+    def test_cli_rejects_unknown_arguments_without_touching_compose(self):
+        compose = ROOT / "deploy/truenas/devbox/compose.yml"
+        before = compose.read_text()
+        with contextlib.redirect_stdout(io.StringIO()):
+            self.assertEqual(pin.main(["--via"]), 2)
+            self.assertEqual(pin.main(["--resolve"]), 2)
+        self.assertEqual(compose.read_text(), before)
 
 
 if __name__ == "__main__":
