@@ -1,6 +1,6 @@
 # Roadmap consolidée — nabla-openclaw (11 novembre 2026)
 
-**État vérifié :** [PR #17](https://github.com/AlbanAndrieu/nabla-openclaw/pull/17) **Draft ouverte, non fusionnée**, code du contrôle Vercel prêt dans Git, **non appliqué sur TrueNAS**, aucun relevé CPU réel validé. Il ne reste pas de développement majeur identifié : **validation → merge → installation → relevé authentifié → activation quotidienne**.
+**État vérifié (11/11 au soir) :** [PR #17](https://github.com/AlbanAndrieu/nabla-openclaw/pull/17) fusionnée et **appliquée sur TrueNAS** ; aucun relevé CPU réel validé, car le plan Hobby n'expose pas le CPU actif à la CLI. Reste : **relevé (export manuel) → activation quotidienne si un relevé automatique devient possible**.
 
 ## P0 — Terminer et appliquer le contrôle Vercel dans le heartbeat
 
@@ -10,11 +10,11 @@
 | 2 — Confidentialité et résilience | ✅ Implémenté dans #17 | Snapshot 0600, contrôle de fraîcheur, refus du faux OK ; dépassement précédent non résolu sans preuve |
 | 3 — Transport Workstation → TrueNAS | 🟡 Préparé | CLI Vercel Workstation ; transfert SSH du seul JSON expurgé, aucun token dans le Gateway |
 | 4 — Gates sur SHA exact | ✅ Passées le 11/11 après rebase | `just test`, `just vercel-finops-test` (28 tests), `bash -n`, `git diff --check` et `systemd-analyze verify` verts ; transfert relu : JSON en liste blanche validé avant tout contact SSH, écriture atomique en 0600 dans un dossier 0700 du conteneur (UID 1000). Shellcheck ne signale que du style (SC2250), comme le reste du dépôt |
-| 5 — Fusion de la PR #17 | ⬜ En attente | Fusionner après revue et tests, sans masquer les résultats non exécutés |
-| 6 — Appliquer sur TrueNAS | ⬜ À faire après merge | `just truenas-apply-heartbeat` ; contrôler les trois modules, la politique chargée et la non-duplication des jobs |
+| 5 — Fusion de la PR #17 | ✅ Fusionnée le 11/11 (`390c6c0`) | Fusionner après revue et tests, sans masquer les résultats non exécutés |
+| 6 — Appliquer sur TrueNAS | ✅ Appliqué le 11/11 | Collecteurs `homelab-health`, `morning-briefing` et `vercel-finops` installés en 0400 (UID 1000), un seul job par nom (`heartbeat-main`, `morning-briefing`, `daily-tech-news-digest`). Commande : `just truenas-apply-heartbeat` ; contrôler les trois modules, la politique chargée et la non-duplication des jobs |
 | 7 — Premier relevé CPU réel | ⬜ Non mesuré | `just vercel-finops-refresh` sur Workstation authentifiée ; 30 jours et unité CPU vérifiés, sinon NOT_MEASURED. Essai CLI du 11/11 : en Hobby, `vercel usage` n'a aucune donnée de facturation et `vercel metrics` exige Observability Plus (`billing-data-unavailable-on-plan`) ; seul un export manuel du tableau de bord Usage est analysable (`just vercel-finops-file`) |
 | 8 — Prélèvement quotidien | 🟡 Timer prêt, inactif | Installer/activer le timer systemd utilisateur **après** un relevé réussi ; 08:20 Europe/Paris |
-| 9 — Recette end-to-end | 🟡 Hors ligne vérifiée (11/11) | Contrôler 0600, transitions 50/75/90 %, perte de preuve et absence de notifications répétées. Hors ligne : tests verts ; `render` ne notifie que les clés nouvelles ou résolues, donc un `NOT_MEASURED` permanent (cas Hobby) sort une seule fois, puis seulement dans le briefing du matin. Reste à vérifier sur le Gateway après l'étape 6 |
+| 9 — Recette end-to-end | 🟡 Partielle (11/11) | Contrôler 0600, transitions 50/75/90 %, perte de preuve et absence de notifications répétées. Hors ligne : tests verts ; `render` ne notifie que les clés nouvelles ou résolues, donc un `NOT_MEASURED` permanent (cas Hobby) sort une seule fois, puis seulement dans le briefing du matin. Sur le Gateway, collecteur lancé avec une copie de son état : `NOT_MEASURED` sort une fois en « Nouveau », sortie `exit=0`. Les transitions 50/75/90 % attendent un relevé réel |
 
 **Condition DONE :** commit fusionné et testé, code réellement installé sur le Gateway TrueNAS, fichier de métrique valide et récent, alerte validée et timer actif **si souhaité**. Si Hobby ne fournit que des coûts monétaires (API Billing/Observability précédemment 404), conserver le statut **NOT_MEASURED**, jamais un faux OK.
 
