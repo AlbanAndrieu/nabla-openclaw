@@ -1,5 +1,17 @@
 # Roadmap prioritaire — OpenClaw vers TrueNAS (1er novembre 2026)
 
+## P0 — Heartbeat OpenClaw / Vercel (11 novembre 2026)
+
+- [x] **Code ajouté** : contrôle du quota d'équipe Fluid Active CPU dans `homelab-health.mjs` ; ne lit qu'un instantané privé, aucune requête Vercel depuis TrueNAS. Le collecteur importé est livré par `apply-truenas.sh`.
+- [x] **Déduplication** : clés `vercel:cpu:WATCH`, `vercel:cpu:INVESTIGATE`, `vercel:cpu:CRITICAL` et `vercel:evidence:*` ; transitions 50/75/90 %, perte de preuve et résolution vérifiée. Un dépassement antérieur reste ouvert sans mesure fraîche. Pas de notification horaire répétitive à niveau inchangé.
+- [x] **Flux privé** : génération du rapport filtré sur Workstation et transfert SSH dans le volume du Gateway (fichier 0600 ; rejet symlink, fichier public, contenu arbitraire). Timer systemd une fois par jour à 08:20 Paris, **facultatif et non activé**.
+- [x] **Tests de contrat ajoutés** pour la validation des seuils, transitions, preuve manquante/périmée, confidentialité, lecture 0600 et absence d'appels HTTP.
+- [ ] **Gate Node24 / Just** : exécuter `just test` sur le HEAD exact, `shellcheck`/smoke de scripts si disponibles et `git diff --check`. Les tests de contrat sont **écrits, non exécutés sur le HEAD**.
+- [ ] **Déploiement TrueNAS** : après merge, exécuter `just truenas-apply-heartbeat` pour installer les 3 modules, puis `just vercel-finops-refresh` depuis la Workstation. Le compte Hobby doit autoriser un export contenant les heures CPU ; sinon le statut restera `NOT_MEASURED` et un faux `OK` est interdit.
+- [ ] **Option d'automatisation** : installer et activer explicitement le timer utilisateur systemd, vérifier la première collecte, `journalctl --user` et la notification d'une transition sans message de répétition.
+
+Runbook : [FinOps Vercel](vercel-finops.md). Cette PR n'active pas de secret, de timer ou de changement d'infrastructure.
+
 ## P1 — Contrôle Vercel FinOps local (10 novembre 2026)
 
 - [x] **Sources de vérité alignées** : analyseur Fluid Active CPU partagé avec Site Alban et Bababou ; exigence de quantité et unité, fenêtre ~30 jours et contrôles anti-coûts/anti-double comptage.
