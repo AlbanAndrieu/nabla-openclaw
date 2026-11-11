@@ -1,0 +1,11 @@
+[Unit]
+Description=Daily Vercel FinOps sample for the OpenClaw hourly heartbeat (opt-in)
+
+[Timer]
+OnCalendar=*-*-* 08:20:00 Europe/Paris
+RandomizedDelaySec=5min
+Persistent=false
+Unit=nabla-openclaw-vercel-finops.service
+
+[Install]
+WantedBy=timers.target

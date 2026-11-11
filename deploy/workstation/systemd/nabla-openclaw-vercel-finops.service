@@ -1,0 +1,13 @@
+[Unit]
+Description=Read-only Vercel usage snapshot for OpenClaw TrueNAS heartbeat (opt-in)
+Documentation=https://github.com/AlbanAndrieu/nabla-openclaw/blob/master/docs/vercel-finops.md
+
+[Service]
+Type=oneshot
+WorkingDirectory=%h/w/nabla-openclaw
+Environment=PATH=%h/.local/share/mise/shims:%h/.local/bin:/usr/local/bin:/usr/bin:/bin
+ExecStart=/usr/bin/bash %h/w/nabla-openclaw/scripts/heartbeat/collect-publish-vercel-finops.sh
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+TimeoutStartSec=90s

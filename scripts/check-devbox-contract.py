@@ -126,7 +126,7 @@ def gateway_agent_sandboxed(c, seed, root):
 def gateway_joins_network(c, seed, root):
     compose = text(root, GATEWAY_COMPOSE)
     return (c["network"]["gateway_joins"] is True
-            and "    networks: [litellm, devbox]\n" in compose
+            and re.search(r"^    networks: \[litellm, devbox(, [\w-]+)*\]$", compose, re.M)
             and f'  devbox:\n    external: true\n    name: {c["network"]["name"]}\n' in compose)
 
 

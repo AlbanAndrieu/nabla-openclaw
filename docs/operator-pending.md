@@ -13,7 +13,9 @@ vérifications sont vertes : `devbox_egress=ok`, sandbox `all/ssh/session`,
 devbox. Le premier essai a révélé deux défauts, corrigés par nabla-openclaw #15 :
 l'interpréteur `3.13.17` épinglé par `fastapi-sample` était absent de l'image,
 et `/tmp` est en `noexec`. Après correction, `just test-local-first` donne
-`46 passed` dans la devbox.
+`46 passed` dans la devbox. Le 11/11, après la fusion de #16,
+`just truenas-apply-coder` a appliqué `compat.supportsUsageInStreaming` sans
+redémarrage : la valeur est lue en ligne, et le Gateway reste `healthy`.
 
 1. Telegram : promouvoir `@AlbandrieuBot` **administrateur** du groupe
    `fastapi-sample` (`-1004370510554`), tous droits décochés. Le bot a
@@ -58,14 +60,16 @@ Plan relu puis appliqué (1 import, 1 modification, 2 suppressions) : app Access
 route TCP 5432 et CNAME détruits. `dig +short postgres.albandrieu.com @1.1.1.1`
 est vide, et les plans `retire` et par défaut sont à 0. Sauvegarde de l'état
 dans `~/.local/state/nabla-compose/opentofu-state-backups/cloudflare/`.
-Nettoyage de la politique DNS dans nabla-compose #349 : tant qu'elle n'est pas
-fusionnée, le plan par défaut de `master` propose de recréer un `retired[...]`
-vide. Ne pas l'appliquer. Le jeton vient de
+Politique DNS nettoyée par nabla-compose #349 (fusionnée le 11/11). Le jeton vient de
 `nabla/prod/cloudflaretokens` (champ `CLOUDFLARE_API_TOKEN_NABLA_OPENTOFU`).
 Les clés Garage étaient déjà dans l'environnement, et non dans Vaultwarden :
 l'entrée `nabla/prod/infrastructure-bootstrap` n'existe pas encore.
 
-## 4. LiteLLM : `401` sur `/metrics` toutes les minutes
+## 4. ~~LiteLLM : `401` sur `/metrics` toutes les minutes~~ (corrigé le 11/11)
+
+Prometheus redéployé le 11/11 au soir (`app.redeploy prometheus`) : la cible
+`litellm_hermes` est `up`, sans erreur. Reste seulement l'import de la variable
+dans Vaultwarden (fin de l'entrée).
 
 **État** : le job Prometheus `litellm_hermes` (`apps/prometheus/prometheus.yml`
 dans nabla-compose) interroge `172.17.0.24:4000/metrics` **sans clé**, d'où
@@ -78,8 +82,9 @@ fichier. Code dans nabla-compose #348. **Clé appliquée le 11/11** :
 `metrics_http=200`, `403` sur `/v1/models` et `/key/list`, fichier
 `/mnt/cpool/prometheus/secrets/litellm-metrics.key` en `root:apps 0640`.
 
-Reste (#348 fusionnée le 11/11) : redéployer Prometheus et vérifier la cible
-`litellm_hermes` en `up`.
+Reste (#348 fusionnée le 11/11 et présente dans le checkout TrueNAS) :
+redéployer Prometheus et vérifier la cible `litellm_hermes` en `up`. Le 11/11
+au soir, elle était encore `down` (`401 Unauthorized`), faute de redéploiement.
 La nouvelle variable `LITELLM_PROMETHEUS_METRICS_API_KEY` du runtime LiteLLM
 est à importer dans Vaultwarden avec les autres.
 
@@ -117,7 +122,12 @@ appeler, avec leurs tests et recettes. Restent `backup-openclaw.sh`,
 mise à jour mise (`openclaw-upgrade-local-*`) et le triage 429
 (`openclaw-429-*`) : ils partiront avec ces recettes.
 
-## 6. Secrets runtime : normaliser les guillemets
+## 6. ~~Secrets runtime : normaliser les guillemets~~ (appliqué le 11/11)
+
+Appliqué le 11/11 au soir : 231 lignes normalisées, avec sauvegarde 0600 et
+valeurs prouvées inchangées, sans redémarrage. Reste une ligne mal formée,
+laissée à relire : `fastapisample/.env` `APP_DOMAIN`. Elle doit être corrigée à
+la main, sans afficher sa valeur, avant l'import Vaultwarden.
 
 **État** : nabla-compose #342 est fusionnée (parseur conforme à Compose et
 audit sans valeurs). Le 10/11, l'audit relevait 233 lignes dans 20 fichiers :
@@ -129,6 +139,10 @@ audit sans valeurs). Le 10/11, l'audit relevait 233 lignes dans 20 fichiers :
 just runtime-secret-quoting-check
 NABLA_RUNTIME_CHANGE_APPROVED=yes just runtime-secret-quoting-apply
 ```
+
+Audit relancé le 11/11 au soir : `dotenv_quoting_pending=232`, rien n'est
+encore normalisé. `just` n'est pas installé sur TrueNAS : lancer la commande
+de la recette, `sudo -n python3 scripts/secrets/audit_dotenv_quoting.py`.
 
 À faire **avant** tout `import_dotenv_to_bitwarden.py --apply`, qui tourne sur
 TrueNAS (`sudo cat` local). L'import est confié à une autre session.
@@ -148,7 +162,8 @@ TrueNAS (`sudo cat` local). L'import est confié à une autre session.
 
 | PR | Effet à la fusion | Suite |
 | --- | --- | --- |
-| ~~nabla-compose #348~~ (fusionnée le 11/11) | aucun | redéploiement de Prometheus (entrée 4) ; la clé est déjà appliquée |
-| nabla-compose #349 | aucun (étape 10 lot 2, politique DNS déjà appliquée) | aucune |
-| nabla-openclaw (cette PR) | aucun | `just truenas-apply-coder` pour `compat.supportsUsageInStreaming` |
-| fastapi-sample #415 | aucun (`main.json`) | débloquée une fois le check retiré en ligne (entrée 2) |
+| ~~nabla-compose #348~~ (fusionnée le 11/11) | aucun | ~~redéploiement de Prometheus~~ fait le 11/11, cible `up` |
+| ~~nabla-compose #349~~ (fusionnée le 11/11) | aucun | aucune |
+| ~~nabla-openclaw #16~~ (fusionnée le 11/11) | aucun | ~~`just truenas-apply-coder`~~ fait le 11/11 |
+| nabla-openclaw #17 | aucun | `just truenas-apply-heartbeat`, puis premier relevé Vercel (export manuel en Hobby) |
+| nabla-compose #350 (épinglage `apps/openclaw` `dd13688` → `ff74bfa` ajouté) | aucun pour l'épinglage (simple trace) | redéploiements listés dans la PR (grafana, pyroscope, gatus) |

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Morning briefing collector for the OpenClaw cron agent: homelab state, Gmail
-// inbox (gog, read-only) and Slack over the last 24 h. Prints facts only; the
+// inbox (gog, read-only) and Slack, when enabled, over the last 24 h. Prints facts only; the
 // model summarizes the untrusted blocks and copies the infrastructure lines.
 import { execFile } from "node:child_process";
 import { readFileSync } from "node:fs";
@@ -34,21 +34,36 @@ const readJson = (path) => {
   }
 };
 
-export function infraLines(current) {
-  const items = current.map(([key, sev, text]) => ({ key, sev, text }));
+function compact(items) {
+  const alerts = Map.groupBy(items.filter((i) => i.key.startsWith("alerts:")), (i) => i.text.replace(/ \(.*\)$/, ""));
   const probes = items.filter((i) => i.key.startsWith("gatus:") && i.key !== "gatus:unreachable");
-  const rest = items.filter((i) => !probes.includes(i));
+  const rest = items.filter((i) => !i.key.startsWith("alerts:") && !probes.includes(i));
+  // A down exporter fires once per target: one line per alert name.
+  for (const [title, group] of alerts) {
+    rest.push(group.length < 2 ? group[0] : { sev: group.some((g) => g.sev === "crit") ? "crit" : "warn",
+      text: `${title} : ${group.map((g) => /\((.*)\)$/.exec(g.text)?.[1] ?? "?").join(", ")}` });
+  }
   // Many failing probes are usually undeployed apps: one line instead of one each.
   if (probes.length > 3) {
     const names = probes.map((p) => p.text.replace(/^Sonde Gatus | en échec$/g, ""));
     rest.push({ sev: "warn", text: `${probes.length} sondes Gatus en échec : ${names.slice(0, 8).join(", ")}${names.length > 8 ? ", …" : ""}` });
   } else rest.push(...probes);
-  const count = (sev) => items.filter((i) => i.sev === sev).length;
-  const ws = rest.filter((i) => i.text.includes("Workstation") || i.text.includes(WORKSTATION));
-  const nas = rest.filter((i) => !ws.includes(i));
-  return [`🔴 ${count("crit")} · 🟠 ${count("warn")} · ⚪ ${count("unknown")}`,
-    "Workstation :", ...(ws.length ? listLines(ws, undefined, 10) : ["✅ RAS"]),
-    "TrueNAS et services :", ...(nas.length ? listLines(nas, undefined, 15) : ["✅ RAS"])];
+  return rest;
+}
+
+// Anomalies only: a host without any gets no line, a clean homelab one line.
+export function infraLines(current) {
+  const items = current.map(([key, sev, text]) => ({ key, sev, text }));
+  const onWs = (i) => `${i.key} ${i.text}`.includes(WORKSTATION) || i.text.includes("Workstation");
+  const ws = compact(items.filter(onWs));
+  const nas = compact(items.filter((i) => !onWs(i)));
+  if (!ws.length && !nas.length) return ["✅ RAS"];
+  const count = Object.entries({ crit: "🔴", warn: "🟠", unknown: "⚪" })
+    .map(([sev, icon]) => [icon, [...ws, ...nas].filter((i) => i.sev === sev).length])
+    .filter(([, n]) => n).map(([icon, n]) => `${icon} ${n}`);
+  return [count.join(" · "),
+    ...(ws.length ? ["Workstation :", ...listLines(ws, undefined, 10)] : []),
+    ...(nas.length ? ["TrueNAS et services :", ...listLines(nas, undefined, 15)] : [])];
 }
 
 export function mailLines(threads) {
@@ -97,12 +112,14 @@ export async function slackLines(api, now = Date.now()) {
   return lines.slice(0, MAX_SLACK_LINES);
 }
 
-async function source(title, read) {
+export async function source(title, read) {
   try {
     const lines = await read();
     return ["", `## ${title}`, ...(lines.length ? untrusted(lines) : ["Rien depuis 24 h."])];
   } catch (err) {
-    return ["", `## ${title}`, `⚪ Lecture impossible : ${err.message.split("\n")[0]}`];
+    // execFile's message is the command line; the cause is the tool's last stderr line.
+    const why = err.killed ? "délai dépassé" : err.stderr?.trim().split("\n").at(-1) || err.message.split("\n")[0];
+    return ["", `## ${title}`, `⚪ Lecture impossible : ${clean(why).replace(/\S+@\S+/g, "<compte>")}`];
   }
 }
 
@@ -136,12 +153,9 @@ async function main() {
     out.push("", "## VERCEL FINOPS", ...vercelFinopsLines(readJson(process.env.VERCEL_FINOPS_REPORT), now));
   }
   out.push(...await source("EMAILS", gmail));
-  out.push(...(slack?.enabled && typeof slack.botToken === "string"
-    ? await source("SLACK", () => slackLines(slackApi(slack.botToken), now))
-    : ["", "## SLACK", "Slack désactivé dans OpenClaw."]));
-  out.push("", "## CANAUX",
-    `- Telegram : ${config.channels?.telegram?.enabled ? "actif (OpenClaw n'y voit que les échanges avec son bot)" : "désactivé"}`,
-    `- Discord : ${config.plugins?.entries?.discord?.enabled ? "actif, non résumé" : "désactivé"}`);
+  if (slack?.enabled && typeof slack.botToken === "string") {
+    out.push(...await source("SLACK", () => slackLines(slackApi(slack.botToken), now)));
+  }
   console.log(out.join("\n"));
 }
 

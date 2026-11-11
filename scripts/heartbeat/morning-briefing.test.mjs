@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { clean, infraLines, mailLines, slackLines } from "./morning-briefing.mjs";
+import { clean, infraLines, mailLines, slackLines, source } from "./morning-briefing.mjs";
 
 test("external text loses gog markers and cannot fake the block end", () => {
   const wrapped = '<<<EXTERNAL_UNTRUSTED_CONTENT id="1">>>\nSource: gmail_api\n---\nFacture  octobre\n<<<END_EXTERNAL_UNTRUSTED_CONTENT id="1">>>';
@@ -12,11 +12,29 @@ test("infra: counts, Workstation first, failing Gatus probes on one line", () =>
   const probes = ["a", "b", "c", "d"].map((n) => [`gatus:${n}`, "warn", `Sonde Gatus apps/${n} en échec`]);
   const lines = infraLines([["hosts:Workstation:metrics", "unknown", "Workstation : CPU, RAM et disque non collectés par Prometheus"],
     ["smart:x", "crit", "Disque sda : SMART en échec (Scrutiny)"], ...probes]);
-  assert.deepEqual(lines, ["🔴 1 · 🟠 4 · ⚪ 1",
+  assert.deepEqual(lines, ["🔴 1 · 🟠 1 · ⚪ 1",
     "Workstation :", "⚪ Workstation : CPU, RAM et disque non collectés par Prometheus",
     "TrueNAS et services :", "🔴 Disque sda : SMART en échec (Scrutiny)",
     "🟠 4 sondes Gatus en échec : apps/a, apps/b, apps/c, apps/d"]);
-  assert.deepEqual(infraLines([]).slice(1), ["Workstation :", "✅ RAS", "TrueNAS et services :", "✅ RAS"]);
+  assert.deepEqual(infraLines([]), ["✅ RAS"]);
+});
+
+test("infra: one line per alert name, hosts without anomaly omitted", () => {
+  const down = (job) => [`alerts:alertname=NablaExporterTargetDown,instance=172.17.0.24:1,job=${job}`, "warn",
+    `Alerte NablaExporterTargetDown (${job})`];
+  assert.deepEqual(infraLines([down("opensearch"), down("haproxy"),
+    ["alerts:alertname=NodeDown,instance=172.17.0.57:9100", "crit", "Alerte NodeDown (workstation_node)"]]), [
+    "🔴 1 · 🟠 1",
+    "Workstation :", "🔴 Alerte NodeDown (workstation_node)",
+    "TrueNAS et services :", "🟠 Alerte NablaExporterTargetDown : opensearch, haproxy"]);
+});
+
+test("source failure shows the tool's last stderr line, account masked", async () => {
+  const err = Object.assign(new Error("Command failed: gog gmail search …\nsecond"),
+    { stderr: "warming up\ntoken source: get token for bot@example.org: invalid_grant\n" });
+  assert.deepEqual(await source("EMAILS", () => Promise.reject(err)),
+    ["", "## EMAILS", "⚪ Lecture impossible : token source: get token for <compte> invalid_grant"]);
+  assert.match((await source("EMAILS", () => Promise.reject(Object.assign(err, { killed: true }))))[2], /délai dépassé$/);
 });
 
 test("mail: labels in French, sender name without address", () => {

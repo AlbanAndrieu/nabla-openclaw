@@ -31,11 +31,10 @@ En français, en Markdown simple, sans tableau :
   et notifications, sauf facture, sécurité, échéance ou demande explicite.
   Sans email : `Rien de nouveau`. Si la section commence par `⚪`, recopie
   cette ligne ;
-- `💬 Slack` : une puce par canal actif, en une phrase, au plus 5 puces ;
-  sinon, recopie la ligne de la section SLACK ;
+- `💬 Slack` **uniquement si la section SLACK existe** : une puce par canal
+  actif, en une phrase, au plus 5 puces, ou sa ligne `⚪` ;
 - `🩺 Homelab` : recopie les lignes de la section INFRA telles quelles, sans
-  les reformuler ni les commenter ;
-- `ℹ️ Canaux` : recopie les lignes de la section CANAUX.
+  les reformuler, les regrouper ni les commenter ;
 - `💻 Vercel FinOps` **uniquement si la section VERCEL FINOPS existe** : recopie les lignes expurgées sans enrichissement. Un statut `STALE` ou `NOT_MEASURED` signifie que le quota CPU n'est pas attesté, et non que la consommation est nulle.
 
 ## 4. Livraison

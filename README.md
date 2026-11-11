@@ -38,7 +38,10 @@ plusieurs sources :
 - Prometheus TrueNAS : alertes, cibles, CPU, RAM, disques, pools ZFS et
   unités systemd de TrueNAS et de la Workstation ;
 - Gatus, Docker (via le socket proxy) et Scrutiny ;
-- la readiness des deux LiteLLM, base PostgreSQL comprise.
+- la readiness des deux LiteLLM, base PostgreSQL comprise ;
+- **le budget Vercel Fluid Active CPU**, via un instantané privé généré
+  sur la Workstation (seuils 50/75/90 %, déduplication, absence de faux OK
+  lorsque la preuve est manquante ou périmée). Le Gateway ne contacte pas Vercel.
 
 Le heartbeat n'envoie un message Telegram que lorsqu'une anomalie
 apparaît ou disparaît. L'état de déduplication est dans
@@ -50,10 +53,10 @@ Le job `morning-briefing` (8 h, clé cron, `gpt-4.1-mini`) exécute
 - la synthèse des emails reçus en 24 h dans la boîte Gmail `openclaw`, via
   `gog --readonly` (binaire dans `state/tools/`, trousseau fichier dans
   `state/gogcli/`) ;
-- les messages Slack des canaux où le bot est membre, si `channels.slack`
-  est actif ;
-- toutes les anomalies en cours, Workstation puis TrueNAS ;
-- l'état des canaux Telegram et Discord.
+- les messages Slack des canaux où le bot est membre, seulement si
+  `channels.slack` est actif ;
+- les anomalies en cours, Workstation puis TrueNAS, sans les hôtes sains : une
+  ligne par nom d'alerte, l'exporter désigné par son `job` Prometheus.
 
 Emails et messages sont encadrés comme données non fiables : le modèle les
 résume sans suivre leurs instructions.
@@ -69,6 +72,8 @@ résume sans suivre leurs instructions.
 ```bash
 just test
 just truenas-apply-heartbeat
+# Optionnel, sur une Workstation disposant de la CLI Vercel et de ssh truenas :
+just vercel-finops-refresh
 ```
 
 ## TrueNAS : agent `coder` pour fastapi-sample (préparé)
@@ -105,6 +110,8 @@ le parseur hors réseau. Le briefing du matin peut inclure un instantané
 
 Voir [le runbook FinOps Vercel](docs/vercel-finops.md) pour les seuils,
 le transfert manuel d'un rapport sans secrets et les limites du compte Hobby.
+
+**FinOps Vercel :** voir [l'installation du contrôle heartbeat](docs/vercel-finops.md) et du timer Workstation quotidien (facultatif). Le nouveau module est copié par `just truenas-apply-heartbeat`. Une fusion Git seule n'active pas la collecte sur TrueNAS.
 
 ## Workstation : appliquer la configuration de ce dépôt
 

@@ -124,7 +124,7 @@ class DevboxContract(unittest.TestCase):
                 self.assertEqual(mod.violations(self.root), ["gateway_agent_sandboxed"])
 
     def test_gateway_must_join_the_internal_network(self):
-        self.edit(mod.GATEWAY_COMPOSE, "    networks: [litellm, devbox]\n", "    networks: [litellm]\n")
+        self.edit(mod.GATEWAY_COMPOSE, "    networks: [litellm, devbox, docker-proxy]\n", "    networks: [litellm, docker-proxy]\n")
         self.assertEqual(mod.violations(self.root), ["gateway_joins_devbox_network"])
 
     def test_ready_or_active_requires_digest_pinned_base_images(self):
