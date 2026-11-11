@@ -52,7 +52,8 @@ export const checks = {
       .map(({ labels }) => {
         const id = Object.entries(labels).filter(([k]) => k !== "severity").sort()
           .map(([k, v]) => `${k}=${v}`).join(",");
-        const where = [labels.instance ?? labels.job, labels.mountpoint].filter(Boolean).join(" ");
+        // The job names the exporter or service; the instance is only an IP:port.
+        const where = [labels.job ?? labels.instance, labels.mountpoint].filter(Boolean).join(" ");
         return [`alerts:${id}`, labels.severity === "critical" ? "crit" : "warn",
           `Alerte ${labels.alertname}${where ? ` (${where})` : ""}`];
       });
@@ -97,7 +98,8 @@ export const checks = {
       .map((e) => [`gatus:${e.key}`, "warn", `Sonde Gatus ${e.group ? `${e.group}/` : ""}${e.name} en échec`]);
   },
   async docker(get) {
-    return dockerAnomalies(await get(`http://${TRUENAS}:2375/containers/json?all=1`));
+    // The read-only proxy publishes no host port since 10/11: reached on the docker-proxy network.
+    return dockerAnomalies(await get("http://docker-socket-proxy:2375/containers/json?all=1"));
   },
   async smart(get) {
     const { data } = await get(`http://${TRUENAS}:31054/api/summary`);

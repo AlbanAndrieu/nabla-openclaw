@@ -24,6 +24,13 @@ test("an unreachable source keeps its anomalies instead of resolving them", asyn
   assert.equal(diff(prev, current, NOON).gone.length, 0);
 });
 
+test("alerts name the exporter by its job, not its IP:port", async () => {
+  const labels = { alertname: "NablaExporterTargetDown", instance: "172.17.0.24:9114", job: "opensearch", severity: "warning" };
+  const get = async () => ({ data: { alerts: [{ state: "firing", labels }] } });
+  assert.deepEqual(await checks.alerts(get), [["alerts:alertname=NablaExporterTargetDown,instance=172.17.0.24:9114,job=opensearch",
+    "warn", "Alerte NablaExporterTargetDown (opensearch)"]]);
+});
+
 test("docker: crashed, unhealthy and restarting containers only", () => {
   const found = dockerAnomalies([
     { Names: ["/ok"], State: "running", Status: "Up 2 hours (healthy)", Health: { Status: "healthy" } },
