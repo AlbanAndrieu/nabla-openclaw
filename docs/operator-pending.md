@@ -165,5 +165,5 @@ TrueNAS (`sudo cat` local). L'import est confié à une autre session.
 | ~~nabla-compose #348~~ (fusionnée le 11/11) | aucun | ~~redéploiement de Prometheus~~ fait le 11/11, cible `up` |
 | ~~nabla-compose #349~~ (fusionnée le 11/11) | aucun | aucune |
 | ~~nabla-openclaw #16~~ (fusionnée le 11/11) | aucun | ~~`just truenas-apply-coder`~~ fait le 11/11 |
-| nabla-openclaw #17 | aucun | `just truenas-apply-heartbeat`, puis premier relevé Vercel (export manuel en Hobby) |
+| ~~nabla-openclaw #17~~ (fusionnée le 11/11) | aucun | ~~`just truenas-apply-heartbeat`~~ fait le 11/11 ; reste le premier relevé Vercel (export manuel en Hobby) |
 | nabla-compose #350 (épinglage `apps/openclaw` `dd13688` → `ff74bfa` ajouté) | aucun pour l'épinglage (simple trace) | redéploiements listés dans la PR (grafana, pyroscope, gatus) |
