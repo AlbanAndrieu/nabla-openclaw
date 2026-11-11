@@ -59,7 +59,8 @@ du code, CNAME dans `retired_hostnames`). **Rien n'est appliqué** : la route
 reste en ligne, protégée par l'app Access tant que ces commandes n'ont pas tourné.
 
 ```bash
-# depuis ~/w/nabla-compose à jour, CLOUDFLARE_API_TOKEN chargé depuis Vaultwarden
+# depuis ~/w/nabla-compose à jour : coffre déverrouillé (`bw unlock`), CLOUDFLARE_API_TOKEN
+# et les clés AWS de l'état Garage chargés depuis Vaultwarden sans les afficher
 scripts/infra/terragrunt-safe.sh infrastructure/cloudflare plan    # adopt
 scripts/infra/terragrunt-safe.sh infrastructure/cloudflare apply
 TF_VAR_dns_retirement_phase=retire scripts/infra/terragrunt-safe.sh infrastructure/cloudflare plan
@@ -136,9 +137,10 @@ TrueNAS (`sudo cat` local). L'import est confié à une autre session.
 
 ## 7. Restent de la roadmap, côté propriétaire
 
-- **Vercel FinOps, preuve L3** : la CLI `vercel` n'est pas installée sur la
-  Workstation. Sur une machine authentifiée, lancer `just vercel-finops`. Ne
-  jamais afficher `OK` sans CPU mesuré.
+- **Vercel FinOps** : preuve L3 faite le 11/11. En Hobby, ni `vercel usage`
+  ni `vercel metrics` ne donnent le CPU actif ([détail](vercel-finops.md)).
+  Seule voie : exporter à la main le JSON du tableau de bord Usage, puis
+  `just vercel-finops-file <export>`.
 - **Slack** : régénérer les jetons du bot (`invalid_auth`), puis activer
   `channels.slack`.
 - **Discord** : attester un `doctor` avec le vrai token avant de réactiver le
