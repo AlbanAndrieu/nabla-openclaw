@@ -1,62 +1,65 @@
-# Roadmap prioritaire — OpenClaw vers TrueNAS (1er novembre 2026)
+# Roadmap consolidée — nabla-openclaw (11 novembre 2026)
 
-## P0 — Heartbeat OpenClaw / Vercel (11 novembre 2026)
+**État vérifié :** [PR #17](https://github.com/AlbanAndrieu/nabla-openclaw/pull/17) **Draft ouverte, non fusionnée**, code du contrôle Vercel prêt dans Git, **non appliqué sur TrueNAS**, aucun relevé CPU réel validé. Il ne reste pas de développement majeur identifié : **validation → merge → installation → relevé authentifié → activation quotidienne**.
 
-- [x] **Code ajouté** : contrôle du quota d'équipe Fluid Active CPU dans `homelab-health.mjs` ; ne lit qu'un instantané privé, aucune requête Vercel depuis TrueNAS. Le collecteur importé est livré par `apply-truenas.sh`.
-- [x] **Déduplication** : clés `vercel:cpu:WATCH`, `vercel:cpu:INVESTIGATE`, `vercel:cpu:CRITICAL` et `vercel:evidence:*` ; transitions 50/75/90 %, perte de preuve et résolution vérifiée. Un dépassement antérieur reste ouvert sans mesure fraîche. Pas de notification horaire répétitive à niveau inchangé.
-- [x] **Flux privé** : génération du rapport filtré sur Workstation et transfert SSH dans le volume du Gateway (fichier 0600 ; rejet symlink, fichier public, contenu arbitraire). Timer systemd une fois par jour à 08:20 Paris, **facultatif et non activé**.
-- [x] **Tests de contrat ajoutés** pour la validation des seuils, transitions, preuve manquante/périmée, confidentialité, lecture 0600 et absence d'appels HTTP.
-- [ ] **Gate Node24 / Just** : exécuter `just test` sur le HEAD exact, `shellcheck`/smoke de scripts si disponibles et `git diff --check`. Les tests de contrat sont **écrits, non exécutés sur le HEAD**.
-- [ ] **Déploiement TrueNAS** : après merge, exécuter `just truenas-apply-heartbeat` pour installer les 3 modules, puis `just vercel-finops-refresh` depuis la Workstation. Le compte Hobby doit autoriser un export contenant les heures CPU ; sinon le statut restera `NOT_MEASURED` et un faux `OK` est interdit.
-- [ ] **Option d'automatisation** : installer et activer explicitement le timer utilisateur systemd, vérifier la première collecte, `journalctl --user` et la notification d'une transition sans message de répétition.
+## P0 — Terminer et appliquer le contrôle Vercel dans le heartbeat
 
-Runbook : [FinOps Vercel](vercel-finops.md). Cette PR n'active pas de secret, de timer ou de changement d'infrastructure.
+| Ordre | Statut | Action vérifiable |
+| --- | --- | --- |
+| 1 — Code et seuils 50/75/90 % | ✅ Implémenté dans #17 | Lecture locale privée, alertes dédupliquées ; aucun appel Vercel depuis TrueNAS |
+| 2 — Confidentialité et résilience | ✅ Implémenté dans #17 | Snapshot 0600, contrôle de fraîcheur, refus du faux OK ; dépassement précédent non résolu sans preuve |
+| 3 — Transport Workstation → TrueNAS | 🟡 Préparé | CLI Vercel Workstation ; transfert SSH du seul JSON expurgé, aucun token dans le Gateway |
+| 4 — Gates sur SHA exact | ⬜ À valider | `just test`, `bash -n`, `git diff --check`, revue du transfert SSH et des permissions |
+| 5 — Fusion de la PR #17 | ⬜ En attente | Fusionner après revue et tests, sans masquer les résultats non exécutés |
+| 6 — Appliquer sur TrueNAS | ⬜ À faire après merge | `just truenas-apply-heartbeat` ; contrôler les trois modules, la politique chargée et la non-duplication des jobs |
+| 7 — Premier relevé CPU réel | ⬜ Non mesuré | `just vercel-finops-refresh` sur Workstation authentifiée ; 30 jours et unité CPU vérifiés, sinon NOT_MEASURED |
+| 8 — Prélèvement quotidien | 🟡 Timer prêt, inactif | Installer/activer le timer systemd utilisateur **après** un relevé réussi ; 08:20 Europe/Paris |
+| 9 — Recette end-to-end | ⬜ À vérifier | Contrôler 0600, transitions 50/75/90 %, perte de preuve et absence de notifications répétées |
 
-## P1 — Contrôle Vercel FinOps local (10 novembre 2026)
+**Condition DONE :** commit fusionné et testé, code réellement installé sur le Gateway TrueNAS, fichier de métrique valide et récent, alerte validée et timer actif **si souhaité**. Si Hobby ne fournit que des coûts monétaires (API Billing/Observability précédemment 404), conserver le statut **NOT_MEASURED**, jamais un faux OK.
 
-- [x] **Sources de vérité alignées** : analyseur Fluid Active CPU partagé avec Site Alban et Bababou ; exigence de quantité et unité, fenêtre ~30 jours et contrôles anti-coûts/anti-double comptage.
-- [x] **Collecteur OpenClaw préparé** : `scripts/finops/check-vercel-team.mjs`, options `--input` (lecture locale) ou `--live` (CLI explicitement demandée) ; durée 20 s, sortie bornée 2 MB, logs expurgés, **sans activation du heartbeat/crons**.
-- [x] **Tests de contrat ajoutés** : sous `scripts/finops/*.test.mjs`, intégrés à `just test`.
-- [x] **Preuve réelle (11 novembre)** : `just vercel-finops` lancé avec une CLI authentifiée. En Hobby, `vercel usage` n'a pas de données de facturation et `vercel metrics` exige Observability Plus : verdict `NOT_MEASURED` (`billing-data-unavailable-on-plan`), jamais `OK`. Seul un export manuel du tableau de bord Usage peut être analysé (`just vercel-finops-file`).
-- [ ] **Évolution vers surveillance quotidienne** : définir stockage privé 0600, déduplication des alertes 50/75/90 %, et ne pas diffuser de données brutes de facturation ni d'informations Bababou. Après revue sécurité, décider manuellement si timer souhaité.
+### Commandes d’application sur la workstation (après revue/merge)
 
-Runbook : [FinOps Vercel](vercel-finops.md). Ce lot ne modifie ni l'état du Gateway ni l'infrastructure TrueNAS.
+```bash
+cd ~/w/nabla-openclaw
+git pull --ff-only
+just test
+bash -n scripts/heartbeat/apply-truenas.sh \
+  scripts/heartbeat/collect-publish-vercel-finops.sh \
+  scripts/heartbeat/publish-vercel-finops.sh
 
+# Attention : synchronise également briefing du matin et config heartbeat.
+just truenas-apply-heartbeat
+# Authentification CLI Vercel et SSH TrueNAS requises.
+just vercel-finops-refresh
+
+# Optionnel après une première collecte vérifiée.
+mkdir -p ~/.config/systemd/user
+install -m 0644 deploy/workstation/systemd/nabla-openclaw-vercel-finops.{service,timer} ~/.config/systemd/user/
+systemctl --user daemon-reload
+systemctl --user enable --now nabla-openclaw-vercel-finops.timer
+systemctl --user list-timers 'nabla-openclaw-vercel-finops*'
+```
+
+### P1 — Après mise en service
+
+- [ ] Vérifier aussi **Fluid Provisioned Memory**, Function Invocations et la ventilation entre les quatre projets Vercel ; le module actuel vérifie uniquement Fluid Active CPU.
+- [ ] Reprendre les diagnostics cron/LiteLLM et la migration OpenClaw décrits plus bas, après contrôle de la réalité du Gateway ; les tableaux datés sont conservés comme historique.
+- [ ] Maintenir les demandes et preuves privées Bababou **hors** des snapshots et du runtime FinOps.
+
+Documentation de déploiement : [FinOps Vercel](vercel-finops.md).
+
+---
 
 > **Autorité :** `nabla-openclaw` détient le Gateway cible, ses politiques non secrètes, son heartbeat et les automations, ainsi que la configuration déclarative du Gateway **Workstation** actuel (`just workstation-*`). `nabla-compose` garde LiteLLM/TrueNAS, datasets, NFS, réseau, secrets runtime et l'intégration du futur submodule. `ansible-workstation` audite l'ancien Gateway Workstation sans le redéployer. La migration est **appliquée sans Discord depuis le 3 novembre** : le Gateway tourne sur TrueNAS.
 
-## État constaté sur GitHub
+## Historique — état constaté sur GitHub aux dates indiquées
 
 - [PR #1](https://github.com/AlbanAndrieu/nabla-openclaw/pull/1) **fusionnée** : dépôts, politiques heartbeat/cron/digest inactives, contrats TrueNAS et tests offline disponibles. **Aucun Compose Gateway de production ni image/digest validés.**
 - [PR Compose #295](https://github.com/AlbanAndrieu/nabla-compose/pull/295) **fusionnée** : scripts diagnostiques Workstation/TrueNAS et 14 artefacts non secrets relocalisés temporairement dans `ops/openclaw-workstation/`. L'ancien `apps/openclaw/` contient encore **4 fichiers sandbox**, pas 18 (historique avant relocation).
 - Gateway actuel Workstation conservé ; les vérifications d'un runtime Gateway TrueNAS, du heartbeat natif, des agents et des quotas ne sont **pas attestées**. GPT-4.1/mini sont servis par TrueNAS depuis le 31/10 (relais vers la Workstation, voir P0.4).
 
-## P1 complémentaire — FinOps Vercel partagé (9 novembre 2026)
-
-- [x] **Contrat d'analyse CPU hors réseau :** `scripts/finops/vercel-usage-budget.mjs`
-  partagé avec Site Alban et Bababou ; refus des coûts en USD, unités et
-  périodes non vérifiées, seuils 50/75/90 %, sortie `NOT_MEASURED` par défaut.
-- [x] **CLI opérateur en lecture seule :** `scripts/finops/check-vercel-team.mjs`
-  appelle `vercel usage` **uniquement sur `--live`**, avec portée fixe
-  `albanandrieus-projects`, délai 20 s, fraîcheur 48 h et résultat expurgé ;
-  `--output` écrit l'instantané du briefing en `0600`.
-- [x] **Briefing facultatif :** `VERCEL_FINOPS_REPORT` ajoute une synthèse
-  contrôlée (âge inférieur à 36 h) au briefing existant ; aucun secret
-  Vercel, nouveau cron ou appel réseau au heartbeat.
-- [ ] **Preuve L3 et exploitation :** la collecte live est impossible en Hobby
-  (voir P1 ci-dessus, 11 novembre). Reste un export JSON manuel du tableau de
-  bord Usage, son analyse, l'installation privée de l'instantané et le test du
-  briefing. **Aucune métrique réelle n'a encore été collectée**, aucun job
-  Vercel activé.
-- [ ] **Étape ultérieure :** suivi des autres quotas (mémoire, invocations),
-  déduplication des alertes et éventuel déclenchement quotidien explicite,
-  seulement après validation du format réel et de la frontière de secrets.
-
-Runbook : [Vercel FinOps](vercel-finops.md). Les pages de demande de documents
-et le registre public restent dans `nabla-site-bababou` ; OpenClaw ne
-collecte pas les données de demande privées ni les preuves OpenRAG.
-
-## P0 — gates avant tout transfert de runtime
+## Historique de migration — gates avant transfert de runtime
 
 | Ordre | Action | Gate de fermeture | Statut |
 | --- | --- | --- | --- |
