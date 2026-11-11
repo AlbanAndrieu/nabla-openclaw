@@ -77,16 +77,12 @@ dans nabla-compose) interroge `172.17.0.24:4000/metrics` **sans clé**, d'où
 LiteLLM 1.108 exige un admin du proxy ou une clé autorisée sur `/metrics` :
 même une clé virtuelle valide reçoit `401`. Décision (11/11) : une clé limitée
 à cette route (`allowed_routes: ["/metrics"]`), lue par Prometheus depuis un
-fichier. Code dans nabla-compose #348. **À faire avant tout redéploiement de
-Prometheus**, car son montage échoue si le fichier manque :
+fichier. Code dans nabla-compose #348. **Clé appliquée le 11/11** :
+`metrics_http=200`, `403` sur `/v1/models` et `/key/list`, fichier
+`/mnt/cpool/prometheus/secrets/litellm-metrics.key` en `root:apps 0640`.
 
-```bash
-# depuis ~/w/nabla-compose (Workstation, via SSH) ou le checkout TrueNAS
-just litellm-metrics-key-plan
-NABLA_RUNTIME_CHANGE_APPROVED=yes just litellm-metrics-key-apply   # attendu : metrics_http=200
-```
-
-Puis redéployer Prometheus et vérifier la cible `litellm_hermes` en `up`.
+Reste : après la fusion de #348, redéployer Prometheus et vérifier la cible
+`litellm_hermes` en `up`.
 La nouvelle variable `LITELLM_PROMETHEUS_METRICS_API_KEY` du runtime LiteLLM
 est à importer dans Vaultwarden avec les autres.
 
@@ -115,9 +111,14 @@ Premier lot fait le 11/11 (nabla-compose #348) : six scripts que seul leur
 test appelait sont retirés, avec ce test (`classify-openclaw-secret-findings`,
 `diagnose-openclaw-memory-search`, `inspect-openclaw-memory-min-score`,
 `openclaw-rate-limit-correlation`, `plan-openclaw-secret-migration`,
-`preflight-openclaw-secrets-import`). Les 13 autres sont encore appelés par
-`openclaw-ops.sh`, `diagnose-openclaw.sh` ou `openclaw-migration-evidence.sh` :
-ils partiront avec ces points d'entrée, dans un lot à décider.
+`preflight-openclaw-secrets-import`).
+
+Second lot fait le 11/11 (même PR) : `openclaw-ops.sh`, `diagnose-openclaw.sh`,
+`openclaw-migration-evidence.sh` et les neuf scripts qu'ils étaient seuls à
+appeler, avec leurs tests et recettes. Restent `backup-openclaw.sh`,
+`openclaw-terminal-style.py` et `openclaw-litellm-audit.py`, utilisés par la
+mise à jour mise (`openclaw-upgrade-local-*`) et le triage 429
+(`openclaw-429-*`) : ils partiront avec ces recettes.
 
 ## 6. Secrets runtime : normaliser les guillemets
 
