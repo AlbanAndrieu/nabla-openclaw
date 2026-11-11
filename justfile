@@ -69,7 +69,7 @@ vercel-finops-file file:
 
 # Manual, read-only FinOps diagnostics. Never run automatically by OpenClaw.
 vercel-finops-test:
-    node --test tests/vercelUsageBudget.test.mjs scripts/finops/check-vercel-team.test.mjs scripts/heartbeat/vercelFinops.test.mjs
+    node --test tests/vercelUsageBudget.test.mjs scripts/finops/check-vercel-team.test.mjs scripts/heartbeat/vercelFinops.test.mjs scripts/heartbeat/vercel-finops.test.mjs
 
 # Manual end-to-end CPU sample: authenticated workstation -> sanitized NAS report.
 # The hourly heartbeat itself never invokes Vercel or copies credentials.
