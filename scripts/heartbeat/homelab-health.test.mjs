@@ -38,3 +38,19 @@ test("docker: crashed, unhealthy and restarting containers only", () => {
     "Conteneur TrueNAS loop : redémarre en boucle",
   ]);
 });
+
+test("heartbeat passes previous state to the Vercel snapshot check without network", async (t) => {
+  const previous = { seen: { "vercel:cpu:WATCH": { sev: "warn", text: "previous", since: 1 } } };
+  let visited = false;
+  for (const name of Object.keys(checks)) {
+    t.mock.method(checks, name, async (_get, prev) => {
+      if (name === "vercel") {
+        visited = true;
+        assert.equal(prev, previous);
+      }
+      return [];
+    });
+  }
+  assert.deepEqual(await collect(previous, () => { throw Error("HTTP must not run"); }), []);
+  assert.equal(visited, true);
+});
