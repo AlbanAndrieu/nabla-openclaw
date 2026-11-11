@@ -153,17 +153,41 @@ TrueNAS (`sudo cat` local). L'import est confié à une autre session.
   ni `vercel metrics` ne donnent le CPU actif ([détail](vercel-finops.md)).
   Seule voie : exporter à la main le JSON du tableau de bord Usage, puis
   `just vercel-finops-file <export>`.
-- **Slack** : régénérer les jetons du bot (`invalid_auth`), puis activer
-  `channels.slack`.
+- **Slack** (Socket Mode retenu le 11/11, sans exposition publique du Gateway) :
+  - jeton d'application `SLACK_OPENCLAW_NABLA_TOKEN` (`xapp-`) : valide
+    (`apps.connections.open` ok), mais **exposé en clair dans une conversation le
+    11/11 : à régénérer** (*Basic Information → App-Level Tokens*, portée
+    `connections:write`), puis à révoquer et à mettre dans Vaultwarden ;
+  - jeton du bot : `SLACK_BOT_USER_OAUTH_TOKEN` (`xoxb-`) est révoqué
+    (`invalid_auth`). `SLACK_TOKEN` est valide, mais il appartient à un autre
+    espace de travail Slack : ne pas l'utiliser. Réinstaller l'app OpenClaw dans
+    l'espace de travail (*OAuth & Permissions → Reinstall*) pour obtenir un
+    nouveau `xoxb-` ;
+  - ensuite : écrire les deux jetons en 0600 dans
+    `/home/node/.openclaw/credentials/slack/` (provider SecretRef `file`, comme
+    la clé `coder`), puis `channels.slack` avec `botToken` et `appToken` en
+    SecretRef, sans redémarrage.
 - **Discord** : attester un `doctor` avec le vrai token avant de réactiver le
   canal, puis router `#fastapi-sample-dev` vers `coder`.
-- **Homarr** : la synchronisation des Apps est sautée (`RECONCILE_SKIPPED`), car
-  Homarr refuse la clé API (`401`). Recréer une clé dans Homarr, puis la
-  réinstaller comme `HOMARR_API_KEY` dans le runtime, sans l'afficher.
-- **AutoKuma** : `deploy-autokuma.sh` refuse de se déployer, car
-  `/mnt/cpool/autokuma/.env.secrets` est un emplacement vide (0 octet). Il faut
-  y mettre le jeton Uptime Kuma (`AUTOKUMA__KUMA__AUTH_TOKEN`) ; l'App tourne
-  avec son ancienne config en attendant.
+- **Homarr** : la clé créée le 11/11 (`nabla/prod/homarr`) est installée dans
+  `/mnt/cpool/secrets/runtime/homarr/.env.secrets` (seule cette ligne
+  remplacée, sauvegarde 0600) et lue par le conteneur après redéploiement,
+  mais Homarr répond encore `401`. Vérifier dans Homarr (*Settings → API*)
+  que la clé existe et qu'elle a été copiée en entier (`id.jeton`).
+- **AutoKuma** : les secrets vont dans `/mnt/cpool/secrets/runtime/autokuma/`,
+  comme pour les autres Apps : dès que ce fichier existe, l'ancien
+  `/mnt/cpool/autokuma/.env.secrets` (vide) n'est plus lu. **Bloqué en amont** :
+  Uptime Kuma n'est pas déployé (aucune App, `172.17.0.24:31050` ne répond pas),
+  donc il n'y a pas de jeton à créer, et AutoKuma tourne dans le vide
+  (timeouts). Le README d'AutoKuma demande de le laisser arrêté tant
+  qu'Uptime Kuma n'existe pas. Il n'y a pas non plus d'entrée
+  `nabla/prod/autokuma` dans Vaultwarden.
+- **Fichiers `nabla/env/home/pass/*.env.sh`** : inventaire du 11/11, noms
+  seulement : 1 175 affectations, dont 356 secrets distincts (308 absents de
+  Vaultwarden), 149 noms liés au contexte *Job* à relire, 351 réglages non
+  secrets (URL, identifiants, régions), et aucun doublon contradictoire.
+  Import en attente de décision (structure des entrées, exclusion du contexte
+  *Job*). Les fichiers en clair sont en `0664` : passer en `0600`.
 - **`fastapisample/.env`** : corriger la ligne mal formée `APP_DOMAIN` (entrée 6).
 - **Vaultwarden** : importer `LITELLM_PROMETHEUS_METRICS_API_KEY` et créer
   l'entrée `nabla/prod/infrastructure-bootstrap` (clés Garage).
