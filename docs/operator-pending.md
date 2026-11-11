@@ -58,7 +58,9 @@ Plan relu puis appliqué (1 import, 1 modification, 2 suppressions) : app Access
 route TCP 5432 et CNAME détruits. `dig +short postgres.albandrieu.com @1.1.1.1`
 est vide, et les plans `retire` et par défaut sont à 0. Sauvegarde de l'état
 dans `~/.local/state/nabla-compose/opentofu-state-backups/cloudflare/`.
-Nettoyage de la politique DNS dans nabla-compose #348. Le jeton vient de
+Nettoyage de la politique DNS dans nabla-compose #349 : tant qu'elle n'est pas
+fusionnée, le plan par défaut de `master` propose de recréer un `retired[...]`
+vide. Ne pas l'appliquer. Le jeton vient de
 `nabla/prod/cloudflaretokens` (champ `CLOUDFLARE_API_TOKEN_NABLA_OPENTOFU`).
 Les clés Garage étaient déjà dans l'environnement, et non dans Vaultwarden :
 l'entrée `nabla/prod/infrastructure-bootstrap` n'existe pas encore.
@@ -76,7 +78,7 @@ fichier. Code dans nabla-compose #348. **Clé appliquée le 11/11** :
 `metrics_http=200`, `403` sur `/v1/models` et `/key/list`, fichier
 `/mnt/cpool/prometheus/secrets/litellm-metrics.key` en `root:apps 0640`.
 
-Reste : après la fusion de #348, redéployer Prometheus et vérifier la cible
+Reste (#348 fusionnée le 11/11) : redéployer Prometheus et vérifier la cible
 `litellm_hermes` en `up`.
 La nouvelle variable `LITELLM_PROMETHEUS_METRICS_API_KEY` du runtime LiteLLM
 est à importer dans Vaultwarden avec les autres.
@@ -108,7 +110,7 @@ test appelait sont retirés, avec ce test (`classify-openclaw-secret-findings`,
 `openclaw-rate-limit-correlation`, `plan-openclaw-secret-migration`,
 `preflight-openclaw-secrets-import`).
 
-Second lot fait le 11/11 (même PR) : `openclaw-ops.sh`, `diagnose-openclaw.sh`,
+Second lot fait le 11/11 (nabla-compose #349) : `openclaw-ops.sh`, `diagnose-openclaw.sh`,
 `openclaw-migration-evidence.sh` et les neuf scripts qu'ils étaient seuls à
 appeler, avec leurs tests et recettes. Restent `backup-openclaw.sh`,
 `openclaw-terminal-style.py` et `openclaw-litellm-audit.py`, utilisés par la
@@ -146,6 +148,7 @@ TrueNAS (`sudo cat` local). L'import est confié à une autre session.
 
 | PR | Effet à la fusion | Suite |
 | --- | --- | --- |
-| nabla-compose #348 | aucun (healthcheck LiteLLM, plan de la clé `coder`, clé `/metrics`, étape 10, politique DNS déjà appliquée) | redéploiement de Prometheus (entrée 4) ; la clé est déjà appliquée |
+| ~~nabla-compose #348~~ (fusionnée le 11/11) | aucun | redéploiement de Prometheus (entrée 4) ; la clé est déjà appliquée |
+| nabla-compose #349 | aucun (étape 10 lot 2, politique DNS déjà appliquée) | aucune |
 | nabla-openclaw (cette PR) | aucun | `just truenas-apply-coder` pour `compat.supportsUsageInStreaming` |
 | fastapi-sample #415 | aucun (`main.json`) | débloquée une fois le check retiré en ligne (entrée 2) |
