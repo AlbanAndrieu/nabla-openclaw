@@ -42,6 +42,15 @@ test("CLI errors become NOT_MEASURED, not fake zero CPU", () => {
   assert.deepEqual(argv,["usage","--scope","albanandrieus-projects","--format","json"]);
 });
 
+test("a plan without billing data is reported as such", () => {
+  let line;
+  const log = console.log; console.log = (text) => { line = text; };
+  try {
+    run(["--live"], {now, spawn:()=>({status:1,stdout:"",stderr:"Error: Billing cost data is unavailable for 2026-11-01 through 2026-11-11."})});
+  } finally { console.log = log; }
+  assert.equal(JSON.parse(line).reason, "billing-data-unavailable-on-plan");
+});
+
 test("--output writes only the compact report, 0600 in a 0700 directory", () => {
   let dir, file;
   const log = console.log; console.log = () => {};
