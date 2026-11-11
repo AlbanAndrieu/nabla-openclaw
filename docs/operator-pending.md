@@ -157,6 +157,16 @@ TrueNAS (`sudo cat` local). L'import est confié à une autre session.
   `channels.slack`.
 - **Discord** : attester un `doctor` avec le vrai token avant de réactiver le
   canal, puis router `#fastapi-sample-dev` vers `coder`.
+- **Homarr** : la synchronisation des Apps est sautée (`RECONCILE_SKIPPED`), car
+  Homarr refuse la clé API (`401`). Recréer une clé dans Homarr, puis la
+  réinstaller comme `HOMARR_API_KEY` dans le runtime, sans l'afficher.
+- **AutoKuma** : `deploy-autokuma.sh` refuse de se déployer, car
+  `/mnt/cpool/autokuma/.env.secrets` est un emplacement vide (0 octet). Il faut
+  y mettre le jeton Uptime Kuma (`AUTOKUMA__KUMA__AUTH_TOKEN`) ; l'App tourne
+  avec son ancienne config en attendant.
+- **`fastapisample/.env`** : corriger la ligne mal formée `APP_DOMAIN` (entrée 6).
+- **Vaultwarden** : importer `LITELLM_PROMETHEUS_METRICS_API_KEY` et créer
+  l'entrée `nabla/prod/infrastructure-bootstrap` (clés Garage).
 
 ## 8. PR à fusionner
 
@@ -166,4 +176,5 @@ TrueNAS (`sudo cat` local). L'import est confié à une autre session.
 | ~~nabla-compose #349~~ (fusionnée le 11/11) | aucun | aucune |
 | ~~nabla-openclaw #16~~ (fusionnée le 11/11) | aucun | ~~`just truenas-apply-coder`~~ fait le 11/11 |
 | ~~nabla-openclaw #17~~ (fusionnée le 11/11) | aucun | ~~`just truenas-apply-heartbeat`~~ fait le 11/11 ; reste le premier relevé Vercel (export manuel en Hobby) |
-| nabla-compose #350 (épinglage `apps/openclaw` `dd13688` → `ff74bfa` ajouté) | aucun pour l'épinglage (simple trace) | redéploiements listés dans la PR (grafana, pyroscope, gatus) |
+| ~~nabla-compose #350~~ (fusionnée le 11/11, avec l'épinglage `apps/openclaw` → `ff74bfa`) | aucun | fait le 11/11 : grafana, homarr, pyroscope et gatus redéployés et sains, crowdsec non redémarré ; AutoKuma bloqué (entrée 7) |
+| nabla-compose #351 | au prochain redéploiement de `homarr` | `homarr-sync` attend 3 min au lieu de 60 s (l'App passait en `CRASHED` le 11/11) |
