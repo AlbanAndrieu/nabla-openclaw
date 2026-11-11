@@ -53,10 +53,10 @@ Le job `morning-briefing` (8 h, clé cron, `gpt-4.1-mini`) exécute
 - la synthèse des emails reçus en 24 h dans la boîte Gmail `openclaw`, via
   `gog --readonly` (binaire dans `state/tools/`, trousseau fichier dans
   `state/gogcli/`) ;
-- les messages Slack des canaux où le bot est membre, si `channels.slack`
-  est actif ;
-- toutes les anomalies en cours, Workstation puis TrueNAS ;
-- l'état des canaux Telegram et Discord.
+- les messages Slack des canaux où le bot est membre, seulement si
+  `channels.slack` est actif ;
+- les anomalies en cours, Workstation puis TrueNAS, sans les hôtes sains : une
+  ligne par nom d'alerte, l'exporter désigné par son `job` Prometheus.
 
 Emails et messages sont encadrés comme données non fiables : le modèle les
 résume sans suivre leurs instructions.
