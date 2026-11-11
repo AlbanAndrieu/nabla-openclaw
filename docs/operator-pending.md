@@ -65,7 +65,11 @@ Politique DNS nettoyée par nabla-compose #349 (fusionnée le 11/11). Le jeton v
 Les clés Garage étaient déjà dans l'environnement, et non dans Vaultwarden :
 l'entrée `nabla/prod/infrastructure-bootstrap` n'existe pas encore.
 
-## 4. LiteLLM : `401` sur `/metrics` toutes les minutes
+## 4. ~~LiteLLM : `401` sur `/metrics` toutes les minutes~~ (corrigé le 11/11)
+
+Prometheus redéployé le 11/11 au soir (`app.redeploy prometheus`) : la cible
+`litellm_hermes` est `up`, sans erreur. Reste seulement l'import de la variable
+dans Vaultwarden (fin de l'entrée).
 
 **État** : le job Prometheus `litellm_hermes` (`apps/prometheus/prometheus.yml`
 dans nabla-compose) interroge `172.17.0.24:4000/metrics` **sans clé**, d'où
@@ -118,7 +122,12 @@ appeler, avec leurs tests et recettes. Restent `backup-openclaw.sh`,
 mise à jour mise (`openclaw-upgrade-local-*`) et le triage 429
 (`openclaw-429-*`) : ils partiront avec ces recettes.
 
-## 6. Secrets runtime : normaliser les guillemets
+## 6. ~~Secrets runtime : normaliser les guillemets~~ (appliqué le 11/11)
+
+Appliqué le 11/11 au soir : 231 lignes normalisées, avec sauvegarde 0600 et
+valeurs prouvées inchangées, sans redémarrage. Reste une ligne mal formée,
+laissée à relire : `fastapisample/.env` `APP_DOMAIN`. Elle doit être corrigée à
+la main, sans afficher sa valeur, avant l'import Vaultwarden.
 
 **État** : nabla-compose #342 est fusionnée (parseur conforme à Compose et
 audit sans valeurs). Le 10/11, l'audit relevait 233 lignes dans 20 fichiers :
@@ -153,8 +162,8 @@ TrueNAS (`sudo cat` local). L'import est confié à une autre session.
 
 | PR | Effet à la fusion | Suite |
 | --- | --- | --- |
-| ~~nabla-compose #348~~ (fusionnée le 11/11) | aucun | redéploiement de Prometheus (entrée 4) ; la clé est déjà appliquée |
+| ~~nabla-compose #348~~ (fusionnée le 11/11) | aucun | ~~redéploiement de Prometheus~~ fait le 11/11, cible `up` |
 | ~~nabla-compose #349~~ (fusionnée le 11/11) | aucun | aucune |
 | ~~nabla-openclaw #16~~ (fusionnée le 11/11) | aucun | ~~`just truenas-apply-coder`~~ fait le 11/11 |
 | nabla-openclaw #17 | aucun | `just truenas-apply-heartbeat`, puis premier relevé Vercel (export manuel en Hobby) |
-| nabla-compose : épinglage de `apps/openclaw` | aucun | `dd13688` → `master` de nabla-openclaw ; trace seulement, l'apply part du checkout nabla-openclaw |
+| nabla-compose #350 (épinglage `apps/openclaw` `dd13688` → `ff74bfa` ajouté) | aucun pour l'épinglage (simple trace) | redéploiements listés dans la PR (grafana, pyroscope, gatus) |
