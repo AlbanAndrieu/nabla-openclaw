@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Applies this checkout's heartbeat and morning briefing to the TrueNAS Gateway,
-# without restart: collectors into the workspace, monitor scratch, heartbeat
+# without restart: collectors (including the private Vercel snapshot reader), monitor scratch, heartbeat
 # config, then the morning-briefing cron job (created once, then edited).
 set -euo pipefail
 cd "$(dirname "$0")/../.."
@@ -11,7 +11,7 @@ job_field() { node -e 'const [k, v, f] = process.argv.slice(1); console.log(JSON
 
 workspace=/mnt/cpool/openclaw/state/workspace
 remote "sudo -n install -d -o 1000 -g 1000 -m 0700 $workspace/scripts"
-for collector in homelab-health morning-briefing; do
+for collector in homelab-health morning-briefing vercel-finops; do
   remote "sudo -n install -o 1000 -g 1000 -m 0400 /dev/stdin $workspace/scripts/$collector.mjs" \
     < "scripts/heartbeat/$collector.mjs"
 done
