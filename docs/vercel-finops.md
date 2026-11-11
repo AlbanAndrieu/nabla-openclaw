@@ -21,7 +21,7 @@ just vercel-finops-file /chemin/prive/usage.json # aucune requête externe
 
 Le JSON de sortie contient uniquement `status`, `reason`, `team`, `observedAt`, `cpuHours`, `percentOfQuota`, `remainingHours`, `quotaHours` et les indicateurs de preuve. Le code de sortie est **0** si `OK`, **1** à partir de `WATCH` avec `--strict`, **2** sur preuve absente/invalide. Un export non reconnu reste `NOT_MEASURED`.
 
-**Difficulté vérifiée :** les API Vercel Observability et Billing de ce compte Hobby ont renvoyé `404`. La CLI peut rencontrer la même restriction. La source de repli est le tableau de bord Usage ; **aucune valeur CPU réelle n'est actuellement obtenue**.
+**Difficulté vérifiée :** les API Vercel Observability et Billing de ce compte Hobby ont renvoyé `404`. Preuve L3 du 11 novembre (CLI `vercel` 65.14.0, authentifiée) : `vercel usage` répond « Billing cost data is unavailable » (`reason: billing-data-unavailable-on-plan`), et `vercel metrics vercel.function_invocation.function_cpu_time_ms` répond `payment_required` (Observability Plus, indisponible en Hobby), même sur un projet et une heure. **Le CPU actif n'est pas mesurable par la CLI ni par l'API sur ce plan.** La seule source est le tableau de bord Usage : exporter son JSON à la main, puis `just vercel-finops-file <export>`.
 
 ## Instantané pour le briefing du matin (opt-in)
 

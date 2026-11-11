@@ -62,8 +62,11 @@ export function run(argv, options = {}) {
     const output = (options.spawn ?? spawnSync)("vercel", [
       "usage", "--scope", TEAM, "--format", "json",
     ], { encoding: "utf8", timeout: 20_000, maxBuffer: MAX_BYTES, stdio: ["ignore", "pipe", "pipe"] });
+    // Hobby teams have no billing data (seen 2026-11-11 with CLI 65.14): a plan limit, not an auth failure.
+    const reason = /Billing cost data is unavailable/.test(output.stderr ?? "")
+      ? "billing-data-unavailable-on-plan" : "vercel-cli-unavailable-or-denied";
     report = output.error || output.status !== 0
-      ? { status: "NOT_MEASURED", reason: "vercel-cli-unavailable-or-denied", team: TEAM, cpuHours: null }
+      ? { status: "NOT_MEASURED", reason, team: TEAM, cpuHours: null }
       : evaluate(output.stdout, options.now ?? new Date());
   }
   if (output) {
