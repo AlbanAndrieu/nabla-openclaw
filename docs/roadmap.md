@@ -9,7 +9,7 @@
 | 1 — Code et seuils 50/75/90 % | ✅ Implémenté dans #17 | Lecture locale privée, alertes dédupliquées ; aucun appel Vercel depuis TrueNAS |
 | 2 — Confidentialité et résilience | ✅ Implémenté dans #17 | Snapshot 0600, contrôle de fraîcheur, refus du faux OK ; dépassement précédent non résolu sans preuve |
 | 3 — Transport Workstation → TrueNAS | 🟡 Préparé | CLI Vercel Workstation ; transfert SSH du seul JSON expurgé, aucun token dans le Gateway |
-| 4 — Gates sur SHA exact | ⬜ À valider | `just test`, `bash -n`, `git diff --check`, revue du transfert SSH et des permissions |
+| 4 — Gates sur SHA exact | ✅ Passées le 11/11 après rebase | `just test`, `just vercel-finops-test` (28 tests), `bash -n`, `git diff --check` et `systemd-analyze verify` verts ; transfert relu : JSON en liste blanche validé avant tout contact SSH, écriture atomique en 0600 dans un dossier 0700 du conteneur (UID 1000). Shellcheck ne signale que du style (SC2250), comme le reste du dépôt |
 | 5 — Fusion de la PR #17 | ⬜ En attente | Fusionner après revue et tests, sans masquer les résultats non exécutés |
 | 6 — Appliquer sur TrueNAS | ⬜ À faire après merge | `just truenas-apply-heartbeat` ; contrôler les trois modules, la politique chargée et la non-duplication des jobs |
 | 7 — Premier relevé CPU réel | ⬜ Non mesuré | `just vercel-finops-refresh` sur Workstation authentifiée ; 30 jours et unité CPU vérifiés, sinon NOT_MEASURED. Essai CLI du 11/11 : en Hobby, `vercel usage` n'a aucune donnée de facturation et `vercel metrics` exige Observability Plus (`billing-data-unavailable-on-plan`) ; seul un export manuel du tableau de bord Usage est analysable (`just vercel-finops-file`) |
