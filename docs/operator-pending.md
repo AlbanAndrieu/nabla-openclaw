@@ -5,7 +5,7 @@ propriétaire : une action dans une interface (Telegram, GitHub, Cloudflare),
 un secret à saisir, ou une décision. Chaque entrée donne l'état vérifié, la
 commande et le résultat attendu. Rayer l'entrée une fois faite.
 
-## 1. Agent `coder` : test de fumée
+## 1. ~~Agent `coder` : test de fumée~~ (passé le 10/11, contrat `active`)
 
 **État** : déployé sur TrueNAS le 10/11, redéployé avec `dd13688`. Toutes les
 vérifications sont vertes : `devbox_egress=ok`, sandbox `all/ssh/session`,
@@ -44,12 +44,9 @@ PR qui ne touche pas Docker, car le job appelant `Docker CI` est sauté. Ces PR
 restent bloquées : #415 est en `BLOCKED` malgré des checks verts. Le check
 Python sauté, lui, compte comme réussi.
 
-Décision :
-- **A (simple)** : retirer `Docker CI / Build Docker` des checks exigés
-  (*Settings → Rules → Protect main*), puis reporter le changement dans
-  `main.json` (#415) ;
-- **B (propre)** : un job de synthèse qui se termine toujours dans un workflow
-  de `fastapi-sample`, à exiger à la place.
+Décision (option A, retenue le 11/11) : retirer `Docker CI / Build Docker` des
+checks exigés dans *Settings → Rules → Protect main*, à faire à la main ;
+`main.json` est déjà aligné dans #415.
 
 À vérifier sur la première PR ouverte par l'agent : l'effet de
 `require_extra_approval_for_unattributed_changes: true`, repris de la
@@ -76,13 +73,21 @@ Attendu : `dig +short postgres.albandrieu.com @1.1.1.1` vide.
 dans nabla-compose) interroge `172.17.0.24:4000/metrics` **sans clé**, d'où
 1 440 `401 Unauthorized` par jour et une cible toujours `down`.
 
-Décision :
-- **A** : une clé LiteLLM en lecture seule, montée en fichier pour Prometheus
-  (`authorization.credentials_file`). Le secret passe alors par le manifeste
-  Vaultwarden.
-- **B** : `litellm_settings.require_auth_for_metrics_endpoint: false`. Plus
-  simple, mais les métriques (alias de clés, coûts) deviennent lisibles sur le LAN.
-- **C** : retirer le job jusqu'à l'acceptation de Hermes.
+LiteLLM 1.108 exige un admin du proxy ou une clé autorisée sur `/metrics` :
+même une clé virtuelle valide reçoit `401`. Décision (11/11) : une clé limitée
+à cette route (`allowed_routes: ["/metrics"]`), lue par Prometheus depuis un
+fichier. Code dans nabla-compose #348. **À faire avant tout redéploiement de
+Prometheus**, car son montage échoue si le fichier manque :
+
+```bash
+# depuis ~/w/nabla-compose (Workstation, via SSH) ou le checkout TrueNAS
+just litellm-metrics-key-plan
+NABLA_RUNTIME_CHANGE_APPROVED=yes just litellm-metrics-key-apply   # attendu : metrics_http=200
+```
+
+Puis redéployer Prometheus et vérifier la cible `litellm_hermes` en `up`.
+La nouvelle variable `LITELLM_PROMETHEUS_METRICS_API_KEY` du runtime LiteLLM
+est à importer dans Vaultwarden avec les autres.
 
 ## 5. Étape 10 : retirer les scripts Workstation de Compose
 
@@ -105,9 +110,13 @@ script du dossier peut en appeler un autre, par exemple `openclaw-ops.sh`) :
 `openclaw-cron-runs-summary.py`, `diagnose-openclaw-errors.sh`,
 `prepare-openclaw-systemd.sh`, `diagnose-openclaw.sh`, `backup-openclaw.sh`.
 
-Décision : valider ce lot, ou tout le dossier. Ensuite, une PR nabla-compose
-retire les scripts, leurs tests et leurs recettes, une fois la session qui
-travaille dans `~/w/nabla-compose` arrêtée.
+Premier lot fait le 11/11 (nabla-compose #348) : six scripts que seul leur
+test appelait sont retirés, avec ce test (`classify-openclaw-secret-findings`,
+`diagnose-openclaw-memory-search`, `inspect-openclaw-memory-min-score`,
+`openclaw-rate-limit-correlation`, `plan-openclaw-secret-migration`,
+`preflight-openclaw-secrets-import`). Les 13 autres sont encore appelés par
+`openclaw-ops.sh`, `diagnose-openclaw.sh` ou `openclaw-migration-evidence.sh` :
+ils partiront avec ces points d'entrée, dans un lot à décider.
 
 ## 6. Secrets runtime : normaliser les guillemets
 
@@ -139,6 +148,6 @@ TrueNAS (`sudo cat` local). L'import est confié à une autre session.
 
 | PR | Effet à la fusion | Suite |
 | --- | --- | --- |
-| nabla-compose #348 | aucun (healthcheck LiteLLM, plan de la clé `coder`) | redéploiement de LiteLLM au prochain changement |
+| nabla-compose #348 | aucun (healthcheck LiteLLM, plan de la clé `coder`, clé `/metrics`, étape 10) | `just litellm-metrics-key-apply` **puis** redéploiement de Prometheus (entrée 4) |
 | nabla-openclaw (cette PR) | aucun | `just truenas-apply-coder` pour `compat.supportsUsageInStreaming` |
-| fastapi-sample #415 | aucun (`main.json`) | bloquée par l'entrée 2 |
+| fastapi-sample #415 | aucun (`main.json`) | débloquée une fois le check retiré en ligne (entrée 2) |
