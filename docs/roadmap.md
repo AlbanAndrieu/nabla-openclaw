@@ -14,7 +14,7 @@
 | 6 — Appliquer sur TrueNAS | ⬜ À faire après merge | `just truenas-apply-heartbeat` ; contrôler les trois modules, la politique chargée et la non-duplication des jobs |
 | 7 — Premier relevé CPU réel | ⬜ Non mesuré | `just vercel-finops-refresh` sur Workstation authentifiée ; 30 jours et unité CPU vérifiés, sinon NOT_MEASURED. Essai CLI du 11/11 : en Hobby, `vercel usage` n'a aucune donnée de facturation et `vercel metrics` exige Observability Plus (`billing-data-unavailable-on-plan`) ; seul un export manuel du tableau de bord Usage est analysable (`just vercel-finops-file`) |
 | 8 — Prélèvement quotidien | 🟡 Timer prêt, inactif | Installer/activer le timer systemd utilisateur **après** un relevé réussi ; 08:20 Europe/Paris |
-| 9 — Recette end-to-end | ⬜ À vérifier | Contrôler 0600, transitions 50/75/90 %, perte de preuve et absence de notifications répétées |
+| 9 — Recette end-to-end | 🟡 Hors ligne vérifiée (11/11) | Contrôler 0600, transitions 50/75/90 %, perte de preuve et absence de notifications répétées. Hors ligne : tests verts ; `render` ne notifie que les clés nouvelles ou résolues, donc un `NOT_MEASURED` permanent (cas Hobby) sort une seule fois, puis seulement dans le briefing du matin. Reste à vérifier sur le Gateway après l'étape 6 |
 
 **Condition DONE :** commit fusionné et testé, code réellement installé sur le Gateway TrueNAS, fichier de métrique valide et récent, alerte validée et timer actif **si souhaité**. Si Hobby ne fournit que des coûts monétaires (API Billing/Observability précédemment 404), conserver le statut **NOT_MEASURED**, jamais un faux OK.
 
