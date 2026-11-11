@@ -52,21 +52,16 @@ checks exigés dans *Settings → Rules → Protect main*, à faire à la main ;
 `require_extra_approval_for_unattributed_changes: true`, repris de la
 configuration en ligne.
 
-## 3. Cloudflare : retirer `postgres.albandrieu.com`
+## 3. ~~Cloudflare : retirer `postgres.albandrieu.com`~~ (fait le 11/11)
 
-**État** : nabla-compose #345 est fusionnée (route TCP et app Access supprimées
-du code, CNAME dans `retired_hostnames`). **Rien n'est appliqué** : la route
-reste en ligne, protégée par l'app Access tant que ces commandes n'ont pas tourné.
-
-```bash
-# depuis ~/w/nabla-compose à jour : coffre déverrouillé (`bw unlock`), CLOUDFLARE_API_TOKEN
-# et les clés AWS de l'état Garage chargés depuis Vaultwarden sans les afficher
-scripts/infra/terragrunt-safe.sh infrastructure/cloudflare plan    # adopt
-scripts/infra/terragrunt-safe.sh infrastructure/cloudflare apply
-TF_VAR_dns_retirement_phase=retire scripts/infra/terragrunt-safe.sh infrastructure/cloudflare plan
-```
-
-Attendu : `dig +short postgres.albandrieu.com @1.1.1.1` vide.
+Plan relu puis appliqué (1 import, 1 modification, 2 suppressions) : app Access,
+route TCP 5432 et CNAME détruits. `dig +short postgres.albandrieu.com @1.1.1.1`
+est vide, et les plans `retire` et par défaut sont à 0. Sauvegarde de l'état
+dans `~/.local/state/nabla-compose/opentofu-state-backups/cloudflare/`.
+Nettoyage de la politique DNS dans nabla-compose #348. Le jeton vient de
+`nabla/prod/cloudflaretokens` (champ `CLOUDFLARE_API_TOKEN_NABLA_OPENTOFU`).
+Les clés Garage étaient déjà dans l'environnement, et non dans Vaultwarden :
+l'entrée `nabla/prod/infrastructure-bootstrap` n'existe pas encore.
 
 ## 4. LiteLLM : `401` sur `/metrics` toutes les minutes
 
@@ -151,6 +146,6 @@ TrueNAS (`sudo cat` local). L'import est confié à une autre session.
 
 | PR | Effet à la fusion | Suite |
 | --- | --- | --- |
-| nabla-compose #348 | aucun (healthcheck LiteLLM, plan de la clé `coder`, clé `/metrics`, étape 10) | `just litellm-metrics-key-apply` **puis** redéploiement de Prometheus (entrée 4) |
+| nabla-compose #348 | aucun (healthcheck LiteLLM, plan de la clé `coder`, clé `/metrics`, étape 10, politique DNS déjà appliquée) | redéploiement de Prometheus (entrée 4) ; la clé est déjà appliquée |
 | nabla-openclaw (cette PR) | aucun | `just truenas-apply-coder` pour `compat.supportsUsageInStreaming` |
 | fastapi-sample #415 | aucun (`main.json`) | débloquée une fois le check retiré en ligne (entrée 2) |
