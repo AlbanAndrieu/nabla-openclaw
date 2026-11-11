@@ -5,6 +5,7 @@
 import { mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { pathToFileURL } from "node:url";
+import { vercelFinopsCheck, vercelReportPath } from "./vercel-finops.mjs";
 
 const TRUENAS = "172.17.0.24";
 export const WORKSTATION = "172.17.0.57";
@@ -103,6 +104,11 @@ export const checks = {
     return Object.entries(data.summary).filter(([, s]) => s.device.device_status !== 0)
       .map(([wwn, { device: d }]) => [`smart:${wwn}`, "crit", `Disque ${d.device_name} (${d.model_name}) : SMART en échec (Scrutiny)`]);
   },
+  async vercel(_get, prev) {
+    // Snapshot updated separately from an authenticated workstation.
+    // Each hourly heartbeat only reads a local private 0600 report.
+    return vercelFinopsCheck(prev, vercelReportPath(STATE));
+  },
   async litellm(get) {
     const out = [];
     for (const [host, base] of Object.entries(LITELLM)) {
@@ -118,7 +124,7 @@ export const checks = {
 
 export async function collect(prev, get = getJson) {
   const names = Object.keys(checks);
-  const results = await Promise.allSettled(names.map((name) => checks[name](get)));
+  const results = await Promise.allSettled(names.map((name) => checks[name](get, prev)));
   return results.flatMap((r, i) => {
     if (r.status === "fulfilled") return r.value;
     const name = names[i];
