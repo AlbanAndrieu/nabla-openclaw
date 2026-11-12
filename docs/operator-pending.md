@@ -186,8 +186,14 @@ TrueNAS (`sudo cat` local). L'import est confié à une autre session.
   seulement : 1 175 affectations, dont 356 secrets distincts (308 absents de
   Vaultwarden), 149 noms liés au contexte *Job* à relire, 351 réglages non
   secrets (URL, identifiants, régions), et aucun doublon contradictoire.
-  Import en attente de décision (structure des entrées, exclusion du contexte
-  *Job*). Les fichiers en clair sont en `0664` : passer en `0600`.
+  **Importé le 12/11** dans le dossier Vaultwarden `TrueNAS`, une entrée par
+  service (`nabla/prod/<service>`) : 123 entrées créées et 15 entrées
+  existantes complétées, soit 291 champs cachés. Aucun champ existant n'a été
+  écrasé (40 noms étaient déjà dans le coffre). Exclus : le contexte *Job* et
+  les environnements DEV, UAT et PROD, les réglages non secrets et les alias.
+  Les entrées créées portent la note « Imported from nabla/env/home/pass ».
+  Les fichiers sont passés en `0600`. Ils restent la source tant que les
+  scripts qui les sourcent n'ont pas migré vers Vaultwarden.
 - **`fastapisample/.env`** : corriger la ligne mal formée `APP_DOMAIN` (entrée 6).
 - **Vaultwarden** : importer `LITELLM_PROMETHEUS_METRICS_API_KEY` et créer
   l'entrée `nabla/prod/infrastructure-bootstrap` (clés Garage).
