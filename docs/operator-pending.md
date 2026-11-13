@@ -153,10 +153,50 @@ TrueNAS (`sudo cat` local). L'import est confié à une autre session.
   ni `vercel metrics` ne donnent le CPU actif ([détail](vercel-finops.md)).
   Seule voie : exporter à la main le JSON du tableau de bord Usage, puis
   `just vercel-finops-file <export>`.
-- **Slack** : régénérer les jetons du bot (`invalid_auth`), puis activer
-  `channels.slack`.
+- **Slack** (Socket Mode retenu le 11/11, sans exposition publique du Gateway) :
+  - jeton d'application `SLACK_OPENCLAW_NABLA_TOKEN` (`xapp-`) : valide
+    (`apps.connections.open` ok), mais **exposé en clair dans une conversation le
+    11/11 : à régénérer** (*Basic Information → App-Level Tokens*, portée
+    `connections:write`), puis à révoquer et à mettre dans Vaultwarden ;
+  - jeton du bot : `SLACK_BOT_USER_OAUTH_TOKEN` (`xoxb-`) est révoqué
+    (`invalid_auth`). `SLACK_TOKEN` est valide, mais il appartient à un autre
+    espace de travail Slack : ne pas l'utiliser. Réinstaller l'app OpenClaw dans
+    l'espace de travail (*OAuth & Permissions → Reinstall*) pour obtenir un
+    nouveau `xoxb-` ;
+  - ensuite : écrire les deux jetons en 0600 dans
+    `/home/node/.openclaw/credentials/slack/` (provider SecretRef `file`, comme
+    la clé `coder`), puis `channels.slack` avec `botToken` et `appToken` en
+    SecretRef, sans redémarrage.
 - **Discord** : attester un `doctor` avec le vrai token avant de réactiver le
   canal, puis router `#fastapi-sample-dev` vers `coder`.
+- **Homarr** : la clé créée le 11/11 (`nabla/prod/homarr`) est installée dans
+  `/mnt/cpool/secrets/runtime/homarr/.env.secrets` (seule cette ligne
+  remplacée, sauvegarde 0600) et lue par le conteneur après redéploiement,
+  mais Homarr répond encore `401`. Vérifier dans Homarr (*Settings → API*)
+  que la clé existe et qu'elle a été copiée en entier (`id.jeton`).
+- **AutoKuma** : les secrets vont dans `/mnt/cpool/secrets/runtime/autokuma/`,
+  comme pour les autres Apps : dès que ce fichier existe, l'ancien
+  `/mnt/cpool/autokuma/.env.secrets` (vide) n'est plus lu. **Bloqué en amont** :
+  Uptime Kuma n'est pas déployé (aucune App, `172.17.0.24:31050` ne répond pas),
+  donc il n'y a pas de jeton à créer, et AutoKuma tourne dans le vide
+  (timeouts). Le README d'AutoKuma demande de le laisser arrêté tant
+  qu'Uptime Kuma n'existe pas. Il n'y a pas non plus d'entrée
+  `nabla/prod/autokuma` dans Vaultwarden.
+- **Fichiers `nabla/env/home/pass/*.env.sh`** : inventaire du 11/11, noms
+  seulement : 1 175 affectations, dont 356 secrets distincts (308 absents de
+  Vaultwarden), 149 noms liés au contexte *Job* à relire, 351 réglages non
+  secrets (URL, identifiants, régions), et aucun doublon contradictoire.
+  **Importé le 12/11** dans le dossier Vaultwarden `TrueNAS`, une entrée par
+  service (`nabla/prod/<service>`) : 123 entrées créées et 15 entrées
+  existantes complétées, soit 291 champs cachés. Aucun champ existant n'a été
+  écrasé (40 noms étaient déjà dans le coffre). Exclus : le contexte *Job* et
+  les environnements DEV, UAT et PROD, les réglages non secrets et les alias.
+  Les entrées créées portent la note « Imported from nabla/env/home/pass ».
+  Les fichiers sont passés en `0600`. Ils restent la source tant que les
+  scripts qui les sourcent n'ont pas migré vers Vaultwarden.
+- **`fastapisample/.env`** : corriger la ligne mal formée `APP_DOMAIN` (entrée 6).
+- **Vaultwarden** : importer `LITELLM_PROMETHEUS_METRICS_API_KEY` et créer
+  l'entrée `nabla/prod/infrastructure-bootstrap` (clés Garage).
 
 ## 8. PR à fusionner
 
@@ -166,4 +206,5 @@ TrueNAS (`sudo cat` local). L'import est confié à une autre session.
 | ~~nabla-compose #349~~ (fusionnée le 11/11) | aucun | aucune |
 | ~~nabla-openclaw #16~~ (fusionnée le 11/11) | aucun | ~~`just truenas-apply-coder`~~ fait le 11/11 |
 | ~~nabla-openclaw #17~~ (fusionnée le 11/11) | aucun | ~~`just truenas-apply-heartbeat`~~ fait le 11/11 ; reste le premier relevé Vercel (export manuel en Hobby) |
-| nabla-compose #350 (épinglage `apps/openclaw` `dd13688` → `ff74bfa` ajouté) | aucun pour l'épinglage (simple trace) | redéploiements listés dans la PR (grafana, pyroscope, gatus) |
+| ~~nabla-compose #350~~ (fusionnée le 11/11, avec l'épinglage `apps/openclaw` → `ff74bfa`) | aucun | fait le 11/11 : grafana, homarr, pyroscope et gatus redéployés et sains, crowdsec non redémarré ; AutoKuma bloqué (entrée 7) |
+| nabla-compose #351 | au prochain redéploiement de `homarr` | `homarr-sync` attend 3 min au lieu de 60 s (l'App passait en `CRASHED` le 11/11) |

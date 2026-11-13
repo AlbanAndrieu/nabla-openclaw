@@ -46,6 +46,7 @@ systemctl --user list-timers 'nabla-openclaw-vercel-finops*'
 - [ ] Vérifier aussi **Fluid Provisioned Memory**, Function Invocations et la ventilation entre les quatre projets Vercel ; le module actuel vérifie uniquement Fluid Active CPU.
 - [ ] Reprendre les diagnostics cron/LiteLLM et la migration OpenClaw décrits plus bas, après contrôle de la réalité du Gateway ; les tableaux datés sont conservés comme historique.
 - [ ] Maintenir les demandes et preuves privées Bababou **hors** des snapshots et du runtime FinOps.
+- [ ] **Régénérer le jeton d'application Slack (`xapp-`)**, exposé en clair dans une conversation le 11/11 ; révoquer l'ancien et ranger le nouveau dans Vaultwarden. Réinstaller aussi l'app pour obtenir un jeton de bot `xoxb-` valide, puis activer `channels.slack` en Socket Mode ([runbook](operator-pending.md), entrée 7).
 
 Documentation de déploiement : [FinOps Vercel](vercel-finops.md).
 
