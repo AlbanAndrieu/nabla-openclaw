@@ -113,6 +113,19 @@ class HostDetection(unittest.TestCase):
 
 
 class AlignmentGate(unittest.TestCase):
+    def test_gateway_port_is_exact_and_not_duplicated(self):
+        good = "{ path=/node ; argv[]=/node /openclaw.mjs gateway --port 18789 ; }"
+        self.assertTrue(alignment.matches_gateway_port(good))
+        for wrong in (
+            good.replace("--port 18789", "--port 187890"),
+            good.replace("--port 18789", "--port 18789suffix"),
+            good.replace("--port 18789", "--port 18789 --port 18790"),
+            good.replace("--port 18789", "--port 18789 --port=18790"),
+            good.replace("gateway --port", "gateway --other-flag --port"),
+        ):
+            with self.subTest(unit=wrong):
+                self.assertFalse(alignment.matches_gateway_port(wrong))
+
     def test_absent_install_reports_systemd_version_and_hint(self):
         with tempfile.TemporaryDirectory() as d:
             home = Path(d)

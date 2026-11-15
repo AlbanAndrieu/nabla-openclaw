@@ -25,6 +25,16 @@ OPENCLAW_VERSION = re.compile(r'^OpenClaw\s+(\d+\.\d+\.\d+)(?:\s|$)', re.M)
 SYSTEMD_NODE = re.compile(r'/installs/node/(\d+\.\d+\.\d+)/bin/node')
 MAX_LISTED_VERSIONS = 20
 
+# Match the exact gateway port token; substring matching accepts 187890.
+GATEWAY_PORT_TOKEN = re.compile(r'(?<!\\S)gateway[ \\t]+--port[ \\t]+18789(?=[ \\t;}\\]]|$)')
+PORT_FLAGS = re.compile(r'(?<!\\S)--port(?=[ \\t=;}\\]]|$)')
+
+
+def matches_gateway_port(unit: str) -> bool:
+    """Reject wrong/duplicate port flags in a systemctl ExecStart report."""
+    return bool(GATEWAY_PORT_TOKEN.search(unit)) and len(PORT_FLAGS.findall(unit)) == 1
+
+
 
 def invoke(argv: list[str]) -> tuple[int, str]:
     try:
@@ -111,7 +121,7 @@ def classify(contract: Contract, home: Path, runner=invoke) -> dict:
     entries = re.findall(r'/[^\s;{}"\']+/lib/node_modules/openclaw/openclaw\.mjs', unit)
     checks['systemd_exec'] = ('match' if nodes and set(nodes) == {str(install.node)}
                               and entries == [str(install.entry)]
-                              and 'gateway --port 18789' in unit else 'mismatch_or_unavailable')
+                              and matches_gateway_port(unit) else 'mismatch_or_unavailable')
     return report
 
 
