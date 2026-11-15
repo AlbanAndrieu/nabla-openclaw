@@ -148,6 +148,11 @@ redémarre le Gateway, n'appelle un modèle ni ne crée de job. Codes retour :
 
 ### Lire un blocage runtime
 
+Le garde `ExecStartPre` contrôle aussi que `gateway --port 18789` utilise
+un **jeton de port exact et unique** : `187890`, suffixe invalide ou plusieurs
+`--port` sont refusés. Il n'exécute aucune modification ; ce test ne prouve
+ni le bind loopback, ni l'absence d'exposition réseau (vérifier séparément).
+
 `check-openclaw-runtime-alignment.py` publie, sans chemin ni secret, l'état
 de chaque fichier (`files` : `absent`, `symlink`, `foreign_owner`,
 `writable_by_group`, `writable_by_others`, `hardlinked`), la version Node de

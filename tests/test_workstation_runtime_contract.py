@@ -113,6 +113,19 @@ class HostDetection(unittest.TestCase):
 
 
 class AlignmentGate(unittest.TestCase):
+    def test_gateway_port_is_exact_and_not_duplicated(self):
+        good = "{ path=/node ; argv[]=/node /openclaw.mjs gateway --port 18789 ; }"
+        self.assertTrue(alignment.matches_gateway_port(good))
+        for wrong in (
+            good.replace("--port 18789", "--port 187890"),
+            good.replace("--port 18789", "--port 18789suffix"),
+            good.replace("--port 18789", "--port 18789 --port 18790"),
+            good.replace("--port 18789", "--port 18789 --port=18790"),
+            good.replace("gateway --port", "gateway --other-flag --port"),
+        ):
+            with self.subTest(unit=wrong):
+                self.assertFalse(alignment.matches_gateway_port(wrong))
+
     def test_absent_install_reports_systemd_version_and_hint(self):
         with tempfile.TemporaryDirectory() as d:
             home = Path(d)
@@ -151,6 +164,18 @@ class AlignmentGate(unittest.TestCase):
 
             report = alignment.classify(CONTRACT, home, runner=runner)
             self.assertEqual(set(report["checks"].values()), {"match"})
+            for invalid_gateway_port in (
+                "gateway --port 187890", "gateway --port 18789bad",
+                "gateway --port 18789 --port 18790",
+            ):
+                def incorrect_port(argv):
+                    if argv[0] == "systemctl":
+                        return 0, unit.replace("gateway --port 18789", invalid_gateway_port)
+                    return runner(argv)
+                with self.subTest(port=invalid_gateway_port):
+                    checks = alignment.classify(CONTRACT, home, runner=incorrect_port)["checks"]
+                    self.assertEqual(checks["systemd_exec"], "mismatch_or_unavailable")
+
             self.assertNotIn("hint", report)
             with contextlib.redirect_stdout(io.StringIO()) as output:
                 code = alignment.main([], repo=ROOT, home=home, runner=runner)
