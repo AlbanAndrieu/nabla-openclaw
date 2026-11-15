@@ -164,6 +164,18 @@ class AlignmentGate(unittest.TestCase):
 
             report = alignment.classify(CONTRACT, home, runner=runner)
             self.assertEqual(set(report["checks"].values()), {"match"})
+            for invalid_gateway_port in (
+                "gateway --port 187890", "gateway --port 18789bad",
+                "gateway --port 18789 --port 18790",
+            ):
+                def incorrect_port(argv):
+                    if argv[0] == "systemctl":
+                        return 0, unit.replace("gateway --port 18789", invalid_gateway_port)
+                    return runner(argv)
+                with self.subTest(port=invalid_gateway_port):
+                    checks = alignment.classify(CONTRACT, home, runner=incorrect_port)["checks"]
+                    self.assertEqual(checks["systemd_exec"], "mismatch_or_unavailable")
+
             self.assertNotIn("hint", report)
             with contextlib.redirect_stdout(io.StringIO()) as output:
                 code = alignment.main([], repo=ROOT, home=home, runner=runner)
