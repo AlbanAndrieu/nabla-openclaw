@@ -31,6 +31,51 @@ test("alerts name the exporter by its job, not its IP:port", async () => {
     "warn", "Alerte NablaExporterTargetDown (opensearch)"]]);
 });
 
+test("hosts: a device mounted twice is reported once, at its shortest mountpoint", async () => {
+  const sample = (metric, v) => ({ metric, value: [0, String(v)] });
+  const get = async (url) => {
+    const q = decodeURIComponent(url.split("query=")[1]);
+    const result = q.startsWith("node_memory_MemTotal_bytes") ? [sample({}, 1)]
+      : q.includes(">= 85") ? [sample({ device: "/dev/vg/docker", mountpoint: "/var/lib/containerd" }, 90),
+        sample({ device: "/dev/vg/docker", mountpoint: "/docker" }, 90)]
+      : [];
+    return { data: { result } };
+  };
+  assert.deepEqual((await checks.hosts(get)).map(([, , text]) => text),
+    ["TrueNAS : disque /docker plein à 90 %", "Workstation : disque /docker plein à 90 %"]);
+});
+
+test("services: Workstation postgres and redis health, stale or missing file", async () => {
+  const sample = (metric, v) => ({ metric, value: [0, String(v)] });
+  const fake = ({ health, age = 30, up = 1 }) => async (url) => {
+    const q = decodeURIComponent(url.split("query=")[1]);
+    const result = q.startsWith("workstation_container_healthy") ? health
+      : q.startsWith("time()") ? [sample({}, age)] : [sample({}, up)];
+    return { data: { result } };
+  };
+  const texts = async (opts) => (await checks.services(fake(opts))).map(([, , text]) => text);
+  const both = [sample({ container: "postgres" }, 1), sample({ container: "redis" }, 0)];
+  assert.deepEqual(await texts({ health: both }), ["Workstation : conteneur redis arrêté ou non sain"]);
+  assert.deepEqual(await texts({ health: both, age: 900 }), ["Workstation : santé de postgres et redis figée depuis 15 min"]);
+  assert.deepEqual(await texts({ health: [] }), ["Workstation : santé de postgres et redis non collectée"]);
+  assert.deepEqual(await texts({ health: [], up: 0 }), []);
+});
+
+test("backup: Workstation Restic freshness from the textfile mtime", async () => {
+  const sample = (v) => ({ metric: {}, value: [0, String(v)] });
+  const fake = ({ age, up = 1 }) => async (url) => {
+    const q = decodeURIComponent(url.split("query=")[1]);
+    const result = q.startsWith("time()") ? (age === undefined ? [] : [sample(age)]) : [sample(up)];
+    return { data: { result } };
+  };
+  const found = async (opts) => (await checks.backup(fake(opts))).map(([, sev, text]) => [sev, text]);
+  assert.deepEqual(await found({ age: 3 * 3600 }), []);
+  assert.deepEqual(await found({ age: 30 * 3600 }), [["warn", "Workstation : dernière sauvegarde Restic réussie il y a 30 h"]]);
+  assert.deepEqual(await found({ age: 80 * 3600 }), [["crit", "Workstation : dernière sauvegarde Restic réussie il y a 80 h"]]);
+  assert.deepEqual(await found({}), [["unknown", "Workstation : aucune sauvegarde Restic réussie connue"]]);
+  assert.deepEqual(await found({ up: 0 }), []);
+});
+
 test("docker: crashed, unhealthy and restarting containers only", () => {
   const found = dockerAnomalies([
     { Names: ["/ok"], State: "running", Status: "Up 2 hours (healthy)", Health: { Status: "healthy" } },

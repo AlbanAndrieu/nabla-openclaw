@@ -39,6 +39,9 @@ plusieurs sources :
   unités systemd de TrueNAS et de la Workstation ;
 - Gatus, Docker (via le socket proxy) et Scrutiny ;
 - la readiness des deux LiteLLM, base PostgreSQL comprise ;
+- la santé de postgres et redis sur la Workstation
+  (`workstation_container_healthy`, textfile écrit chaque minute par
+  ansible-workstation) ;
 - **le budget Vercel Fluid Active CPU**, via un instantané privé généré
   sur la Workstation (seuils 50/75/90 %, déduplication, absence de faux OK
   lorsque la preuve est manquante ou périmée). Le Gateway ne contacte pas Vercel.

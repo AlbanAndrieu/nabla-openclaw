@@ -11,7 +11,7 @@ const TRUENAS = "172.17.0.24";
 export const WORKSTATION = "172.17.0.57";
 const PROM = `http://${TRUENAS}:9090`;
 const HOSTS = { TrueNAS: 'job="truenas_node"', Workstation: `instance="${WORKSTATION}:9100"` };
-const FS = 'fstype!~"tmpfs|devtmpfs|overlay|squashfs|ramfs|nsfs|tracefs|fusectl|autofs"';
+const FS = 'fstype!~"tmpfs|devtmpfs|overlay|squashfs|ramfs|nsfs|tracefs|fusectl|autofs|fuse.lxcfs"';
 const LITELLM = { TrueNAS: "http://litellm:4000", Workstation: `http://${WORKSTATION}:4000` };
 export const STATE = process.env.HOMELAB_HEALTH_STATE
   ?? join(process.env.HOME ?? ".", ".openclaw/nabla-heartbeat/homelab-health.json");
@@ -83,7 +83,10 @@ export const checks = {
       ]);
       if (value(cpu) >= 90) out.push([`hosts:${host}:cpu`, "warn", `${host} : CPU ${value(cpu).toFixed(0)} % sur 15 min`]);
       if (value(mem) >= 90) out.push([`hosts:${host}:mem`, value(mem) >= 95 ? "crit" : "warn", `${host} : RAM ${value(mem).toFixed(0)} %`]);
-      for (const d of disks) {
+      // Bind mounts repeat a device: report it once, under its shortest mountpoint.
+      const byDevice = new Map(disks.toSorted((a, b) => b.metric.mountpoint.length - a.metric.mountpoint.length)
+        .map((d) => [d.metric.device, d]));
+      for (const d of byDevice.values()) {
         out.push([`hosts:${host}:disk:${d.metric.mountpoint}`, value(d) >= 95 ? "crit" : "warn",
           `${host} : disque ${d.metric.mountpoint} plein à ${value(d).toFixed(0)} %`]);
       }
@@ -110,6 +113,40 @@ export const checks = {
     // Snapshot updated separately from an authenticated workstation.
     // Each hourly heartbeat only reads a local private 0600 report.
     return vercelFinopsCheck(prev, vercelReportPath(STATE));
+  },
+  async services(get) {
+    const sel = HOSTS.Workstation;
+    const [health, [age], [up]] = await Promise.all([
+      query(get, `workstation_container_healthy{${sel}}`),
+      query(get, `time() - node_textfile_mtime_seconds{${sel},file=~".*/docker-health.prom"}`),
+      query(get, `up{${sel}}`),
+    ]);
+    // An exporter that is down is already reported by the hosts check.
+    if (!health.length) {
+      return value(up) === 1 ? [["services:Workstation:missing", "unknown", "Workstation : santé de postgres et redis non collectée"]] : [];
+    }
+    // The timer rewrites the file every minute: older values say nothing.
+    if (value(age) > 300) {
+      return [["services:Workstation:stale", "unknown", `Workstation : santé de postgres et redis figée depuis ${Math.round(value(age) / 60)} min`]];
+    }
+    return health.filter((s) => value(s) < 1)
+      .map((s) => [`services:Workstation:${s.metric.container}`, "warn", `Workstation : conteneur ${s.metric.container} arrêté ou non sain`]);
+  },
+  // Restic touches /var/lib/restic/last-success.prom after each successful nightly
+  // backup; node_exporter exports its mtime. Zabbix alerts at 26 h too.
+  async backup(get) {
+    const sel = HOSTS.Workstation;
+    const [[age], [up]] = await Promise.all([
+      query(get, `time() - node_textfile_mtime_seconds{${sel},file=~".*/last-success.prom"}`),
+      query(get, `up{${sel}}`),
+    ]);
+    if (!age) {
+      return value(up) === 1 ? [["backup:Workstation:missing", "unknown", "Workstation : aucune sauvegarde Restic réussie connue"]] : [];
+    }
+    const hours = value(age) / 3600;
+    if (hours <= 26) return [];
+    return [["backup:Workstation:stale", hours > 72 ? "crit" : "warn",
+      `Workstation : dernière sauvegarde Restic réussie il y a ${Math.round(hours)} h`]];
   },
   async litellm(get) {
     const out = [];

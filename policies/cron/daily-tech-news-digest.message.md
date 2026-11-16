@@ -12,7 +12,7 @@ les règles utiles du template sont reprises ci-dessous.
 - ITEMS_PER_SECTION = 5
 - ENRICH = true
 - LANGUAGE = French
-- SOURCES = RSS, GitHub, GitHub Trending, Reddit, Web (sans Twitter : l'API X répond 402)
+- SOURCES = flux des catégories FreshRSS (LLM, AI Agent, Crypto, Frontier Tech), GitHub, GitHub Trending, Reddit, Web (sans Twitter : l'API X répond 402)
 
 ## 1. Collecte : un seul appel `exec`
 
@@ -20,11 +20,12 @@ Appelle l'outil `exec` une seule fois, avec `yieldMs` = 240000 et
 `timeout` = 240, et exactement cette commande :
 
 ```sh
-cd /home/node/.openclaw/workspace && date +%F && python3 skills/tech-news-digest/scripts/run-pipeline.py --defaults skills/tech-news-digest/config/defaults --config skills/tech-news-digest/workspace/config --hours 48 --freshness pd --archive-dir archive/tech-news-digest --output /tmp/td-merged.json --force --enrich --skip twitter > /tmp/td-pipeline.log 2>&1 && python3 skills/tech-news-digest/scripts/summarize-merged.py --input /tmp/td-merged.json --top 5 > /tmp/td-summary.txt && grep -F 'pts) [' /tmp/td-summary.txt | cut -d']' -f3- | sed 's/^ /- [/; s/$/]/' > archive/tech-news-digest/daily-$(date +%F).md && cat /tmp/td-summary.txt || { tail -n 20 /tmp/td-pipeline.log; exit 1; }
+cd /home/node/.openclaw/workspace && date +%F && { python3 scripts/freshrss-sources.py || true; } > /tmp/td-pipeline.log 2>&1 && python3 skills/tech-news-digest/scripts/run-pipeline.py --defaults skills/tech-news-digest/config/defaults --config skills/tech-news-digest/workspace/config --hours 48 --freshness pd --archive-dir archive/tech-news-digest --output /tmp/td-merged.json --force --enrich --skip twitter >> /tmp/td-pipeline.log 2>&1 && python3 skills/tech-news-digest/scripts/summarize-merged.py --input /tmp/td-merged.json --top 5 > /tmp/td-summary.txt && grep -F 'pts) [' /tmp/td-summary.txt | cut -d']' -f3- | sed 's/^ /- [/; s/$/]/' > archive/tech-news-digest/daily-$(date +%F).md && cat /tmp/td-summary.txt || { tail -n 20 /tmp/td-pipeline.log; exit 1; }
 ```
 
-La commande archive aussi les titres retenus : le pipeline du lendemain
-pénalise ceux qui ont déjà été publiés.
+La commande reprend d'abord la liste des flux depuis FreshRSS (en cas
+d'échec, la dernière liste reste valable), puis archive les titres retenus :
+le pipeline du lendemain pénalise ceux qui ont déjà été publiés.
 
 N'invente ni script ni option et n'écris pas de Python. Si la commande
 échoue, réponds `AUTOMATION_FAILED` suivi des dernières lignes affichées,
