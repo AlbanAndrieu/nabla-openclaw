@@ -1,4 +1,7 @@
-# Runbook opérateur — actions en attente (10 novembre 2026)
+# Runbook opérateur — actions en attente (16 novembre 2026)
+
+Passe du 16/11 : nouveaux blocages B1 (réappliquer le heartbeat) et B2 (pin
+nabla-compose) dans le [runbook du 16/11](runbooks/2026-11-16-roadmap-pass-blockers.md).
 
 Ce qui reste de la [roadmap](roadmap.md) et ne peut pas avancer sans le
 propriétaire : une action dans une interface (Telegram, GitHub, Cloudflare),
@@ -37,7 +40,10 @@ filtre de contenu Azure (`ContentPolicyViolationError`, sur `gpt-4.1` puis
 `EXTERNAL_UNTRUSTED_CONTENT`. L'incident est ponctuel : il ne se reproduit qu'à
 l'arrivée du bot dans un nouveau groupe.
 
-## 2. `fastapi-sample` : ruleset de `master`
+## 2. ~~`fastapi-sample` : ruleset de `master`~~ (fait, vérifié le 16/11)
+
+Vérifié par `gh api` le 16/11 : « Protect main » n'exige plus que
+`Test dependencies and optionally build Python package`.
 
 **État** : le ruleset « Protect main » est actif depuis le 10/11, avec l'App de
 release en bypass ; le doublon désactivé « Protect main tmp » est supprimé.
@@ -207,4 +213,4 @@ TrueNAS (`sudo cat` local). L'import est confié à une autre session.
 | ~~nabla-openclaw #16~~ (fusionnée le 11/11) | aucun | ~~`just truenas-apply-coder`~~ fait le 11/11 |
 | ~~nabla-openclaw #17~~ (fusionnée le 11/11) | aucun | ~~`just truenas-apply-heartbeat`~~ fait le 11/11 ; reste le premier relevé Vercel (export manuel en Hobby) |
 | ~~nabla-compose #350~~ (fusionnée le 11/11, avec l'épinglage `apps/openclaw` → `ff74bfa`) | aucun | fait le 11/11 : grafana, homarr, pyroscope et gatus redéployés et sains, crowdsec non redémarré ; AutoKuma bloqué (entrée 7) |
-| nabla-compose #351 | au prochain redéploiement de `homarr` | `homarr-sync` attend 3 min au lieu de 60 s (l'App passait en `CRASHED` le 11/11) |
+| ~~nabla-compose #351~~ (fusionnée le 12/11) | au prochain redéploiement de `homarr` | `homarr-sync` attend 3 min au lieu de 60 s (l'App passait en `CRASHED` le 11/11) |

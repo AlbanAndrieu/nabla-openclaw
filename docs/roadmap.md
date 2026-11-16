@@ -1,4 +1,6 @@
-# Roadmap consolidée — nabla-openclaw (11 novembre 2026)
+# Roadmap consolidée — nabla-openclaw (16 novembre 2026)
+
+**Passe du 16/11 ([runbook](runbooks/2026-11-16-roadmap-pass-blockers.md)) :** cinq correctifs des 6-10/11 (postgres/redis, Restic, disque monté deux fois, briefing des emails, flux FreshRSS du digest) n'étaient jamais arrivés sur `master` : rapatriés et testés (**CODED/TESTED**, non publiés). L'application du 11/11 depuis `master` les a donc probablement retirés du Gateway TrueNAS (B1, à vérifier par empreinte puis réappliquer). Dans nabla-compose, #395 a ramené par erreur le pin `apps/openclaw` à `afca101` (B2).
 
 **État vérifié (11/11 au soir) :** [PR #17](https://github.com/AlbanAndrieu/nabla-openclaw/pull/17) fusionnée et **appliquée sur TrueNAS** ; aucun relevé CPU réel validé, car le plan Hobby n'expose pas le CPU actif à la CLI. Reste : **relevé (export manuel) → activation quotidienne si un relevé automatique devient possible**.
 
@@ -43,9 +45,9 @@ systemctl --user list-timers 'nabla-openclaw-vercel-finops*'
 
 ### P1 — Après mise en service
 
-- [ ] Vérifier aussi **Fluid Provisioned Memory**, Function Invocations et la ventilation entre les quatre projets Vercel ; le module actuel vérifie uniquement Fluid Active CPU.
+- [ ] Vérifier aussi **Fluid Provisioned Memory**, Function Invocations et la ventilation entre les quatre projets Vercel ; le module actuel vérifie uniquement Fluid Active CPU. **Bloqué (16/11)** : attend un export réel du tableau de bord Usage, seul moyen de connaître son format (runbook du 16/11, B4).
 - [ ] Reprendre les diagnostics cron/LiteLLM et la migration OpenClaw décrits plus bas, après contrôle de la réalité du Gateway ; les tableaux datés sont conservés comme historique.
-- [ ] Maintenir les demandes et preuves privées Bababou **hors** des snapshots et du runtime FinOps.
+- [x] Maintenir les demandes et preuves privées Bababou **hors** des snapshots et du runtime FinOps. **Garanti par construction (16/11)** : `publish-vercel-finops.sh` reconstruit le JSON champ par champ, `--output` n'écrit que le résumé compact (testé).
 - [ ] **Régénérer le jeton d'application Slack (`xapp-`)**, exposé en clair dans une conversation le 11/11 ; révoquer l'ancien et ranger le nouveau dans Vaultwarden. Réinstaller aussi l'app pour obtenir un jeton de bot `xoxb-` valide, puis activer `channels.slack` en Socket Mode ([runbook](operator-pending.md), entrée 7).
 
 Documentation de déploiement : [FinOps Vercel](vercel-finops.md).
