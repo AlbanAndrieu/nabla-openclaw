@@ -84,12 +84,8 @@ nabla-compose » travaille ce dépôt : à lui confier, ou à faire ici ?
 
 ### B3. Publication de cette branche
 
-Aucun push n'est autorisé dans cette conversation. Commande proposée :
-
-```bash
-git push -u origin feat/openclaw-roadmap-pass-20261116
-gh pr create --draft --base master --head feat/openclaw-roadmap-pass-20261116
-```
+Publiée en PR Draft le 16/11, sur accord explicite de l'opérateur. Le passage
+en Ready et la fusion restent à sa main ; B1 et B2 se traitent après la fusion.
 
 ### B4. Vercel FinOps : P0 7 à 9 et P1 mémoire/invocations
 
