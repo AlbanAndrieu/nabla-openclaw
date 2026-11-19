@@ -10,8 +10,8 @@ cd "$(dirname "$0")/../.."
 name=${1:-fastapi-sample-daily-improvement}
 case $name in
   fastapi-sample-daily-improvement) schedule="17 6 * * *" timeout=1800 ;;
-  # Ends by 06:07, before the fastapi-sample job.
-  nabla-compose-roadmap-pass) schedule="7 5 * * *" timeout=3600 ;;
+  # Ends by 03:00, inside the night window and before the fastapi-sample job.
+  nabla-compose-roadmap-pass) schedule="0 2 * * *" timeout=3600 ;;
   *) echo "coder_cron=unknown job $name"; exit 2 ;;
 esac
 

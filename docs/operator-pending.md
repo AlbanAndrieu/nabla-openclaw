@@ -175,15 +175,15 @@ TrueNAS (`sudo cat` local). L'import est confié à une autre session.
     SecretRef, sans redémarrage.
 - **Agent `coder` sur `nabla-compose`** (appliqué le 19/11 : skills
   `nabla-compose-dev` et `nabla-roadmap-pass`, job `nabla-compose-roadmap-pass`
-  à 05:07). Constat du 19/11 : le token de la devbox **peut déjà pousser** sur
+  à 02:00). Constat du 19/11 : le token de la devbox **peut déjà pousser** sur
   `nabla-compose` (branche `openclaw/roadmap-pass-20261119` et PR Draft #417
   créées par le job), alors que `master` n'a toujours ni protection ni ruleset
   (`404`). Rien n'empêche donc techniquement un push direct sur `master` :
   1. **Bloquant, urgent** : ruleset « Protect master » sur `nabla-compose`
      (PR obligatoire, pas de force-push ni de suppression), en gardant le
      contournement du bot de release (`chore(release)` est poussé sur
-     `master` par `github-actions[bot]`), ou désactiver le job d'ici là
-     (`openclaw cron disable <id>`) ;
+     `master` par `github-actions[bot]`). Le propriétaire a choisi le 19/11 de
+     laisser le job tourner chaque nuit à 02:00 en attendant ;
   2. vérifier que le token n'a que *Contents* et *Pull requests* RW (ni
      *Workflows* ni *Administration*) ;
   3. identité Git : la passe du 19/11 a écrit d'elle-même
