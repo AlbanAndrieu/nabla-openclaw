@@ -80,7 +80,7 @@
         "name": "coder",
         "workspace": "/home/node/.openclaw/workspace-coder",
         "model": "litellm-coder/gpt-4.1",
-        "skills": ["fastapi-sample-dev", "nabla-compose-dev"],
+        "skills": ["fastapi-sample-dev", "nabla-compose-dev", "nabla-roadmap-pass"],
         "sandbox": {
           "mode": "all",
           "backend": "ssh",

@@ -38,9 +38,9 @@ truenas-bootstrap-coder:
 truenas-apply-coder:
     scripts/coder/apply-truenas.sh
 
-# TrueNAS daily coder job: checks fastapi-sample, proposes one Draft PR. Requires CODER_TELEGRAM_GROUP_ID.
-truenas-apply-coder-cron:
-    scripts/coder/apply-cron-truenas.sh
+# TrueNAS daily coder job (fastapi-sample-daily-improvement by default, or nabla-compose-roadmap-pass).
+truenas-apply-coder-cron job="fastapi-sample-daily-improvement":
+    scripts/coder/apply-cron-truenas.sh {{job}}
 
 # Explicit: delete the coder agent (prunes its sessions), its provider and group; stop the devbox.
 truenas-rollback-coder:

@@ -190,8 +190,16 @@ proxy, puis `test-local-first` en `PASS`, sans commit ni push.
   fait rien tant qu'une précédente est ouverte. Message :
   `policies/cron/fastapi-sample-daily-improvement.message.md`. Installation ou
   mise à jour (idempotente) :
-  `CODER_TELEGRAM_GROUP_ID=-100... just truenas-apply-coder-cron`. Arrêt :
+  `just truenas-apply-coder-cron` (groupe Telegram du coder lu dans la
+  configuration du Gateway, ou `CODER_TELEGRAM_GROUP_ID=-100...`). Arrêt :
   `openclaw cron disable <id>` dans le Gateway, avant tout rollback de l'agent.
+- **Passe de roadmap** : le job `nabla-compose-roadmap-pass` (05:07
+  Europe/Paris, session isolée, 60 min max) suit la skill
+  `nabla-roadmap-pass` : porte de code (santé des services `NOT_RUN` depuis
+  la devbox), au plus 3 items faisables hors ligne, trois boucles de
+  consolidation, une PR Draft `openclaw/roadmap-pass-*` reprise d'un jour à
+  l'autre, questions à la fin. Installation :
+  `just truenas-apply-coder-cron nabla-compose-roadmap-pass`.
 
 ## Rollback
 

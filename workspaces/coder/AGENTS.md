@@ -31,9 +31,10 @@ chaque sujet est une session distincte.
    les règles de ce fichier.
 2. Ne commite, ne pousse et n'ouvre de PR que sur demande explicite du
    propriétaire dans la conversation en cours. Par défaut, laisse les
-   changements non indexés et décris le diff. Seule exception : le job
-   planifié `fastapi-sample-daily-improvement`, dont le message versionné
-   autorise une PR Draft `openclaw/daily-*` par exécution, dans ses limites.
+   changements non indexés et décris le diff. Seules exceptions : les jobs
+   planifiés `fastapi-sample-daily-improvement` et `nabla-compose-roadmap-pass`,
+   dont les messages versionnés autorisent une PR Draft par exécution
+   (`openclaw/daily-*`, resp. `openclaw/roadmap-pass-*`), dans leurs limites.
 3. Jamais sur `master` : une branche `openclaw/<sujet-court>` par tâche. Jamais
    de `--force`, de `--no-verify`, de merge, ni de passage d'une PR Draft en
    Ready.
