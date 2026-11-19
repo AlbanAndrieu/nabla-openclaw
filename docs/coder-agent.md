@@ -1,4 +1,4 @@
-# Agent `coder` : coder sur fastapi-sample depuis TrueNAS
+# Agent `coder` : coder sur fastapi-sample et nabla-compose depuis TrueNAS
 
 **Statut : préparé, non déployé** (`deploy/truenas/devbox/contract.json`,
 `just devbox-plan`). Cycle du contrat : `prepared_not_deployed` →
@@ -8,8 +8,10 @@ runbook de déploiement, d'exploitation et de rollback.
 ## Objectif
 
 Piloter depuis un groupe Telegram (puis Discord) un agent OpenClaw qui clone
-[`AlbanAndrieu/fastapi-sample`](https://github.com/AlbanAndrieu/fastapi-sample),
-modifie le code, lance les vérifications du dépôt et ouvre des PR **Draft**, sans
+[`AlbanAndrieu/fastapi-sample`](https://github.com/AlbanAndrieu/fastapi-sample)
+ou [`AlbanAndrieu/nabla-compose`](https://github.com/AlbanAndrieu/nabla-compose)
+(par GitHub, jamais le checkout de déploiement `/mnt/cpool/compose/nabla-compose`
+et ses `.env`), modifie le code, lance les vérifications du dépôt et ouvre des PR **Draft**, sans
 jamais exécuter de code dans le conteneur du Gateway.
 
 ```text
@@ -115,10 +117,11 @@ Aucun de ces éléments n'est inclus dans ce dépôt pour l'instant.
    (`1000:1000`, `0600`) et enregistre la clé (11 USD / 7 jours), sans aucun
    redémarrage. Importer ensuite la valeur dans Vaultwarden avec la commande
    affichée (`import_dotenv_to_bitwarden.py --app litellm`).
-2. **Token GitHub** fine-grained, dépôt `fastapi-sample` seul, *Contents* et
-   *Pull requests* en lecture/écriture, expiration ≤ 90 jours, dans
-   `/mnt/cpool/secrets/runtime/openclaw-devbox/github_token` (`1001:1001`,
-   `0400`). Protection de branche active sur `master`.
+2. **Token GitHub** fine-grained, dépôts `fastapi-sample` et `nabla-compose`
+   seuls, *Contents* et *Pull requests* en lecture/écriture, expiration ≤ 90
+   jours, dans `/mnt/cpool/secrets/runtime/openclaw-devbox/github_token`
+   (`1001:1001`, `0400`). Protection de branche active sur `master` de
+   **chaque** dépôt avant de l'ajouter au token.
 3. **Groupe Telegram** de type forum (sujets activés), avec le bot et le
    propriétaire seulement ; noter son identifiant `-100…`.
 

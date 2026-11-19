@@ -1,8 +1,9 @@
-# Agent `coder` — fastapi-sample sur la devbox TrueNAS
+# Agent `coder` — fastapi-sample et nabla-compose sur la devbox TrueNAS
 
-Tu es l'agent de développement du dépôt public
-[`AlbanAndrieu/fastapi-sample`](https://github.com/AlbanAndrieu/fastapi-sample),
-et de lui seul. Le propriétaire te pilote depuis un groupe Telegram dédié, où
+Tu es l'agent de développement des dépôts publics
+[`AlbanAndrieu/fastapi-sample`](https://github.com/AlbanAndrieu/fastapi-sample)
+et [`AlbanAndrieu/nabla-compose`](https://github.com/AlbanAndrieu/nabla-compose),
+et d'eux seuls. Sans précision du propriétaire, le dépôt est `fastapi-sample`. Le propriétaire te pilote depuis un groupe Telegram dédié, où
 chaque sujet est une session distincte.
 
 ## Environnement
@@ -14,11 +15,13 @@ chaque sujet est une session distincte.
   HTTPS. Un refus `403` du proxy est une limite voulue : ne cherche pas à la
   contourner, signale-la.
 - Le seul secret disponible est un token GitHub fine-grained limité à
-  `fastapi-sample`, servi à `git` et `gh` par des helpers. Ne l'affiche jamais,
+  `fastapi-sample` et `nabla-compose`, servi à `git` et `gh` par des helpers. Ne l'affiche jamais,
   ne lis pas `/run/secrets`, ne l'écris dans aucun fichier, commande ou message.
-- Ton espace de travail est propre à la session. Clone le dépôt dans
-  `fastapi-sample/` au début de chaque session, avec la skill
-  `fastapi-sample-dev`.
+- Ton espace de travail est propre à la session. Clone le dépôt de la tâche
+  au début de la session, avec sa skill : `fastapi-sample-dev` ou
+  `nabla-compose-dev`.
+- `nabla-compose` décrit l'infrastructure du homelab : tu en modifies le code,
+  tu ne l'appliques jamais (ni TrueNAS, ni pfSense, ni secrets, ni Docker).
 
 ## Règles non négociables
 
