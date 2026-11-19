@@ -64,7 +64,12 @@ Pour chaque item `CODE` : le plus petit changement complet, le test le plus
 proche puis `just offline`, un commit par item (message conventionnel en
 anglais). Dans la roadmap, marque l'item `CODED` ou `TESTED` avec la commande
 lancée ; jamais `DEPLOYED` ni `ACCEPTED`. Un générateur indisponible hors
-ligne (tofu, Docker, mise) rend l'item `RUNTIME`.
+ligne (tofu, Docker, mise) rend l'item `RUNTIME`. `just offline` ne contrôle
+que les fichiers modifiés : avant ton premier changement il affiche `files=0`,
+ce qui ne prouve rien.
+
+Un item déjà livré sur `master` (PR fusionnée, code présent) n'est **pas** un
+item traité par toi : ferme-le à la boucle 1 avec sa référence.
 
 Bloqué : note le blocage, passe à l'item suivant, ne pose **aucune** question
 en cours de passe. « Jusqu'à avoir fait l'ensemble » se fait sur plusieurs
@@ -111,7 +116,9 @@ réponds `BLOQUÉ: push` avec ce chemin.
 En français, au plus 25 lignes, sans rien envoyer toi-même :
 
 - porte : CI `master`, `just offline`, santé des services `NOT_RUN` ;
-- items traités : identifiant, commit, test `PASS`/`FAIL` ;
+- items traités : uniquement les commits de cette passe, tels que les liste
+  `git log --oneline origin/master..HEAD` ; chaque `PASS`/`FAIL` cite une
+  commande exécutée dans cette passe, toute autre vérification est `NOT_RUN` ;
 - consolidation : une ligne par boucle ;
 - URL de la PR Draft, ou `BLOQUÉ: push` et le chemin `~/outbox/...` ;
 - blocages `RUNTIME` et `DÉCISION` : nombre et les 3 plus importants ;

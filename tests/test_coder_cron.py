@@ -39,7 +39,8 @@ class RoadmapPassCron(unittest.TestCase):
         skill = (ROOT / "workspaces/coder/skills/nabla-roadmap-pass/SKILL.md").read_text(encoding="utf-8")
         for marker in ("consolide la et recommandations la boucle trois fois", "NOT_RUN (vantage devbox)",
                        "jamais `DEPLOYED` ni `ACCEPTED`", ".github/workflows/", "BLOQUÉ: push",
-                       "questions restantes, numérotées"):
+                       "questions restantes, numérotées", "git log --oneline origin/master..HEAD",
+                       "n'est **pas** un", "`files=0`"):
             with self.subTest(marker=marker):
                 self.assertIn(marker, skill)
 
