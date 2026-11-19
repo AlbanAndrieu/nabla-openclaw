@@ -179,11 +179,18 @@ TrueNAS (`sudo cat` local). L'import est confié à une autre session.
   `nabla-compose` (branche `openclaw/roadmap-pass-20261119` et PR Draft #417
   créées par le job), alors que `master` n'a toujours ni protection ni ruleset
   (`404`). Rien n'empêche donc techniquement un push direct sur `master` :
-  1. **Bloquant, urgent** : ruleset « Protect master » sur `nabla-compose`
-     (PR obligatoire, pas de force-push ni de suppression), en gardant le
-     contournement du bot de release (`chore(release)` est poussé sur
-     `master` par `github-actions[bot]`). Le propriétaire a choisi le 19/11 de
-     laisser le job tourner chaque nuit à 02:00 en attendant ;
+  1. **Bloquant, urgent** : ruleset « Protect master » créé le 19/11 (id
+     `27675208` : PR obligatoire, ni force-push ni suppression) mais
+     **désactivé**. GitHub refuse `github-actions[bot]` en exception sur un
+     dépôt personnel (422), or `release.yml` pousse `chore(release)` sur
+     `master` avec `GITHUB_TOKEN`. L'exception retenue est l'App déjà en
+     exception sur fastapi-sample (`4676280`, a priori son App de release),
+     que `release.yml` sait utiliser. Pour activer : installer l'App sur
+     `nabla-compose`, y poser la variable `RELEASE_APP_CLIENT_ID` et le secret
+     `RELEASE_APP_PRIVATE_KEY`, puis
+     `gh api -X PUT repos/AlbanAndrieu/nabla-compose/rulesets/27675208 -f enforcement=active`.
+     En attendant, le job tourne chaque nuit à 02:00 (choix du propriétaire,
+     19/11) ;
   2. vérifier que le token n'a que *Contents* et *Pull requests* RW (ni
      *Workflows* ni *Administration*) ;
   3. identité Git : la passe du 19/11 a écrit d'elle-même
