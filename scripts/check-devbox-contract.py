@@ -119,7 +119,7 @@ def gateway_agent_sandboxed(c, seed, root):
             and seed["secrets"]["providers"][c["model"]["key_secret_provider"]] == {
                 "source": "file", "path": c["model"]["key_file"], "mode": "singleValue"}
             and c["model"]["key_file"].startswith("/home/node/.openclaw/credentials/")
-            and agent["skills"] == [c["workspace"]["skill"]]
+            and agent["skills"] == c["workspace"]["skills"]
             and seed["agents"]["defaults"].get("maxConcurrent", 0) >= 2)
 
 
@@ -132,8 +132,8 @@ def gateway_joins_network(c, seed, root):
 
 def workspace_sources_exist(c, seed, root):
     base = c["workspace"]["source"]
-    skill = text(root, f'{base}/skills/{c["workspace"]["skill"]}/SKILL.md')
-    return bool(text(root, f"{base}/AGENTS.md")) and f'\nname: {c["workspace"]["skill"]}\n' in skill
+    return bool(text(root, f"{base}/AGENTS.md")) and all(
+        f"\nname: {skill}\n" in text(root, f"{base}/skills/{skill}/SKILL.md") for skill in c["workspace"]["skills"])
 
 
 def images_pinned_when_active(c, seed, root):

@@ -79,9 +79,10 @@ just truenas-apply-heartbeat
 just vercel-finops-refresh
 ```
 
-## TrueNAS : agent `coder` pour fastapi-sample (préparé)
+## TrueNAS : agent `coder` pour fastapi-sample et nabla-compose
 
-L'agent `coder` code sur `AlbanAndrieu/fastapi-sample` depuis un groupe
+L'agent `coder` code sur `AlbanAndrieu/fastapi-sample` et
+`AlbanAndrieu/nabla-compose` (clone GitHub) depuis un groupe
 Telegram forum (un sujet = une session). Ses outils (`exec`, `read`, `write`,
 `edit`, `apply_patch`) s'exécutent par la sandbox `ssh` d'OpenClaw dans la
 devbox `openclaw-devbox` : conteneur non-root sur un réseau Docker interne,
@@ -91,7 +92,7 @@ tourne dans le Gateway ; l'agent ouvre des PR Draft et ne fusionne jamais.
 | Source (ce dépôt) | Cible runtime |
 | --- | --- |
 | `deploy/truenas/devbox/` | App TrueNAS `openclaw-devbox` (devbox + egress) |
-| `workspaces/coder/` | `state/workspace-coder/` (`AGENTS.md`, skill `fastapi-sample-dev`) |
+| `workspaces/coder/` | `state/workspace-coder/` (`AGENTS.md`, skills `fastapi-sample-dev`, `nabla-compose-dev`) |
 | `deploy/truenas/openclaw.json` (`agents.entries.coder`, `litellm-coder`, SecretRef `file`) | `openclaw config set --batch-json` + `secrets reload`, sans redémarrage |
 
 ```bash

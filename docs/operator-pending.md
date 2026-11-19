@@ -173,6 +173,19 @@ TrueNAS (`sudo cat` local). L'import est confié à une autre session.
     `/home/node/.openclaw/credentials/slack/` (provider SecretRef `file`, comme
     la clé `coder`), puis `channels.slack` avec `botToken` et `appToken` en
     SecretRef, sans redémarrage.
+- **Agent `coder` sur `nabla-compose`** (codé le 18/11, `NOT_RUN` en runtime),
+  dans cet ordre :
+  1. **Bloquant** : `master` de `nabla-compose` n'a ni protection ni ruleset
+     (`gh api …/branches/master/protection` → `404` le 18/11). Créer un ruleset
+     « Protect master » (PR obligatoire, pas de force-push ni de suppression),
+     comme sur `fastapi-sample`, avant toute étape suivante ;
+  2. ajouter `nabla-compose` au token fine-grained de la devbox (*Contents* et
+     *Pull requests* RW, sans *Workflows* ni *Administration*) ; le fichier
+     `github_token` ne change pas si le token est édité plutôt que régénéré ;
+  3. `just truenas-apply-coder` : copie la skill `nabla-compose-dev` et
+     applique `agents.entries.coder.skills`, sans redémarrage ;
+  4. réception depuis Telegram : « Clone nabla-compose, lance `just offline`,
+     ne commite rien et donne le compte rendu. »
 - **Discord** : attester un `doctor` avec le vrai token avant de réactiver le
   canal, puis router `#fastapi-sample-dev` vers `coder`.
 - **Homarr** : la clé créée le 11/11 (`nabla/prod/homarr`) est installée dans

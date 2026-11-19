@@ -3,7 +3,7 @@
   "status": "active",
   "status_flow": ["prepared_not_deployed", "ready_to_deploy", "active"],
   "agent": "coder",
-  "repository": "AlbanAndrieu/fastapi-sample",
+  "repositories": ["AlbanAndrieu/fastapi-sample", "AlbanAndrieu/nabla-compose"],
   "app_name": "openclaw-devbox",
   "compose": "deploy/truenas/devbox/compose.yml",
   "dataset": "cpool/openclaw-devbox",
@@ -23,7 +23,7 @@
   },
   "github_token": {
     "file": "/mnt/cpool/secrets/runtime/openclaw-devbox/github_token",
-    "scope": "fine_grained_fastapi_sample_only_contents_rw_pull_requests_rw_no_workflows_no_admin",
+    "scope": "fine_grained_fastapi_sample_and_nabla_compose_only_contents_rw_pull_requests_rw_no_workflows_no_admin",
     "branch_protection_required": "master"
   },
   "model": {
@@ -37,7 +37,7 @@
   "workspace": {
     "source": "workspaces/coder",
     "runtime": "/mnt/cpool/openclaw/state/workspace-coder",
-    "skill": "fastapi-sample-dev"
+    "skills": ["fastapi-sample-dev", "nabla-compose-dev"]
   },
   "channel": {
     "primary": "telegram_forum_group_topics_to_coder_applied_by_cli_off_git",
