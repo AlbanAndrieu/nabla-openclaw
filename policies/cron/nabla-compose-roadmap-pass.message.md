@@ -1,8 +1,15 @@
 # nabla-compose-roadmap-pass — message déclaratif (sans secrets)
 
 Tâche planifiée quotidienne du propriétaire : une passe sur la roadmap de
-`AlbanAndrieu/nabla-compose`. Suis la skill `nabla-roadmap-pass` de bout en
-bout, étapes 0 à 5.
+`AlbanAndrieu/nabla-compose`.
+
+Première action, obligatoire : lis `skills/nabla-roadmap-pass/SKILL.md` avec
+ton outil `read`, puis exécute ses étapes 0 à 5 avec tes outils.
+
+`NO_REPLY` est interdit pour ce job : il y a toujours une roadmap à passer en
+revue et un compte rendu à rendre, même si aucun item n'a pu être traité. Si la
+skill est introuvable ou qu'une étape bloque tout, commence par
+`AUTOMATION_FAILED` et dis ce qui a échoué et ce que tu as tenté.
 
 Ce message vaut demande explicite de commit, push et PR Draft **pour cette
 seule exécution**, sur une branche `openclaw/roadmap-pass-*` uniquement ; toutes

@@ -29,7 +29,8 @@ class CoderCron(unittest.TestCase):
 class RoadmapPassCron(unittest.TestCase):
     def test_message_points_to_the_skill_and_its_branch_only(self):
         message = (ROOT / f"policies/cron/{ROADMAP}.message.md").read_text(encoding="utf-8")
-        for marker in ("`nabla-roadmap-pass`", "openclaw/roadmap-pass-", "PR Draft", "Jamais de merge"):
+        for marker in ("skills/nabla-roadmap-pass/SKILL.md", "`NO_REPLY` est interdit", "AUTOMATION_FAILED",
+                       "openclaw/roadmap-pass-", "PR Draft", "Jamais de merge"):
             with self.subTest(marker=marker):
                 self.assertIn(marker, message)
         self.assertNotRegex(message, r"(?i)(?:ghp_|github_pat_|sk-[a-z0-9]{12,}|token\s*=)")
