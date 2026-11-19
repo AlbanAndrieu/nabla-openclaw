@@ -184,7 +184,7 @@ proxy, puis `test-local-first` en `PASS`, sans commit ni push.
   vérifie), puis `just truenas-deploy-coder --apply`.
 - **Coût** : `just openclaw-truenas-virtual-keys-quota` (`nabla-compose`) ; le
   budget se réinitialise tous les 7 jours.
-- **Revue quotidienne** : le job `fastapi-sample-daily-improvement` (06:17
+- **Revue quotidienne** (codée, non déclarée sur le Gateway au 19/11) : le job `fastapi-sample-daily-improvement` (06:17
   Europe/Paris, session isolée, 30 min max) lance les gates de
   `fastapi-sample` et propose au plus une PR Draft `openclaw/daily-*` ; il ne
   fait rien tant qu'une précédente est ouverte. Message :

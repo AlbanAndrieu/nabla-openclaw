@@ -175,24 +175,31 @@ TrueNAS (`sudo cat` local). L'import est confié à une autre session.
     SecretRef, sans redémarrage.
 - **Agent `coder` sur `nabla-compose`** (appliqué le 19/11 : skills
   `nabla-compose-dev` et `nabla-roadmap-pass`, job `nabla-compose-roadmap-pass`
-  à 02:00). Constat du 19/11 : le token de la devbox **peut déjà pousser** sur
-  `nabla-compose` (branche `openclaw/roadmap-pass-20261119` et PR Draft #417
-  créées par le job), alors que `master` n'a toujours ni protection ni ruleset
-  (`404`). Rien n'empêche donc techniquement un push direct sur `master` :
-  1. ~~Ruleset « Protect master »~~ (fait le 19/11) : ruleset `27675208` actif
-     (PR obligatoire, ni force-push ni suppression), seule exception l'App de
-     release `4676280` (GitHub refuse `github-actions[bot]` sur un dépôt
-     personnel). `RELEASE_APP_CLIENT_ID` et `RELEASE_APP_PRIVATE_KEY` posés ;
-     run de contrôle `44617050916` vert (token de l'App créé, aucune version à
-     publier). Le push de release à travers l'exception sera prouvé à la
-     prochaine fusion `feat`/`fix`. Reste ouvert : 0 approbation requise, le
-     token de la devbox peut donc encore fusionner lui-même une PR ;
-  2. vérifier que le token n'a que *Contents* et *Pull requests* RW (ni
-     *Workflows* ni *Administration*) ;
-  3. identité Git : la passe du 19/11 a écrit d'elle-même
-     `git config --global` (« OpenClaw Devbox Agent », adresse inventée) dans
-     `/home/coder/.gitconfig` ; la fournir plutôt par l'image ou le bootstrap
-     de la devbox (adresse `noreply` à choisir).
+  à 02:00) :
+  1. ~~Ruleset « Protect master »~~ (fait le 19/11, aligné sur les 52 dépôts
+     publics et `dotfiles`) : suppression et force-push interdits, historique
+     linéaire, PR en squash, `GitGuardian Security Checks` exigé, App de
+     release `4676280` seule exception (installée sur tous les dépôts), plus un
+     ruleset séparé « Code quality ». Repris en OpenTofu par
+     nabla-compose#420 (plan : 51 imports sans écart). **Reste ouvert** :
+     0 approbation requise, et le token de la devbox agit au nom du
+     propriétaire : il peut techniquement fusionner sa propre PR. Seule la
+     politique de l'agent l'en empêche ; la parade est une identité GitHub
+     dédiée à la devbox (App ou compte machine) avec 1 approbation exigée ;
+  2. réduire le token de la devbox aux deux dépôts de l'agent : il couvre 10
+     dépôts le 19/11, dont `nabla-memo` (privé, sans protection possible) ;
+  3. identité Git : la passe du 19/11 a écrasé `git config --global`
+     (« OpenClaw Devbox Agent », adresse inventée, commit `987c4676` de #417).
+     Corrigé dans le code : l'identité `openclaw-coder` vient du `SetEnv` de
+     `sshd_config` (l'environnement prime sur toute config écrite par
+     l'agent) et l'agent n'a plus le droit de toucher `git config`. Effectif
+     après reconstruction de l'image : `just truenas-deploy-coder --apply` ;
+  4. job `fastapi-sample-daily-improvement` : codé, **non déclaré** sur le
+     Gateway (`cron list --all` du 19/11). `just truenas-apply-coder-cron` ;
+  5. nabla-compose#417 vient de la passe d'avant les correctifs : elle
+     s'attribue Redis, Dozzle et CrowdSec, déjà fusionnés par #415, et des
+     tests `PASS` non lancés. La fermer pour que la passe de 02:00 reparte
+     d'une branche neuve, sinon elle reprend cette branche.
 - **Discord** : attester un `doctor` avec le vrai token avant de réactiver le
   canal, puis router `#fastapi-sample-dev` vers `coder`.
 - **Homarr** : la clé créée le 11/11 (`nabla/prod/homarr`) est installée dans
