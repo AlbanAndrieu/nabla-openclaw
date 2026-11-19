@@ -76,6 +76,10 @@ class DevboxContract(unittest.TestCase):
         self.edit("deploy/truenas/devbox/sshd_config", "DisableForwarding yes", "DisableForwarding no")
         self.assertEqual(mod.violations(self.root), ["sshd_locked_down"])
 
+    def test_session_without_commit_identity_is_a_violation(self):
+        self.edit("deploy/truenas/devbox/sshd_config", " " + mod.GIT_IDENTITY, "")
+        self.assertEqual(mod.violations(self.root), ["sshd_locked_down"])
+
     def test_unreviewed_domain_is_a_violation(self):
         self.edit(mod.ALLOWLIST, "files.pythonhosted.org\n", "files.pythonhosted.org\n.example.com\n")
         self.assertEqual(mod.violations(self.root), ["egress_allowlist_matches_contract"])

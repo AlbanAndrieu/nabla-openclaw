@@ -49,8 +49,6 @@ services:
     cpus: 2.0
     environment:
       TZ: Europe/Paris
-      DEVBOX_GIT_NAME: openclaw-coder
-      DEVBOX_GIT_EMAIL: openclaw-coder@users.noreply.github.com
     volumes:
       - type: bind
         source: /mnt/cpool/openclaw-devbox/home
