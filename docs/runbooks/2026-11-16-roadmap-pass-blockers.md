@@ -28,13 +28,19 @@ Mode `workstation`, sans accès TrueNAS : pas de ControlMaster ouvert
 
 ## Blocages
 
-### B1. Heartbeat et briefing TrueNAS probablement revenus en arrière (11/11)
+### B1. Heartbeat et briefing TrueNAS revenus en arrière (11/11, confirmé le 16/11)
 
 `just truenas-apply-heartbeat`, lancé le 11/11 depuis `master`, installe
 `homelab-health.mjs` et le message du briefing depuis le checkout. Or `master`
 n'avait pas les correctifs du 6 au 10/11 (voir ci-dessus). Le Gateway tourne donc
-probablement sans les contrôles postgres, redis et Restic, avec le disque monté
-deux fois signalé en double, et avec l'ancienne consigne des emails.
+sans les contrôles postgres, redis et Restic, avec le disque monté deux fois
+signalé en double, et avec l'ancienne consigne des emails.
+
+**Constat du 16/11** (lecture seule, après `ssht`) : `homelab-health.mjs` vaut
+`ec2e6901…`, la version de `master`. `freshrss-sources.py` vaut déjà `630c8036…` :
+installé le 10/11 par `scripts/cron/apply-truenas.sh`, il n'est pas touché par la
+recette heartbeat. Le message du briefing, stocké dans le job cron du Gateway,
+n'a pas été lu.
 
 Vérification, en lecture seule, après `ssht` :
 

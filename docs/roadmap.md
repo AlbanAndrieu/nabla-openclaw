@@ -1,6 +1,6 @@
 # Roadmap consolidée — nabla-openclaw (16 novembre 2026)
 
-**Passe du 16/11 ([runbook](runbooks/2026-11-16-roadmap-pass-blockers.md)) :** cinq correctifs des 6-10/11 (postgres/redis, Restic, disque monté deux fois, briefing des emails, flux FreshRSS du digest) n'étaient jamais arrivés sur `master` : rapatriés et testés (**CODED/TESTED**, non publiés). L'application du 11/11 depuis `master` les a donc probablement retirés du Gateway TrueNAS (B1, à vérifier par empreinte puis réappliquer). Dans nabla-compose, #395 a ramené par erreur le pin `apps/openclaw` à `afca101` (B2).
+**Passe du 16/11 ([runbook](runbooks/2026-11-16-roadmap-pass-blockers.md)) :** cinq correctifs des 6-10/11 (postgres/redis, Restic, disque monté deux fois, briefing des emails, flux FreshRSS du digest) n'étaient jamais arrivés sur `master` : rapatriés et testés (**CODED/TESTED**, PR Draft #22). L'application du 11/11 depuis `master` a retiré ceux du heartbeat du Gateway TrueNAS (B1, confirmé par empreinte le 16/11 ; à réappliquer après fusion). Dans nabla-compose, #395 a ramené par erreur le pin `apps/openclaw` à `afca101` (B2).
 
 **État vérifié (11/11 au soir) :** [PR #17](https://github.com/AlbanAndrieu/nabla-openclaw/pull/17) fusionnée et **appliquée sur TrueNAS** ; aucun relevé CPU réel validé, car le plan Hobby n'expose pas le CPU actif à la CLI. Reste : **relevé (export manuel) → activation quotidienne si un relevé automatique devient possible**.
 
