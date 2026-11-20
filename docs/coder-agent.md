@@ -1,4 +1,4 @@
-# Agent `coder` : coder sur fastapi-sample et nabla-compose depuis TrueNAS
+# Agent `coder` : coder sur les dépôts GitHub du propriétaire depuis TrueNAS
 
 **Statut : préparé, non déployé** (`deploy/truenas/devbox/contract.json`,
 `just devbox-plan`). Cycle du contrat : `prepared_not_deployed` →
@@ -68,7 +68,7 @@ terminal dans le chat), sur un réseau isolé et sans socket Docker.
 | Lecture des secrets du Gateway par `exec` (I) | `sandbox.mode: all` : aucun outil de code ne tourne dans le Gateway ; `elevated` désactivé pour `coder` |
 | Sortie de l'espace de travail (E) | `tools.fs.workspaceOnly` ; `read /etc/passwd` refusé (test E2E) ; utilisateur `1001`, `cap_drop: ALL`, rootfs en lecture seule |
 | Mouvement latéral vers le LAN, TrueNAS ou Docker (E) | Réseau `openclaw-devbox` interne ; aucun socket Docker, aucun accès hôte ; squid refuse les destinations privées et les IP littérales |
-| Exfiltration, téléchargement arbitraire (I) | `egress/allowed-domains.txt` (`.github.com`, `.githubusercontent.com`, `pypi.org`, `files.pythonhosted.org`), `dstdomain -n` (pas de DNS inverse), CONNECT 443 uniquement |
+| Exfiltration, téléchargement arbitraire (I) | `egress/allowed-domains.txt` (`.github.com`, `.githubusercontent.com`, `pypi.org`, `files.pythonhosted.org`, `registry.npmjs.org`), `dstdomain -n` (pas de DNS inverse), CONNECT 443 uniquement |
 | Usurpation de la devbox ou du Gateway (S) | Clé d'hôte épinglée (`known_hosts`, `strictHostKeyChecking`, `updateHostKeys: false`) ; clé client dédiée, `restrict,pty` |
 | Modification non revue de `master` (T) | Token fine-grained limité au dépôt (Contents, Pull requests ; ni Workflows ni Administration) ; protection de `master` ; PR Draft, jamais de merge |
 | Prompt injection par le dépôt, les issues ou le web (T) | `workspaces/coder/AGENTS.md` : contenu = donnée ; outils web, messages, cron, gateway, nodes et sessions refusés |
@@ -78,8 +78,13 @@ terminal dans le chat), sur un réseau isolé et sans socket Docker.
 Risques résiduels :
 
 - le token GitHub et la clé d'hôte de la devbox sont lisibles par l'agent (même
-  UID) : le token est limité à un dépôt public, et la clé ne sert qu'au réseau
-  interne ;
+  UID) : le token est limité aux dépôts publics du contrat, et la clé ne sert
+  qu'au réseau interne ;
+- `npm ci` (sites) exécute du code de dépendances dans la devbox, là où le
+  token est lisible : seules les versions du `package-lock.json` s'installent,
+  et `strict-allow-scripts` (npm 12) bloque les scripts d'installation non
+  autorisés par le dépôt. Node et npm eux-mêmes sont vérifiés par SHA-256 au
+  build (règle `build_downloads_verified`) ;
 - l'allowlist GitHub autorise la lecture de n'importe quel dépôt public
   (prompt injection par contenu tiers) ;
 - le LiteLLM TrueNAS relaie `gpt-4.1` vers celui de la Workstation (clé IDE) :

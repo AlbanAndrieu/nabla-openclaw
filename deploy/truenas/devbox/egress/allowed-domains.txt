@@ -7,3 +7,5 @@
 # PyPI: uv sync --frozen.
 pypi.org
 files.pythonhosted.org
+# npm: npm ci for nabla-site-alban/-bababou (metadata and tarballs, same host).
+registry.npmjs.org

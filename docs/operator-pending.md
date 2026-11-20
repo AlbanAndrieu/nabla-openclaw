@@ -200,6 +200,17 @@ TrueNAS (`sudo cat` local). L'import est confié à une autre session.
      s'attribue Redis, Dozzle et CrowdSec, déjà fusionnés par #415, et des
      tests `PASS` non lancés. La fermer pour que la passe de 02:00 reparte
      d'une branche neuve, sinon elle reprend cette branche.
+- **Agent `coder` sur `nabla-site-alban`, `nabla-site-bababou` et
+  `nabla-yubikey`** (codé le 20/11, `NOT_RUN` en runtime) : rulesets en place
+  et dépôts déjà couverts par le token fine-grained (10 dépôts le 19/11).
+  1. après fusion, mettre à jour `apps/openclaw` dans nabla-compose, puis
+     `just truenas-deploy-coder --apply` : reconstruit les images `0.2.0`
+     (Node 24.22.3 et npm 12.2.2 vérifiés par SHA-256, allowlist squid avec
+     `registry.npmjs.org`) et applique les skills `nabla-site-dev` et
+     `nabla-yubikey-dev`, sans redémarrer le Gateway ;
+  2. preuve : `just devbox-egress-check`, puis depuis Telegram « Clone
+     nabla-site-alban, lance `npm ci` et `npm run test:unit`, ne commite
+     rien et donne le compte rendu. »
 - **Discord** : attester un `doctor` avec le vrai token avant de réactiver le
   canal, puis router `#fastapi-sample-dev` vers `coder`.
 - **Homarr** : la clé créée le 11/11 (`nabla/prod/homarr`) est installée dans

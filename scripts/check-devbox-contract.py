@@ -17,6 +17,7 @@ SEED = "deploy/truenas/openclaw.json"
 GATEWAY_COMPOSE = "deploy/truenas/compose.yml"
 REQUIREMENTS = "deploy/truenas/devbox/requirements.txt"
 ALLOWLIST = "deploy/truenas/devbox/egress/allowed-domains.txt"
+DOCKERFILE = "deploy/truenas/devbox/Dockerfile"
 STATUSES = ("prepared_not_deployed", "ready_to_deploy", "active")
 DOMAIN = re.compile(r"^\.?(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$")
 # Tools the coder may run inside its sandbox; everything else stays denied.
@@ -149,6 +150,17 @@ def images_pinned_when_active(c, seed, root):
     return hashed and len(pins) == 2 and (pinned or c["status"] == "prepared_not_deployed")
 
 
+def build_downloads_verified(c, seed, root):
+    """Every file fetched while building the devbox is checked against a pinned SHA-256."""
+    dockerfile = text(root, DOCKERFILE)
+    fetched = re.findall(r"curl -fsSLo (\S+) ", dockerfile)
+    pins = dict(re.findall(r"^ARG ([A-Z0-9_]+_SHA256)=(\S*)$", dockerfile, flags=re.M))
+    return (bool(fetched) and len(set(fetched)) == len(fetched) == len(pins)
+            and all(re.fullmatch(r"[0-9a-f]{64}", value) for value in pins.values())
+            and all(re.search(r'echo "\$\{[A-Z0-9_]+_SHA256\}  ' + re.escape(path) + r'" \| sha256sum -c -', dockerfile)
+                    for path in fetched))
+
+
 RULES = (
     ("compose_hardened", compose_hardened),
     ("network_internal", network_internal),
@@ -159,6 +171,7 @@ RULES = (
     ("gateway_joins_devbox_network", gateway_joins_network),
     ("workspace_sources_exist", workspace_sources_exist),
     ("images_pinned_when_active", images_pinned_when_active),
+    ("build_downloads_verified", build_downloads_verified),
 )
 
 

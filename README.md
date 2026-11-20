@@ -79,20 +79,21 @@ just truenas-apply-heartbeat
 just vercel-finops-refresh
 ```
 
-## TrueNAS : agent `coder` pour fastapi-sample et nabla-compose
+## TrueNAS : agent `coder` pour ses dépôts GitHub
 
-L'agent `coder` code sur `AlbanAndrieu/fastapi-sample` et
-`AlbanAndrieu/nabla-compose` (clone GitHub) depuis un groupe
+L'agent `coder` code sur `AlbanAndrieu/fastapi-sample`, `nabla-compose`,
+`nabla-site-alban`, `nabla-site-bababou` et `nabla-yubikey` (clones GitHub,
+liste dans `deploy/truenas/devbox/contract.json`) depuis un groupe
 Telegram forum (un sujet = une session). Ses outils (`exec`, `read`, `write`,
 `edit`, `apply_patch`) s'exécutent par la sandbox `ssh` d'OpenClaw dans la
 devbox `openclaw-devbox` : conteneur non-root sur un réseau Docker interne,
-dont la seule sortie est un proxy squid limité à GitHub et PyPI. Aucun code ne
+dont la seule sortie est un proxy squid limité à GitHub, PyPI et npm. Aucun code ne
 tourne dans le Gateway ; l'agent ouvre des PR Draft et ne fusionne jamais.
 
 | Source (ce dépôt) | Cible runtime |
 | --- | --- |
 | `deploy/truenas/devbox/` | App TrueNAS `openclaw-devbox` (devbox + egress) |
-| `workspaces/coder/` | `state/workspace-coder/` (`AGENTS.md`, skills `fastapi-sample-dev`, `nabla-compose-dev`) |
+| `workspaces/coder/` | `state/workspace-coder/` (`AGENTS.md`, skills `fastapi-sample-dev`, `nabla-compose-dev`, `nabla-roadmap-pass`, `nabla-site-dev`, `nabla-yubikey-dev`) |
 | `deploy/truenas/openclaw.json` (`agents.entries.coder`, `litellm-coder`, SecretRef `file`) | `openclaw config set --batch-json` + `secrets reload`, sans redémarrage |
 
 ```bash
