@@ -24,7 +24,8 @@ FILES = (mod.CONTRACT, mod.SEED, mod.GATEWAY_COMPOSE, mod.REQUIREMENTS, mod.ALLO
          "deploy/truenas/devbox/compose.yml", "deploy/truenas/devbox/sshd_config",
          "deploy/truenas/devbox/egress/squid.conf", "workspaces/coder/AGENTS.md",
          "workspaces/coder/skills/fastapi-sample-dev/SKILL.md",
-         "workspaces/coder/skills/nabla-compose-dev/SKILL.md")
+         "workspaces/coder/skills/nabla-compose-dev/SKILL.md",
+         "workspaces/coder/skills/nabla-roadmap-pass/SKILL.md")
 
 
 class DevboxContract(unittest.TestCase):
@@ -73,6 +74,10 @@ class DevboxContract(unittest.TestCase):
 
     def test_password_or_forwarding_is_a_violation(self):
         self.edit("deploy/truenas/devbox/sshd_config", "DisableForwarding yes", "DisableForwarding no")
+        self.assertEqual(mod.violations(self.root), ["sshd_locked_down"])
+
+    def test_session_without_commit_identity_is_a_violation(self):
+        self.edit("deploy/truenas/devbox/sshd_config", " " + mod.GIT_IDENTITY, "")
         self.assertEqual(mod.violations(self.root), ["sshd_locked_down"])
 
     def test_unreviewed_domain_is_a_violation(self):

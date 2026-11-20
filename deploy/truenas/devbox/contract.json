@@ -37,7 +37,7 @@
   "workspace": {
     "source": "workspaces/coder",
     "runtime": "/mnt/cpool/openclaw/state/workspace-coder",
-    "skills": ["fastapi-sample-dev", "nabla-compose-dev"]
+    "skills": ["fastapi-sample-dev", "nabla-compose-dev", "nabla-roadmap-pass"]
   },
   "channel": {
     "primary": "telegram_forum_group_topics_to_coder_applied_by_cli_off_git",

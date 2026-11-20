@@ -23,11 +23,5 @@ chmod 0700 "$home" "$home/sandboxes"
 rm -rf "$home/.tmp"
 mkdir -m 0700 "$home/.tmp"
 
-# Commit identity is not secret; credentials come from /etc/gitconfig helpers.
-if [ -n "${DEVBOX_GIT_NAME:-}" ] && [ -n "${DEVBOX_GIT_EMAIL:-}" ]; then
-  git config --global user.name "$DEVBOX_GIT_NAME"
-  git config --global user.email "$DEVBOX_GIT_EMAIL"
-fi
-
 echo "devbox_sshd=starting port=2222"
 exec /usr/sbin/sshd -D -e -f /etc/ssh/sshd_config

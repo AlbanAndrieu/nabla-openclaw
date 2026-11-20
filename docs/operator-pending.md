@@ -173,19 +173,33 @@ TrueNAS (`sudo cat` local). L'import est confié à une autre session.
     `/home/node/.openclaw/credentials/slack/` (provider SecretRef `file`, comme
     la clé `coder`), puis `channels.slack` avec `botToken` et `appToken` en
     SecretRef, sans redémarrage.
-- **Agent `coder` sur `nabla-compose`** (codé le 18/11, `NOT_RUN` en runtime),
-  dans cet ordre :
-  1. **Bloquant** : `master` de `nabla-compose` n'a ni protection ni ruleset
-     (`gh api …/branches/master/protection` → `404` le 18/11). Créer un ruleset
-     « Protect master » (PR obligatoire, pas de force-push ni de suppression),
-     comme sur `fastapi-sample`, avant toute étape suivante ;
-  2. ajouter `nabla-compose` au token fine-grained de la devbox (*Contents* et
-     *Pull requests* RW, sans *Workflows* ni *Administration*) ; le fichier
-     `github_token` ne change pas si le token est édité plutôt que régénéré ;
-  3. `just truenas-apply-coder` : copie la skill `nabla-compose-dev` et
-     applique `agents.entries.coder.skills`, sans redémarrage ;
-  4. réception depuis Telegram : « Clone nabla-compose, lance `just offline`,
-     ne commite rien et donne le compte rendu. »
+- **Agent `coder` sur `nabla-compose`** (appliqué le 19/11 : skills
+  `nabla-compose-dev` et `nabla-roadmap-pass`, job `nabla-compose-roadmap-pass`
+  à 02:00) :
+  1. ~~Ruleset « Protect master »~~ (fait le 19/11, aligné sur les 52 dépôts
+     publics et `dotfiles`) : suppression et force-push interdits, historique
+     linéaire, PR en squash, `GitGuardian Security Checks` exigé, App de
+     release `4676280` seule exception (installée sur tous les dépôts), plus un
+     ruleset séparé « Code quality ». Repris en OpenTofu par
+     nabla-compose#420 (plan : 51 imports sans écart). **Reste ouvert** :
+     0 approbation requise, et le token de la devbox agit au nom du
+     propriétaire : il peut techniquement fusionner sa propre PR. Seule la
+     politique de l'agent l'en empêche ; la parade est une identité GitHub
+     dédiée à la devbox (App ou compte machine) avec 1 approbation exigée ;
+  2. réduire le token de la devbox aux deux dépôts de l'agent : il couvre 10
+     dépôts le 19/11, dont `nabla-memo` (privé, sans protection possible) ;
+  3. identité Git : la passe du 19/11 a écrasé `git config --global`
+     (« OpenClaw Devbox Agent », adresse inventée, commit `987c4676` de #417).
+     Corrigé dans le code : l'identité `openclaw-coder` vient du `SetEnv` de
+     `sshd_config` (l'environnement prime sur toute config écrite par
+     l'agent) et l'agent n'a plus le droit de toucher `git config`. Effectif
+     après reconstruction de l'image : `just truenas-deploy-coder --apply` ;
+  4. job `fastapi-sample-daily-improvement` : codé, **non déclaré** sur le
+     Gateway (`cron list --all` du 19/11). `just truenas-apply-coder-cron` ;
+  5. nabla-compose#417 vient de la passe d'avant les correctifs : elle
+     s'attribue Redis, Dozzle et CrowdSec, déjà fusionnés par #415, et des
+     tests `PASS` non lancés. La fermer pour que la passe de 02:00 reparte
+     d'une branche neuve, sinon elle reprend cette branche.
 - **Discord** : attester un `doctor` avec le vrai token avant de réactiver le
   canal, puis router `#fastapi-sample-dev` vers `coder`.
 - **Homarr** : la clé créée le 11/11 (`nabla/prod/homarr`) est installée dans

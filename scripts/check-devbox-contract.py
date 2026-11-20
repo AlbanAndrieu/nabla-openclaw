@@ -22,6 +22,8 @@ DOMAIN = re.compile(r"^\.?(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}
 # Tools the coder may run inside its sandbox; everything else stays denied.
 SANDBOX_TOOLS = {"exec", "process", "read", "ls", "write", "edit", "apply_patch", "view_image", "session_status"}
 REQUIRED_DENIES = {"group:automation", "group:nodes", "group:ui", "group:web", "sessions_send", "sessions_spawn"}
+# Session commit identity: environment beats any `git config` written by the agent.
+GIT_IDENTITY = "GIT_COMMITTER_EMAIL=openclaw-coder@users.noreply.github.com"
 SSHD_LINES = ("Port 2222", "UsePAM no", "AllowUsers coder", "PermitRootLogin no", "PasswordAuthentication no",
               "KbdInteractiveAuthentication no", "DisableForwarding yes", "PermitUserEnvironment no",
               "AuthorizedKeysFile /etc/openclaw-devbox/authorized_keys")
@@ -79,7 +81,7 @@ def sshd_locked_down(c, seed, root):
     proxy = f'HTTPS_PROXY=http://{c["egress"]["proxy"]}'
     set_env = [line for line in lines if line.startswith("SetEnv ")]
     return (all(line in lines for line in SSHD_LINES)
-            and len(set_env) == 1 and proxy in set_env[0]
+            and len(set_env) == 1 and proxy in set_env[0] and GIT_IDENTITY in set_env[0]
             and not any(line.startswith(("AcceptEnv", "PermitOpen", "AllowTcpForwarding yes")) for line in lines))
 
 
