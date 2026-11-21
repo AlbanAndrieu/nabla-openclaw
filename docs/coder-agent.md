@@ -1,15 +1,19 @@
 # Agent `coder` : coder sur les dépôts GitHub du propriétaire depuis TrueNAS
 
-**Statut : préparé, non déployé** (`deploy/truenas/devbox/contract.json`,
-`just devbox-plan`). Cycle du contrat : `prepared_not_deployed` →
+**Statut : actif**, déployé sur TrueNAS le 10/11
+(`deploy/truenas/devbox/contract.json` en `active`, `just devbox-plan`).
+L'image `0.2.0` (Node pour les sites, `nabla-yubikey`) est codée le 20/11, pas
+encore déployée. Cycle du contrat : `prepared_not_deployed` →
 `ready_to_deploy` (images épinglées par digest) → `active`. Ce document est le
 runbook de déploiement, d'exploitation et de rollback.
 
 ## Objectif
 
 Piloter depuis un groupe Telegram (puis Discord) un agent OpenClaw qui clone
-[`AlbanAndrieu/fastapi-sample`](https://github.com/AlbanAndrieu/fastapi-sample)
-ou [`AlbanAndrieu/nabla-compose`](https://github.com/AlbanAndrieu/nabla-compose)
+l'un des dépôts de son contrat (`repositories` de `contract.json` :
+[`fastapi-sample`](https://github.com/AlbanAndrieu/fastapi-sample),
+[`nabla-compose`](https://github.com/AlbanAndrieu/nabla-compose), les deux
+sites Next.js et `nabla-yubikey`)
 (par GitHub, jamais le checkout de déploiement `/mnt/cpool/compose/nabla-compose`
 et ses `.env`), modifie le code, lance les vérifications du dépôt et ouvre des PR **Draft**, sans
 jamais exécuter de code dans le conteneur du Gateway.
@@ -122,8 +126,8 @@ Aucun de ces éléments n'est inclus dans ce dépôt pour l'instant.
    (`1000:1000`, `0600`) et enregistre la clé (11 USD / 7 jours), sans aucun
    redémarrage. Importer ensuite la valeur dans Vaultwarden avec la commande
    affichée (`import_dotenv_to_bitwarden.py --app litellm`).
-2. **Token GitHub** fine-grained, dépôts `fastapi-sample` et `nabla-compose`
-   seuls, *Contents* et *Pull requests* en lecture/écriture, expiration ≤ 90
+2. **Token GitHub** fine-grained, limité aux dépôts du contrat
+   (`repositories`), *Contents* et *Pull requests* en lecture/écriture, expiration ≤ 90
    jours, dans `/mnt/cpool/secrets/runtime/openclaw-devbox/github_token`
    (`1001:1001`, `0400`). Protection de branche active sur `master` de
    **chaque** dépôt avant de l'ajouter au token.
