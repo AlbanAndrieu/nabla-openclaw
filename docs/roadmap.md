@@ -1,6 +1,6 @@
 # Roadmap consolidée — nabla-openclaw (21 novembre 2026)
 
-**Passe du 21/11 ([état de la boucle](runbooks/2026-11-21-roadmap-loop-state.md)) :** #22 fusionnée le 16/11 ; B2 réglé par nabla-compose #427 (pin `a195898`, 20/11) ; B1 attend toujours `just truenas-apply-heartbeat` depuis `master`. Aucun item restant n'avance sans le propriétaire ou le runtime : jetons Slack, export Vercel, identité GitHub de la devbox.
+**Passes du 21/11 ([état de la boucle](runbooks/2026-11-21-roadmap-loop-state.md)) :** #22 fusionnée le 16/11 ; B2 réglé par nabla-compose #427 (pin `a195898`, 20/11) ; B1 réappliqué le 21/11 (collecteur `0f52f1ea…` = `master` sur TrueNAS, relevé par la session nabla-compose, **DEPLOYED**). Passe 2 : statut x-nabla `active` du Gateway et de la devbox, lié au contrat par les deux contrôles (**TESTED**, PR #26). Aucun item restant n'avance sans le propriétaire, un secret (Vaultwarden verrouillé) ou le runtime : jetons Slack, export Vercel, identité GitHub de la devbox.
 
 **Passe du 16/11 ([runbook](runbooks/2026-11-16-roadmap-pass-blockers.md)) :** cinq correctifs des 6-10/11 (postgres/redis, Restic, disque monté deux fois, briefing des emails, flux FreshRSS du digest) n'étaient jamais arrivés sur `master` : rapatriés et testés (**CODED/TESTED**, PR Draft #22). L'application du 11/11 depuis `master` a retiré ceux du heartbeat du Gateway TrueNAS (B1, confirmé par empreinte le 16/11 ; à réappliquer après fusion). Dans nabla-compose, #395 a ramené par erreur le pin `apps/openclaw` à `afca101` (B2).
 

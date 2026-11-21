@@ -28,7 +28,7 @@ Mode `workstation`, sans accès TrueNAS : pas de ControlMaster ouvert
 
 ## Blocages
 
-### B1. Heartbeat et briefing TrueNAS revenus en arrière (11/11, confirmé le 16/11)
+### B1. Heartbeat et briefing TrueNAS revenus en arrière (11/11, confirmé le 16/11, réappliqué le 21/11 : `0f52f1ea…` relevé sur TrueNAS par la session nabla-compose)
 
 `just truenas-apply-heartbeat`, lancé le 11/11 depuis `master`, installe
 `homelab-health.mjs` et le message du briefing depuis le checkout. Or `master`

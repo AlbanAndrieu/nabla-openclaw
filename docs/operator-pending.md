@@ -1,8 +1,9 @@
 # Runbook opérateur — actions en attente (21 novembre 2026)
 
-Passe du 21/11 : B2 (pin nabla-compose) réglé par nabla-compose #427 ; B1
-(réappliquer le heartbeat) reste ouvert. Questions en attente : [état de la
-boucle du 21/11](runbooks/2026-11-21-roadmap-loop-state.md). Détail de B1 :
+Passes du 21/11 : B2 (pin nabla-compose) réglé par nabla-compose #427 ; B1
+(réappliquer le heartbeat) fait le 21/11, collecteur `0f52f1ea…` relevé sur
+TrueNAS par la session nabla-compose. Questions en attente : [état de la
+boucle du 21/11](runbooks/2026-11-21-roadmap-loop-state.md). Historique de B1 :
 [runbook du 16/11](runbooks/2026-11-16-roadmap-pass-blockers.md).
 
 Ce qui reste de la [roadmap](roadmap.md) et ne peut pas avancer sans le
@@ -129,6 +130,12 @@ appeler, avec leurs tests et recettes. Restent `backup-openclaw.sh`,
 `openclaw-terminal-style.py` et `openclaw-litellm-audit.py`, utilisés par la
 mise à jour mise (`openclaw-upgrade-local-*`) et le triage 429
 (`openclaw-429-*`) : ils partiront avec ces recettes.
+
+Constat du 21/11 sur `origin/master` de nabla-compose : rien n'a bougé depuis
+le 11/11 (41 scripts OpenClaw sur 55 sous `scripts/workstation/`, 13 fichiers
+sous `ops/openclaw-workstation/`). Ces deux familles de recettes visent le
+Gateway Workstation, désactivé depuis le 3/11 : le lot suivant se fait dans
+la PR en cours de nabla-compose, pas ici.
 
 ## 6. ~~Secrets runtime : normaliser les guillemets~~ (appliqué le 11/11)
 
