@@ -137,6 +137,13 @@ sous `ops/openclaw-workstation/`). Ces deux familles de recettes visent le
 Gateway Workstation, désactivé depuis le 3/11 : le lot suivant se fait dans
 la PR en cours de nabla-compose, pas ici.
 
+Lot 3a fait le 21/11 (nabla-compose #430) : recettes `openclaw-429-attribution*`
+et `diagnose-openclaw-auth-cooldowns.py`, sans autre consommateur. Le reste de la
+famille Workstation s'appelle en chaîne et dépasse 20 fichiers ; plusieurs scripts
+font plus de 300 lignes, ce qui déclenche le garde `QG_LARGE_DELETION` du gate.
+Il partira donc en un seul lot, revu par le propriétaire (question P3 du runbook
+d'état de la boucle roadmap dans nabla-compose).
+
 ## 6. ~~Secrets runtime : normaliser les guillemets~~ (appliqué le 11/11)
 
 Appliqué le 11/11 au soir : 231 lignes normalisées, avec sauvegarde 0600 et
