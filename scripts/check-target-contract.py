@@ -33,6 +33,8 @@ def compose_matches(root, t):
             and ports == ['- "127.0.0.1:18789:18789"']
             and f'user: "{target["uid_gid"]}"' in text
             and target["secrets_file"] in text
+            # x-nabla status follows the contract: `active` once deployed, `planned` before.
+            and ("\n      status: active\n" in text) == (target["status"] == "active")
             and (t["gates"]["no_auto_cron"] is True) == ('OPENCLAW_SKIP_CRON: "1"' in text))
 
 

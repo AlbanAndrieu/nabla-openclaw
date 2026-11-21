@@ -1,0 +1,15 @@
+{
+  "name": "nabla-openclaw-devbox",
+  "url": "https://github.com/AlbanAndrieu/nabla-openclaw",
+  "description": "Devbox coder agent of OpenClaw: pushes openclaw/* branches and opens Draft pull requests. Never merges.",
+  "redirect_url": "http://127.0.0.1:8765/",
+  "public": false,
+  "request_oauth_on_install": false,
+  "default_events": [],
+  "default_permissions": {
+    "metadata": "read",
+    "contents": "write",
+    "pull_requests": "write",
+    "actions": "read"
+  }
+}

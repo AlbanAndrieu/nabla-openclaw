@@ -4,7 +4,7 @@
 # before the contract becomes "active" (just devbox-pin).
 ARG DEBIAN_IMAGE=debian:trixie-slim
 FROM ${DEBIAN_IMAGE}
-LABEL name="openclaw-devbox-egress" version="0.1.0"
+LABEL name="openclaw-devbox-egress" version="0.2.0"
 
 # Version follows the digest-pinned base (see ../Dockerfile).
 # hadolint ignore=DL3008

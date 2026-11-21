@@ -259,8 +259,9 @@ python3 scripts/check-target-contract.py
 ```
 
 Ces tests sont offline. `check-target-contract.py` retourne
-`0` si le contrat **reste en mode plan/non déployé** ; ce n'est
-pas une preuve de disponibilité TrueNAS.
+`0` et `active_truenas` depuis la bascule du 3/11 (`prepared_not_deployed`
+avant) : c'est un contrôle de structure, pas une preuve de disponibilité
+TrueNAS.
 
-Les runbooks de la PR Compose #295 restent les instructions
-opérationnelles jusqu'à la bascule du propriétaire.
+Les runbooks de la PR Compose #295 ont servi jusqu'à la bascule du 3/11 ;
+l'exploitation suit depuis ce dépôt ([runbook opérateur](operator-pending.md)).

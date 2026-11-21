@@ -1,7 +1,10 @@
-# Runbook opérateur — actions en attente (16 novembre 2026)
+# Runbook opérateur — actions en attente (21 novembre 2026)
 
-Passe du 16/11 : nouveaux blocages B1 (réappliquer le heartbeat) et B2 (pin
-nabla-compose) dans le [runbook du 16/11](runbooks/2026-11-16-roadmap-pass-blockers.md).
+Passes du 21/11 : B2 (pin nabla-compose) réglé par nabla-compose #427 ; B1
+(réappliquer le heartbeat) fait le 21/11, collecteur `0f52f1ea…` relevé sur
+TrueNAS par la session nabla-compose. O1 et O2 tranchées le 21/11 ; autres questions : [état de la
+boucle du 21/11](runbooks/2026-11-21-roadmap-loop-state.md). Historique de B1 :
+[runbook du 16/11](runbooks/2026-11-16-roadmap-pass-blockers.md).
 
 Ce qui reste de la [roadmap](roadmap.md) et ne peut pas avancer sans le
 propriétaire : une action dans une interface (Telegram, GitHub, Cloudflare),
@@ -128,6 +131,19 @@ appeler, avec leurs tests et recettes. Restent `backup-openclaw.sh`,
 mise à jour mise (`openclaw-upgrade-local-*`) et le triage 429
 (`openclaw-429-*`) : ils partiront avec ces recettes.
 
+Constat du 21/11 sur `origin/master` de nabla-compose : rien n'a bougé depuis
+le 11/11 (41 scripts OpenClaw sur 55 sous `scripts/workstation/`, 13 fichiers
+sous `ops/openclaw-workstation/`). Ces deux familles de recettes visent le
+Gateway Workstation, désactivé depuis le 3/11 : le lot suivant se fait dans
+la PR en cours de nabla-compose, pas ici.
+
+Lot 3a fait le 21/11 (nabla-compose #430) : recettes `openclaw-429-attribution*`
+et `diagnose-openclaw-auth-cooldowns.py`, sans autre consommateur. Le reste de la
+famille Workstation s'appelle en chaîne et dépasse 20 fichiers ; plusieurs scripts
+font plus de 300 lignes, ce qui déclenche le garde `QG_LARGE_DELETION` du gate.
+Il partira donc en un seul lot, revu par le propriétaire (question P3 du runbook
+d'état de la boucle roadmap dans nabla-compose).
+
 ## 6. ~~Secrets runtime : normaliser les guillemets~~ (appliqué le 11/11)
 
 Appliqué le 11/11 au soir : 231 lignes normalisées, avec sauvegarde 0600 et
@@ -159,7 +175,12 @@ TrueNAS (`sudo cat` local). L'import est confié à une autre session.
   ni `vercel metrics` ne donnent le CPU actif ([détail](vercel-finops.md)).
   Seule voie : exporter à la main le JSON du tableau de bord Usage, puis
   `just vercel-finops-file <export>`.
-- **Slack** (Socket Mode retenu le 11/11, sans exposition publique du Gateway) :
+- **Slack** (Socket Mode retenu le 11/11, sans exposition publique du Gateway ;
+  **décision O1 du 21/11** : ce canal porte les notifications du control plane
+  FastAPI Sample, item F18 de la roadmap de fastapi-sample, **en sortie
+  seule** : aucune approbation ni commande depuis Slack, identité Slack
+  OpenClaw existante, canal fixe, pas de nouveau bot, pas de partage du jeton
+  `xapp-`) :
   - jeton d'application `SLACK_OPENCLAW_NABLA_TOKEN` (`xapp-`) : valide
     (`apps.connections.open` ok), mais **exposé en clair dans une conversation le
     11/11 : à régénérer** (*Basic Information → App-Level Tokens*, portée
@@ -176,6 +197,12 @@ TrueNAS (`sudo cat` local). L'import est confié à une autre session.
 - **Agent `coder` sur `nabla-compose`** (appliqué le 19/11 : skills
   `nabla-compose-dev` et `nabla-roadmap-pass`, job `nabla-compose-roadmap-pass`
   à 02:00) :
+  0. **Décisions du propriétaire (21/11)**, voir [coder-agent.md](coder-agent.md) :
+     **O2** App GitHub dédiée à la devbox (pas de compte machine) ; manifeste
+     prêt, création et installation restent à faire par l'opérateur (étapes 1
+     à 4 de la section « Identité GitHub »), puis helpers à adapter ;
+     **O1** le Slack d'OpenClaw porte les notifications du control plane
+     FastAPI Sample (F18), en sortie seule (voir l'entrée Slack ci-dessus) ;
   1. ~~Ruleset « Protect master »~~ (fait le 19/11, aligné sur les 52 dépôts
      publics et `dotfiles`) : suppression et force-push interdits, historique
      linéaire, PR en squash, `GitGuardian Security Checks` exigé, App de
@@ -185,9 +212,10 @@ TrueNAS (`sudo cat` local). L'import est confié à une autre session.
      0 approbation requise, et le token de la devbox agit au nom du
      propriétaire : il peut techniquement fusionner sa propre PR. Seule la
      politique de l'agent l'en empêche ; la parade est une identité GitHub
-     dédiée à la devbox (App ou compte machine) avec 1 approbation exigée ;
-  2. réduire le token de la devbox aux deux dépôts de l'agent : il couvre 10
-     dépôts le 19/11, dont `nabla-memo` (privé, sans protection possible) ;
+     dédiée à la devbox (**App, décision O2 du 21/11**) avec 1 approbation exigée ;
+  2. réduire le token de la devbox aux cinq dépôts de l'agent (`repositories`
+     de `deploy/truenas/devbox/contract.json`) : il couvre 10 dépôts le 19/11,
+     dont `nabla-memo` (privé, sans protection possible) ;
   3. identité Git : la passe du 19/11 a écrasé `git config --global`
      (« OpenClaw Devbox Agent », adresse inventée, commit `987c4676` de #417).
      Corrigé dans le code : l'identité `openclaw-coder` vient du `SetEnv` de
@@ -196,10 +224,19 @@ TrueNAS (`sudo cat` local). L'import est confié à une autre session.
      après reconstruction de l'image : `just truenas-deploy-coder --apply` ;
   4. job `fastapi-sample-daily-improvement` : codé, **non déclaré** sur le
      Gateway (`cron list --all` du 19/11). `just truenas-apply-coder-cron` ;
-  5. nabla-compose#417 vient de la passe d'avant les correctifs : elle
-     s'attribue Redis, Dozzle et CrowdSec, déjà fusionnés par #415, et des
-     tests `PASS` non lancés. La fermer pour que la passe de 02:00 reparte
-     d'une branche neuve, sinon elle reprend cette branche.
+  5. ~~fermer nabla-compose#417~~ (fermée le 20/11) : issue de la passe
+     d'avant les correctifs, la passe de 02:00 repart d'une branche neuve.
+- **Agent `coder` sur `nabla-site-alban`, `nabla-site-bababou` et
+  `nabla-yubikey`** (codé le 20/11, `NOT_RUN` en runtime) : rulesets en place
+  et dépôts déjà couverts par le token fine-grained (10 dépôts le 19/11).
+  1. après fusion, mettre à jour `apps/openclaw` dans nabla-compose, puis
+     `just truenas-deploy-coder --apply` : reconstruit les images `0.2.0`
+     (Node 24.22.3 et npm 12.2.2 vérifiés par SHA-256, allowlist squid avec
+     `registry.npmjs.org`) et applique les skills `nabla-site-dev` et
+     `nabla-yubikey-dev`, sans redémarrer le Gateway ;
+  2. preuve : `just devbox-egress-check`, puis depuis Telegram « Clone
+     nabla-site-alban, lance `npm ci` et `npm run test:unit`, ne commite
+     rien et donne le compte rendu. »
 - **Discord** : attester un `doctor` avec le vrai token avant de réactiver le
   canal, puis router `#fastapi-sample-dev` vers `coder`.
 - **Homarr** : la clé créée le 11/11 (`nabla/prod/homarr`) est installée dans

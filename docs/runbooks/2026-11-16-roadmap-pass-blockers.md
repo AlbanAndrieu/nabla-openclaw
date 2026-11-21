@@ -28,7 +28,7 @@ Mode `workstation`, sans accès TrueNAS : pas de ControlMaster ouvert
 
 ## Blocages
 
-### B1. Heartbeat et briefing TrueNAS revenus en arrière (11/11, confirmé le 16/11)
+### B1. Heartbeat et briefing TrueNAS revenus en arrière (11/11, confirmé le 16/11, réappliqué le 21/11 : `0f52f1ea…` relevé sur TrueNAS par la session nabla-compose)
 
 `just truenas-apply-heartbeat`, lancé le 11/11 depuis `master`, installe
 `homelab-health.mjs` et le message du briefing depuis le checkout. Or `master`
@@ -64,7 +64,7 @@ just truenas-apply-heartbeat
 Retour arrière : relancer la même recette depuis `4921230`
 (`git switch --detach 4921230 && just truenas-apply-heartbeat`).
 
-### B2. Pin `apps/openclaw` de nabla-compose revenu à `afca101` (15/11)
+### B2. Pin `apps/openclaw` de nabla-compose revenu à `afca101` (15/11, réglé le 20/11 par nabla-compose #427 : pin `a195898`)
 
 Le commit `e8dac27` (« fix(claude): claude local »), entré dans `master` avec
 nabla-compose #395 (pfSense), a fait passer le gitlink `apps/openclaw` de

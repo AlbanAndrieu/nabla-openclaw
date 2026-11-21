@@ -11,7 +11,7 @@ services:
       args:
         # Pin with @sha256 before contract.json moves to "active" (just devbox-pin).
         PYTHON_IMAGE: python:3.13-slim-trixie@sha256:e48f59cdba69a3cbd9ed2cf0f348d90d45a8d350d98134cf1070bc106ee9ed90
-    image: nabla/openclaw-devbox:0.1.0
+    image: nabla/openclaw-devbox:0.2.0
     container_name: openclaw-devbox
     x-nabla:
       id: openclaw-devbox
@@ -20,8 +20,8 @@ services:
       category: ai
       presentationRole: support
       criticality: low
-      status: planned
-      description: SSH sandbox of the OpenClaw agent coder for fastapi-sample (clone, tests, Draft PRs).
+      status: active
+      description: SSH sandbox of the OpenClaw agent coder for its GitHub repositories (clone, tests, Draft PRs).
       runtime:
         provider: truenas-app
         containerService: openclaw-devbox
@@ -81,7 +81,7 @@ services:
       args:
         # Pin with @sha256 before contract.json moves to "active" (just devbox-pin).
         DEBIAN_IMAGE: debian:trixie-slim@sha256:a72b4433de1cf7d6bae0c4cee74d0547f58601a643b3375f070c51600d63b6b2
-    image: nabla/openclaw-devbox-egress:0.1.0
+    image: nabla/openclaw-devbox-egress:0.2.0
     container_name: openclaw-devbox-egress
     x-nabla:
       id: openclaw-devbox-egress
@@ -90,8 +90,8 @@ services:
       category: network
       presentationRole: support
       criticality: low
-      status: planned
-      description: Squid allowlist (GitHub, PyPI; HTTPS CONNECT only) for the coder devbox.
+      status: active
+      description: Squid allowlist (GitHub, PyPI, npm; HTTPS CONNECT only) for the coder devbox.
       runtime:
         provider: truenas-app
         containerService: openclaw-devbox-egress
@@ -120,7 +120,7 @@ services:
 
 secrets:
   github_token:
-    # Fine-grained PAT: AlbanAndrieu/fastapi-sample only, Contents + Pull requests RW,
+    # Fine-grained PAT: the repositories of contract.json only, Contents + Pull requests RW,
     # no Workflows/Administration. Owner 1001:1001, mode 0400. Never in Git.
     file: /mnt/cpool/secrets/runtime/openclaw-devbox/github_token
 

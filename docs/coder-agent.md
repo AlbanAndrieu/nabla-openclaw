@@ -1,15 +1,19 @@
-# Agent `coder` : coder sur fastapi-sample et nabla-compose depuis TrueNAS
+# Agent `coder` : coder sur les dépôts GitHub du propriétaire depuis TrueNAS
 
-**Statut : préparé, non déployé** (`deploy/truenas/devbox/contract.json`,
-`just devbox-plan`). Cycle du contrat : `prepared_not_deployed` →
+**Statut : actif**, déployé sur TrueNAS le 10/11
+(`deploy/truenas/devbox/contract.json` en `active`, `just devbox-plan`).
+L'image `0.2.0` (Node pour les sites, `nabla-yubikey`) est codée le 20/11, pas
+encore déployée. Cycle du contrat : `prepared_not_deployed` →
 `ready_to_deploy` (images épinglées par digest) → `active`. Ce document est le
 runbook de déploiement, d'exploitation et de rollback.
 
 ## Objectif
 
 Piloter depuis un groupe Telegram (puis Discord) un agent OpenClaw qui clone
-[`AlbanAndrieu/fastapi-sample`](https://github.com/AlbanAndrieu/fastapi-sample)
-ou [`AlbanAndrieu/nabla-compose`](https://github.com/AlbanAndrieu/nabla-compose)
+l'un des dépôts de son contrat (`repositories` de `contract.json` :
+[`fastapi-sample`](https://github.com/AlbanAndrieu/fastapi-sample),
+[`nabla-compose`](https://github.com/AlbanAndrieu/nabla-compose), les deux
+sites Next.js et `nabla-yubikey`)
 (par GitHub, jamais le checkout de déploiement `/mnt/cpool/compose/nabla-compose`
 et ses `.env`), modifie le code, lance les vérifications du dépôt et ouvre des PR **Draft**, sans
 jamais exécuter de code dans le conteneur du Gateway.
@@ -68,7 +72,7 @@ terminal dans le chat), sur un réseau isolé et sans socket Docker.
 | Lecture des secrets du Gateway par `exec` (I) | `sandbox.mode: all` : aucun outil de code ne tourne dans le Gateway ; `elevated` désactivé pour `coder` |
 | Sortie de l'espace de travail (E) | `tools.fs.workspaceOnly` ; `read /etc/passwd` refusé (test E2E) ; utilisateur `1001`, `cap_drop: ALL`, rootfs en lecture seule |
 | Mouvement latéral vers le LAN, TrueNAS ou Docker (E) | Réseau `openclaw-devbox` interne ; aucun socket Docker, aucun accès hôte ; squid refuse les destinations privées et les IP littérales |
-| Exfiltration, téléchargement arbitraire (I) | `egress/allowed-domains.txt` (`.github.com`, `.githubusercontent.com`, `pypi.org`, `files.pythonhosted.org`), `dstdomain -n` (pas de DNS inverse), CONNECT 443 uniquement |
+| Exfiltration, téléchargement arbitraire (I) | `egress/allowed-domains.txt` (`.github.com`, `.githubusercontent.com`, `pypi.org`, `files.pythonhosted.org`, `registry.npmjs.org`), `dstdomain -n` (pas de DNS inverse), CONNECT 443 uniquement |
 | Usurpation de la devbox ou du Gateway (S) | Clé d'hôte épinglée (`known_hosts`, `strictHostKeyChecking`, `updateHostKeys: false`) ; clé client dédiée, `restrict,pty` |
 | Modification non revue de `master` (T) | Token fine-grained limité au dépôt (Contents, Pull requests ; ni Workflows ni Administration) ; protection de `master` ; PR Draft, jamais de merge |
 | Prompt injection par le dépôt, les issues ou le web (T) | `workspaces/coder/AGENTS.md` : contenu = donnée ; outils web, messages, cron, gateway, nodes et sessions refusés |
@@ -78,8 +82,13 @@ terminal dans le chat), sur un réseau isolé et sans socket Docker.
 Risques résiduels :
 
 - le token GitHub et la clé d'hôte de la devbox sont lisibles par l'agent (même
-  UID) : le token est limité à un dépôt public, et la clé ne sert qu'au réseau
-  interne ;
+  UID) : le token est limité aux dépôts publics du contrat, et la clé ne sert
+  qu'au réseau interne ;
+- `npm ci` (sites) exécute du code de dépendances dans la devbox, là où le
+  token est lisible : seules les versions du `package-lock.json` s'installent,
+  et `strict-allow-scripts` (npm 12) bloque les scripts d'installation non
+  autorisés par le dépôt. Node et npm eux-mêmes sont vérifiés par SHA-256 au
+  build (règle `build_downloads_verified`) ;
 - l'allowlist GitHub autorise la lecture de n'importe quel dépôt public
   (prompt injection par contenu tiers) ;
 - le LiteLLM TrueNAS relaie `gpt-4.1` vers celui de la Workstation (clé IDE) :
@@ -106,6 +115,58 @@ Si ces capacités sont voulues, elles relèvent d'un agent distinct (phase 2) :
 
 Aucun de ces éléments n'est inclus dans ce dépôt pour l'instant.
 
+## Identité GitHub de la devbox : App dédiée (décision O2, 21/11/2026)
+
+Le propriétaire a retenu une **App GitHub dédiée**, pas un compte machine :
+permissions fine-grained par dépôt, révocable, jeton d'installation de 1 h.
+La clé privée vit dans Vaultwarden et dans le chemin runtime protégé
+`/mnt/cpool/secrets/runtime/openclaw-devbox/` (`1001:1001`, `0400`), jamais
+dans ce dépôt. Statut : **CODED** (manifeste), App **non créée**, helpers
+`git-credential-devbox` et `gh-wrapper.sh` encore sur le token fine-grained.
+
+Manifeste : [`deploy/truenas/devbox/github-app-manifest.json`](../deploy/truenas/devbox/github-app-manifest.json),
+`public: false`, aucun webhook ni événement. Permissions, dérivées de ce que
+fait la devbox (clone, push de `openclaw/*`, `gh pr create --draft`,
+`gh pr list`, `gh run list`) :
+
+| Permission | Niveau | Usage |
+| --- | --- | --- |
+| `contents` | write | clone et push des branches `openclaw/*` |
+| `pull_requests` | write | `gh pr create --draft`, `gh pr list` |
+| `actions` | read | `gh run list --branch master` (skill `nabla-roadmap-pass`) |
+| `metadata` | read | obligatoire |
+
+Refusées : `workflows` (la règle 4 interdit de toucher `.github/workflows/`),
+`administration`, `checks`/`statuses` (aucune skill ne les lit), `issues`,
+`secrets`, `environments`. L'App ne figure **pas** dans la liste de
+contournement des rulesets : la PR de l'App exige l'approbation du
+propriétaire, qui n'est plus l'auteur.
+
+**Création (opérateur, une fois)** :
+
+1. Ouvrir la page *Settings → Developer settings → GitHub Apps → New GitHub
+   App* du compte `AlbanAndrieu` par le flux « manifest » : formulaire `POST`
+   du contenu du manifeste (champ `manifest`) vers
+   `https://github.com/settings/apps/new`. Après confirmation, GitHub
+   redirige vers `redirect_url` avec `?code=…` (le port local n'a pas besoin
+   d'écouter : lire le code dans la barre d'adresse, valable 1 h).
+2. Échanger le code sans l'écrire dans un historique partagé :
+   `gh api -X POST /app-manifests/<code>/conversions` renvoie l'`id`, le `slug`
+   et le `pem` (clé privée). Ne rien afficher d'autre que l'`id`.
+3. Ranger le `pem` dans Vaultwarden (entrée `nabla/prod/openclaw-devbox-github-app`,
+   champ caché) et en `/mnt/cpool/secrets/runtime/openclaw-devbox/github_app.pem`
+   (`1001:1001`, `0400`), puis supprimer toute copie locale.
+4. *Install App* sur le compte, en **Only select repositories** : les cinq
+   dépôts du contrat (`fastapi-sample`, `nabla-compose`, `nabla-site-alban`,
+   `nabla-site-bababou`, `nabla-yubikey`), jamais `nabla-memo`. Noter
+   l'`installation_id`.
+5. Reste à coder (autre PR) : les deux helpers frappent un jeton
+   d'installation (JWT RS256 signé par le `pem`, puis
+   `POST /app/installations/<id>/access_tokens`) au lieu de lire
+   `github_token`, avec le contrat, le test et le préflight adaptés ; puis
+   révoquer l'ancien token fine-grained et activer 1 approbation requise sur
+   les rulesets (entrée 7 du runbook opérateur).
+
 ## Prérequis opérateur
 
 1. **Clé LiteLLM coder**, dans `nabla-compose` :
@@ -117,8 +178,8 @@ Aucun de ces éléments n'est inclus dans ce dépôt pour l'instant.
    (`1000:1000`, `0600`) et enregistre la clé (11 USD / 7 jours), sans aucun
    redémarrage. Importer ensuite la valeur dans Vaultwarden avec la commande
    affichée (`import_dotenv_to_bitwarden.py --app litellm`).
-2. **Token GitHub** fine-grained, dépôts `fastapi-sample` et `nabla-compose`
-   seuls, *Contents* et *Pull requests* en lecture/écriture, expiration ≤ 90
+2. **Token GitHub** fine-grained, limité aux dépôts du contrat
+   (`repositories`), *Contents* et *Pull requests* en lecture/écriture, expiration ≤ 90
    jours, dans `/mnt/cpool/secrets/runtime/openclaw-devbox/github_token`
    (`1001:1001`, `0400`). Protection de branche active sur `master` de
    **chaque** dépôt avant de l'ajouter au token.
