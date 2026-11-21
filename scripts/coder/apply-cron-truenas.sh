@@ -1,17 +1,29 @@
 #!/usr/bin/env bash
 # Declares one scheduled job of the coder agent on the TrueNAS Gateway, without
 # restart. --declaration-key makes a re-run update the same job.
-#   just truenas-apply-coder-cron [fastapi-sample-daily-improvement|nabla-compose-roadmap-pass]
+#   just truenas-apply-coder-cron [fastapi-sample-daily-improvement|<repo>-roadmap-pass|all]
 # The Telegram group id stays out of Git: CODER_TELEGRAM_GROUP_ID=-100..., or by
 # default the group that apply-truenas.sh routed to coder in the Gateway config.
 set -euo pipefail
-cd "$(dirname "$0")/../.."
+self=$(realpath "$0")
+cd "$(dirname "$self")/../.."
 
 name=${1:-fastapi-sample-daily-improvement}
 case $name in
   fastapi-sample-daily-improvement) schedule="17 6 * * *" timeout=1800 ;;
-  # Ends by 03:00, inside the night window and before the fastapi-sample job.
+  # Roadmap passes: every repository every night, one-hour slots that never
+  # overlap and end before the 06:17 fastapi-sample job.
+  nabla-yubikey-roadmap-pass) schedule="0 1 * * *" timeout=3600 ;;
   nabla-compose-roadmap-pass) schedule="0 2 * * *" timeout=3600 ;;
+  fastapi-sample-roadmap-pass) schedule="0 3 * * *" timeout=3600 ;;
+  nabla-site-alban-roadmap-pass) schedule="0 4 * * *" timeout=3600 ;;
+  nabla-site-bababou-roadmap-pass) schedule="0 5 * * *" timeout=3600 ;;
+  all)
+    for job in fastapi-sample-daily-improvement nabla-compose-roadmap-pass fastapi-sample-roadmap-pass \
+               nabla-site-alban-roadmap-pass nabla-site-bababou-roadmap-pass nabla-yubikey-roadmap-pass; do
+      "$self" "$job"
+    done
+    exit 0 ;;
   *) echo "coder_cron=unknown job $name"; exit 2 ;;
 esac
 
@@ -31,5 +43,9 @@ ssh -o BatchMode=yes truenas "sudo -n docker exec -i openclaw-gateway sh -c 'nod
   --declaration-key $name --name $name --agent coder --session isolated \
   --cron \"$schedule\" --tz Europe/Paris --timeout-seconds $timeout \
   --announce --channel telegram --to $group $thread \
-  --message \"\$(cat)\"'" < "policies/cron/$name.message.md"
+  --message \"\$(cat)\"'" < <(if [[ $name == *-roadmap-pass ]]; then
+    sed "s/<repo>/${name%-roadmap-pass}/g" policies/cron/roadmap-pass.message.md
+  else
+    cat "policies/cron/$name.message.md"
+  fi)
 echo "coder_cron=$name declared ($schedule Europe/Paris, ${timeout}s max)"

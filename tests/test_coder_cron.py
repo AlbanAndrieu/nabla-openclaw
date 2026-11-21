@@ -1,11 +1,13 @@
 """Offline guardrails of the daily coder jobs: one Draft PR, never master or workflows."""
+import json
 from pathlib import Path
 import re
 import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
 NAME = "fastapi-sample-daily-improvement"
-ROADMAP = "nabla-compose-roadmap-pass"
+ROADMAP = "roadmap-pass"
+REPOS = ("nabla-compose", "fastapi-sample", "nabla-site-alban", "nabla-site-bababou", "nabla-yubikey")
 
 
 class CoderCron(unittest.TestCase):
@@ -44,10 +46,24 @@ class RoadmapPassCron(unittest.TestCase):
             with self.subTest(marker=marker):
                 self.assertIn(marker, skill)
 
-    def test_job_is_declared_and_allowed(self):
-        self.assertIn(f"`{ROADMAP}`", (ROOT / "workspaces/coder/AGENTS.md").read_text(encoding="utf-8"))
+    def test_each_repo_has_its_night_and_a_skill_row(self):
+        self.assertIn("`<repo>-roadmap-pass`", (ROOT / "workspaces/coder/AGENTS.md").read_text(encoding="utf-8"))
         script = (ROOT / "scripts/coder/apply-cron-truenas.sh").read_text(encoding="utf-8")
-        self.assertRegex(script, rf"\n  {ROADMAP}\) schedule=")
+        skill = (ROOT / "workspaces/coder/skills/nabla-roadmap-pass/SKILL.md").read_text(encoding="utf-8")
+        repos = json.loads((ROOT / "deploy/truenas/devbox/contract.json").read_text(encoding="utf-8"))["repositories"]
+        self.assertEqual(sorted(f"AlbanAndrieu/{repo}" for repo in REPOS), sorted(repos))
+        hours = []
+        for repo in REPOS:
+            with self.subTest(repo=repo):
+                match = re.search(rf'\n  {repo}-{ROADMAP}\) schedule="0 ([0-9]+) \* \* \*" timeout=3600 ;;', script)
+                self.assertIsNotNone(match)
+                hours.append(int(match.group(1)))
+                self.assertIn(f"{repo}-{ROADMAP}", script.split("  all)", 1)[1].split("exit 0", 1)[0])
+                self.assertIn(f"\n| `{repo}` | `", skill)
+        # Daily, one-hour slots (= timeout) that never overlap, all done before 06:17.
+        self.assertEqual(len(set(hours)), len(REPOS))
+        self.assertLessEqual(max(hours) + 1, 6)
+        self.assertIn('sed "s/<repo>/${name%-roadmap-pass}/g" policies/cron/roadmap-pass.message.md', script)
 
 
 if __name__ == "__main__":

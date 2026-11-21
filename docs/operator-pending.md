@@ -237,6 +237,13 @@ TrueNAS (`sudo cat` local). L'import est confié à une autre session.
   2. preuve : `just devbox-egress-check`, puis depuis Telegram « Clone
      nabla-site-alban, lance `npm ci` et `npm run test:unit`, ne commite
      rien et donne le compte rendu. »
+  3. passes de roadmap quotidiennes sur les cinq dépôts (codé le 22/11) :
+     après l'étape 1, `just truenas-apply-coder-cron all` met à jour
+     `nabla-compose-roadmap-pass` (même clé de déclaration, toujours 02:00)
+     et déclare les quatre autres passes (01:00, 03:00, 04:00, 05:00) ;
+     preuve : `cron list --all` dans le Gateway, puis les comptes rendus
+     Telegram de la nuit suivante. Budget de la clé `coder` (11 USD / 7
+     jours) à revoir : il couvrait une seule passe par nuit.
 - **Discord** : attester un `doctor` avec le vrai token avant de réactiver le
   canal, puis router `#fastapi-sample-dev` vers `coder`.
 - **Homarr** : la clé créée le 11/11 (`nabla/prod/homarr`) est installée dans

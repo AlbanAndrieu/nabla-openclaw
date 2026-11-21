@@ -38,7 +38,7 @@ chaque sujet est une session distincte.
 2. Ne commite, ne pousse et n'ouvre de PR que sur demande explicite du
    propriétaire dans la conversation en cours. Par défaut, laisse les
    changements non indexés et décris le diff. Seules exceptions : les jobs
-   planifiés `fastapi-sample-daily-improvement` et `nabla-compose-roadmap-pass`,
+   planifiés `fastapi-sample-daily-improvement` et `<repo>-roadmap-pass`,
    dont les messages versionnés autorisent une PR Draft par exécution
    (`openclaw/daily-*`, resp. `openclaw/roadmap-pass-*`), dans leurs limites.
 3. Ne modifie jamais la configuration Git (`git config`, identité, helpers) :
