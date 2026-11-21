@@ -67,6 +67,13 @@ class Violations(unittest.TestCase):
             compose.write_text(compose.read_text().replace('"127.0.0.1:18789:18789"', '"18789:18789"'))
             self.assertEqual(mod.violations(root), ["compose_matches_contract"])
 
+    def test_catalog_status_must_follow_the_contract(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = self.copy(d)
+            compose = root / "deploy/truenas/compose.yml"
+            compose.write_text(compose.read_text().replace("      status: active\n", "      status: planned\n"))
+            self.assertEqual(mod.violations(root), ["compose_matches_contract"])
+
     def test_active_target_requires_stopped_workstation(self):
         with tempfile.TemporaryDirectory() as d:
             root = self.copy(d)

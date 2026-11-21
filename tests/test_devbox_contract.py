@@ -139,9 +139,10 @@ class DevboxContract(unittest.TestCase):
         compose = self.root / "deploy/truenas/devbox/compose.yml"
         # Independent of the repository state: start from unpinned base images.
         compose.write_text(re.sub(r"@sha256:[0-9a-f]{64}", "", compose.read_text()))
-        for status in ("ready_to_deploy", "active"):
+        # Not yet deployed, the catalog must still say `planned`.
+        for status, catalog in (("ready_to_deploy", ["catalog_status_matches_contract"]), ("active", [])):
             self.edit_json(mod.CONTRACT, lambda c, status=status: c.update(status=status))
-            self.assertEqual(mod.violations(self.root), ["images_pinned_when_active"])
+            self.assertEqual(mod.violations(self.root), catalog + ["images_pinned_when_active"])
         digest = "@sha256:" + "0" * 64
         self.edit("deploy/truenas/devbox/compose.yml", "PYTHON_IMAGE: python:3.13-slim-trixie",
                   "PYTHON_IMAGE: python:3.13-slim-trixie" + digest)
@@ -166,6 +167,10 @@ class DevboxContract(unittest.TestCase):
     def test_unpinned_build_checksum_is_a_violation(self):
         self.edit(mod.DOCKERFILE, "ARG NODE_SHA256=4f2b", "ARG NODE_SHA256=latest4f2b")
         self.assertEqual(mod.violations(self.root), ["build_downloads_verified"])
+
+    def test_catalog_status_must_follow_the_contract(self):
+        self.edit("deploy/truenas/devbox/compose.yml", "      status: active\n", "      status: planned\n")
+        self.assertEqual(mod.violations(self.root), ["catalog_status_matches_contract"])
 
     def test_npm_registry_must_stay_in_both_allowlists(self):
         self.edit(mod.ALLOWLIST, "registry.npmjs.org\n", "")

@@ -14,7 +14,7 @@ services:
       category: ai
       presentationRole: service
       criticality: medium
-      status: planned
+      status: active
       description: OpenClaw Gateway (agents main and cron) using the TrueNAS LiteLLM virtual keys.
       runtime:
         provider: truenas-app

@@ -70,6 +70,13 @@ def network_internal(c, seed, root):
             and f'  devbox:\n    name: {c["network"]["name"]}\n    internal: true\n' in compose)
 
 
+def catalog_status_matches(c, seed, root):
+    """x-nabla status follows the contract: `active` once deployed, `planned` before."""
+    want = "active" if c["status"] == "active" else "planned"
+    return all(re.findall(r"^      status: (\S+)$", block, flags=re.M) == [want]
+               for block in service_blocks(text(root, c["compose"])).values())
+
+
 def github_token_off_git(c, seed, root):
     path = c["github_token"]["file"]
     return (path.startswith("/mnt/cpool/secrets/runtime/openclaw-devbox/")
@@ -164,6 +171,7 @@ def build_downloads_verified(c, seed, root):
 RULES = (
     ("compose_hardened", compose_hardened),
     ("network_internal", network_internal),
+    ("catalog_status_matches_contract", catalog_status_matches),
     ("github_token_off_git", github_token_off_git),
     ("sshd_locked_down", sshd_locked_down),
     ("egress_allowlist_matches_contract", egress_allowlist),

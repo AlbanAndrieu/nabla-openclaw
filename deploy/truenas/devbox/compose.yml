@@ -20,7 +20,7 @@ services:
       category: ai
       presentationRole: support
       criticality: low
-      status: planned
+      status: active
       description: SSH sandbox of the OpenClaw agent coder for its GitHub repositories (clone, tests, Draft PRs).
       runtime:
         provider: truenas-app
@@ -90,8 +90,8 @@ services:
       category: network
       presentationRole: support
       criticality: low
-      status: planned
-      description: Squid allowlist (GitHub, PyPI; HTTPS CONNECT only) for the coder devbox.
+      status: active
+      description: Squid allowlist (GitHub, PyPI, npm; HTTPS CONNECT only) for the coder devbox.
       runtime:
         provider: truenas-app
         containerService: openclaw-devbox-egress
