@@ -1,19 +1,18 @@
 # Nabla OpenClaw
 
 **Statut : source de vérité de la configuration déclarative non secrète
-du Gateway Workstation ; cible TrueNAS toujours non déployée.**
+du Gateway OpenClaw, qui tourne sur TrueNAS depuis le 3 novembre 2026
+(contrat `active_truenas`, `just plan`).**
 
 Ce dépôt est la source de vérité du **service OpenClaw** : configuration
 déclarative non secrète, politiques d'automations, heartbeat, contrat
-runtime, sandbox Docker, tests et runbooks. Il deviendra aussi celle du
-**Gateway cible TrueNAS** (réseau, image, dataset).
+runtime, sandbox Docker, tests et runbooks, ainsi que du **Gateway
+TrueNAS** (image, dataset, contrat runtime).
 
-- **Actuel** : Gateway OpenClaw sur la Workstation, piloté par la
-  configuration de ce dépôt via `just workstation-*` (plan/apply explicites).
-- **Cible** : application Docker/TrueNAS SCALE, déployée par
-  `nabla-compose` via un futur **submodule** au chemin
-  `apps/openclaw` (sandbox et politiques déjà importés ici ; reste à
-  libérer le chemin dans `nabla-compose`).
+- **Actuel** : App TrueNAS SCALE `openclaw-gateway`, avec ce dépôt monté
+  en **submodule** `apps/openclaw` de `nabla-compose` (pin avancé par PR).
+- **Ancien** : le Gateway Workstation est arrêté et désactivé depuis le
+  3/11 ; `just workstation-*` garde sa configuration déclarative.
 - `ansible-workstation` gère l'OS de développement et l'audit local, et
   **ne déploie pas le Gateway cible**.
 - `nabla-compose` garde les dépendances réseau, volumes, NFS,

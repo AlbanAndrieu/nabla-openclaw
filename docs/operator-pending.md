@@ -1,7 +1,9 @@
-# Runbook opérateur — actions en attente (16 novembre 2026)
+# Runbook opérateur — actions en attente (21 novembre 2026)
 
-Passe du 16/11 : nouveaux blocages B1 (réappliquer le heartbeat) et B2 (pin
-nabla-compose) dans le [runbook du 16/11](runbooks/2026-11-16-roadmap-pass-blockers.md).
+Passe du 21/11 : B2 (pin nabla-compose) réglé par nabla-compose #427 ; B1
+(réappliquer le heartbeat) reste ouvert. Questions en attente : [état de la
+boucle du 21/11](runbooks/2026-11-21-roadmap-loop-state.md). Détail de B1 :
+[runbook du 16/11](runbooks/2026-11-16-roadmap-pass-blockers.md).
 
 Ce qui reste de la [roadmap](roadmap.md) et ne peut pas avancer sans le
 propriétaire : une action dans une interface (Telegram, GitHub, Cloudflare),
@@ -186,8 +188,9 @@ TrueNAS (`sudo cat` local). L'import est confié à une autre session.
      propriétaire : il peut techniquement fusionner sa propre PR. Seule la
      politique de l'agent l'en empêche ; la parade est une identité GitHub
      dédiée à la devbox (App ou compte machine) avec 1 approbation exigée ;
-  2. réduire le token de la devbox aux deux dépôts de l'agent : il couvre 10
-     dépôts le 19/11, dont `nabla-memo` (privé, sans protection possible) ;
+  2. réduire le token de la devbox aux cinq dépôts de l'agent (`repositories`
+     de `deploy/truenas/devbox/contract.json`) : il couvre 10 dépôts le 19/11,
+     dont `nabla-memo` (privé, sans protection possible) ;
   3. identité Git : la passe du 19/11 a écrasé `git config --global`
      (« OpenClaw Devbox Agent », adresse inventée, commit `987c4676` de #417).
      Corrigé dans le code : l'identité `openclaw-coder` vient du `SetEnv` de
@@ -196,10 +199,8 @@ TrueNAS (`sudo cat` local). L'import est confié à une autre session.
      après reconstruction de l'image : `just truenas-deploy-coder --apply` ;
   4. job `fastapi-sample-daily-improvement` : codé, **non déclaré** sur le
      Gateway (`cron list --all` du 19/11). `just truenas-apply-coder-cron` ;
-  5. nabla-compose#417 vient de la passe d'avant les correctifs : elle
-     s'attribue Redis, Dozzle et CrowdSec, déjà fusionnés par #415, et des
-     tests `PASS` non lancés. La fermer pour que la passe de 02:00 reparte
-     d'une branche neuve, sinon elle reprend cette branche.
+  5. ~~fermer nabla-compose#417~~ (fermée le 20/11) : issue de la passe
+     d'avant les correctifs, la passe de 02:00 repart d'une branche neuve.
 - **Agent `coder` sur `nabla-site-alban`, `nabla-site-bababou` et
   `nabla-yubikey`** (codé le 20/11, `NOT_RUN` en runtime) : rulesets en place
   et dépôts déjà couverts par le token fine-grained (10 dépôts le 19/11).

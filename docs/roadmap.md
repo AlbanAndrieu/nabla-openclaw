@@ -1,4 +1,6 @@
-# Roadmap consolidée — nabla-openclaw (16 novembre 2026)
+# Roadmap consolidée — nabla-openclaw (21 novembre 2026)
+
+**Passe du 21/11 ([état de la boucle](runbooks/2026-11-21-roadmap-loop-state.md)) :** #22 fusionnée le 16/11 ; B2 réglé par nabla-compose #427 (pin `a195898`, 20/11) ; B1 attend toujours `just truenas-apply-heartbeat` depuis `master`. Aucun item restant n'avance sans le propriétaire ou le runtime : jetons Slack, export Vercel, identité GitHub de la devbox.
 
 **Passe du 16/11 ([runbook](runbooks/2026-11-16-roadmap-pass-blockers.md)) :** cinq correctifs des 6-10/11 (postgres/redis, Restic, disque monté deux fois, briefing des emails, flux FreshRSS du digest) n'étaient jamais arrivés sur `master` : rapatriés et testés (**CODED/TESTED**, PR Draft #22). L'application du 11/11 depuis `master` a retiré ceux du heartbeat du Gateway TrueNAS (B1, confirmé par empreinte le 16/11 ; à réappliquer après fusion). Dans nabla-compose, #395 a ramené par erreur le pin `apps/openclaw` à `afca101` (B2).
 
@@ -46,7 +48,7 @@ systemctl --user list-timers 'nabla-openclaw-vercel-finops*'
 ### P1 — Après mise en service
 
 - [ ] Vérifier aussi **Fluid Provisioned Memory**, Function Invocations et la ventilation entre les quatre projets Vercel ; le module actuel vérifie uniquement Fluid Active CPU. **Bloqué (16/11)** : attend un export réel du tableau de bord Usage, seul moyen de connaître son format (runbook du 16/11, B4).
-- [ ] Reprendre les diagnostics cron/LiteLLM et la migration OpenClaw décrits plus bas, après contrôle de la réalité du Gateway ; les tableaux datés sont conservés comme historique.
+- [x] Reprendre les diagnostics cron/LiteLLM et la migration OpenClaw décrits plus bas, après contrôle de la réalité du Gateway ; les tableaux datés sont conservés comme historique. **Clos (21/11)** : bascule faite le 3/11, digest fiabilisé le 4/11, `/metrics` LiteLLM corrigé le 11/11 ; l'étape 10 vit dans nabla-compose ([runbook opérateur](operator-pending.md), entrée 5).
 - [x] Maintenir les demandes et preuves privées Bababou **hors** des snapshots et du runtime FinOps. **Garanti par construction (16/11)** : `publish-vercel-finops.sh` reconstruit le JSON champ par champ, `--output` n'écrit que le résumé compact (testé).
 - [ ] **Régénérer le jeton d'application Slack (`xapp-`)**, exposé en clair dans une conversation le 11/11 ; révoquer l'ancien et ranger le nouveau dans Vaultwarden. Réinstaller aussi l'app pour obtenir un jeton de bot `xoxb-` valide, puis activer `channels.slack` en Socket Mode ([runbook](operator-pending.md), entrée 7).
 
