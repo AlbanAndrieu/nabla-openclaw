@@ -71,22 +71,22 @@ deux Compose, `git diff --check`.
    Puis, depuis Telegram : « Clone nabla-site-alban, lance `npm ci` et
    `npm run test:unit`, ne commite rien et donne le compte rendu. »
 
-3. **H20 (question O1), Slack existant pour le control plane** (propriétaire, puis
-   fastapi-sample). Côté OpenClaw, H20 n'est que le canal Slack de l'app
-   existante, en Socket Mode. Deux préalables manquent : les jetons (`xapp-`
-   à régénérer, car exposé le 11/11 ; `xoxb-` à réobtenir par *Reinstall*),
-   et l'inventaire des approbations OWNER, encore en PR ouverte
-   (fastapi-sample #453 ; #449, citée par le runbook de convergence, a livré
-   le SSO Cloudflare Access). Question : *le canal Slack d'OpenClaw doit-il
-   porter les notifications du control plane FastAPI, en sortie seule et
-   sans approbation depuis Slack, ou FastAPI garde-t-il sa propre intégration ?*
+3. ~~**H20 (question O1), Slack existant pour le control plane**~~ : **décidé
+   le 21/11** par le propriétaire. Le canal Slack d'OpenClaw porte les
+   notifications du control plane FastAPI Sample (F18 de fastapi-sample), en
+   sortie seule : ni approbation ni commande depuis Slack, identité Slack
+   OpenClaw existante, canal fixe, aucun nouveau bot, aucun partage du jeton
+   `xapp-`. Restent les préalables techniques : jetons à régénérer (`xapp-`
+   exposé le 11/11, `xoxb-` par *Reinstall*, Vaultwarden verrouillé, voir 7)
+   et l'inventaire des approbations OWNER (fastapi-sample #453).
 
-4. **Identité GitHub de la devbox (question O2)** (décision du propriétaire, runbook
-   opérateur 7.1 et 7.2). Le token agit au nom du propriétaire et peut
-   fusionner sa propre PR. Question : *App GitHub dédiée ou compte machine ?*
-   Exiger une approbation bloque aussi les PR du propriétaire, sauf s'il
-   figure dans la liste de contournement. En attendant, réduire le token
-   fine-grained aux cinq dépôts du contrat.
+4. ~~**Identité GitHub de la devbox (question O2)**~~ : **décidé le 21/11** :
+   App GitHub dédiée (pas de compte machine), permissions par dépôt, clé
+   privée dans Vaultwarden et le chemin runtime protégé, jamais dans le dépôt.
+   Manifeste **CODED** (`deploy/truenas/devbox/github-app-manifest.json`,
+   testé), App **non créée** : étapes opérateur dans
+   [coder-agent.md](../coder-agent.md#identité-github-de-la-devbox--app-dédiée-décision-o2-21112026).
+   En attendant, réduire le token fine-grained aux cinq dépôts du contrat.
 
 5. **Vercel FinOps P0 7-9 et P1 mémoire/invocations (question O3)** (propriétaire) :
    inchangé depuis le 16/11 (B4). Export JSON du tableau de bord *Usage*,

@@ -115,6 +115,58 @@ Si ces capacités sont voulues, elles relèvent d'un agent distinct (phase 2) :
 
 Aucun de ces éléments n'est inclus dans ce dépôt pour l'instant.
 
+## Identité GitHub de la devbox : App dédiée (décision O2, 21/11/2026)
+
+Le propriétaire a retenu une **App GitHub dédiée**, pas un compte machine :
+permissions fine-grained par dépôt, révocable, jeton d'installation de 1 h.
+La clé privée vit dans Vaultwarden et dans le chemin runtime protégé
+`/mnt/cpool/secrets/runtime/openclaw-devbox/` (`1001:1001`, `0400`), jamais
+dans ce dépôt. Statut : **CODED** (manifeste), App **non créée**, helpers
+`git-credential-devbox` et `gh-wrapper.sh` encore sur le token fine-grained.
+
+Manifeste : [`deploy/truenas/devbox/github-app-manifest.json`](../deploy/truenas/devbox/github-app-manifest.json),
+`public: false`, aucun webhook ni événement. Permissions, dérivées de ce que
+fait la devbox (clone, push de `openclaw/*`, `gh pr create --draft`,
+`gh pr list`, `gh run list`) :
+
+| Permission | Niveau | Usage |
+| --- | --- | --- |
+| `contents` | write | clone et push des branches `openclaw/*` |
+| `pull_requests` | write | `gh pr create --draft`, `gh pr list` |
+| `actions` | read | `gh run list --branch master` (skill `nabla-roadmap-pass`) |
+| `metadata` | read | obligatoire |
+
+Refusées : `workflows` (la règle 4 interdit de toucher `.github/workflows/`),
+`administration`, `checks`/`statuses` (aucune skill ne les lit), `issues`,
+`secrets`, `environments`. L'App ne figure **pas** dans la liste de
+contournement des rulesets : la PR de l'App exige l'approbation du
+propriétaire, qui n'est plus l'auteur.
+
+**Création (opérateur, une fois)** :
+
+1. Ouvrir la page *Settings → Developer settings → GitHub Apps → New GitHub
+   App* du compte `AlbanAndrieu` par le flux « manifest » : formulaire `POST`
+   du contenu du manifeste (champ `manifest`) vers
+   `https://github.com/settings/apps/new`. Après confirmation, GitHub
+   redirige vers `redirect_url` avec `?code=…` (le port local n'a pas besoin
+   d'écouter : lire le code dans la barre d'adresse, valable 1 h).
+2. Échanger le code sans l'écrire dans un historique partagé :
+   `gh api -X POST /app-manifests/<code>/conversions` renvoie l'`id`, le `slug`
+   et le `pem` (clé privée). Ne rien afficher d'autre que l'`id`.
+3. Ranger le `pem` dans Vaultwarden (entrée `nabla/prod/openclaw-devbox-github-app`,
+   champ caché) et en `/mnt/cpool/secrets/runtime/openclaw-devbox/github_app.pem`
+   (`1001:1001`, `0400`), puis supprimer toute copie locale.
+4. *Install App* sur le compte, en **Only select repositories** : les cinq
+   dépôts du contrat (`fastapi-sample`, `nabla-compose`, `nabla-site-alban`,
+   `nabla-site-bababou`, `nabla-yubikey`), jamais `nabla-memo`. Noter
+   l'`installation_id`.
+5. Reste à coder (autre PR) : les deux helpers frappent un jeton
+   d'installation (JWT RS256 signé par le `pem`, puis
+   `POST /app/installations/<id>/access_tokens`) au lieu de lire
+   `github_token`, avec le contrat, le test et le préflight adaptés ; puis
+   révoquer l'ancien token fine-grained et activer 1 approbation requise sur
+   les rulesets (entrée 7 du runbook opérateur).
+
 ## Prérequis opérateur
 
 1. **Clé LiteLLM coder**, dans `nabla-compose` :

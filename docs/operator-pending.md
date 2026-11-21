@@ -2,7 +2,7 @@
 
 Passes du 21/11 : B2 (pin nabla-compose) réglé par nabla-compose #427 ; B1
 (réappliquer le heartbeat) fait le 21/11, collecteur `0f52f1ea…` relevé sur
-TrueNAS par la session nabla-compose. Questions en attente : [état de la
+TrueNAS par la session nabla-compose. O1 et O2 tranchées le 21/11 ; autres questions : [état de la
 boucle du 21/11](runbooks/2026-11-21-roadmap-loop-state.md). Historique de B1 :
 [runbook du 16/11](runbooks/2026-11-16-roadmap-pass-blockers.md).
 
@@ -175,7 +175,12 @@ TrueNAS (`sudo cat` local). L'import est confié à une autre session.
   ni `vercel metrics` ne donnent le CPU actif ([détail](vercel-finops.md)).
   Seule voie : exporter à la main le JSON du tableau de bord Usage, puis
   `just vercel-finops-file <export>`.
-- **Slack** (Socket Mode retenu le 11/11, sans exposition publique du Gateway) :
+- **Slack** (Socket Mode retenu le 11/11, sans exposition publique du Gateway ;
+  **décision O1 du 21/11** : ce canal porte les notifications du control plane
+  FastAPI Sample, item F18 de la roadmap de fastapi-sample, **en sortie
+  seule** : aucune approbation ni commande depuis Slack, identité Slack
+  OpenClaw existante, canal fixe, pas de nouveau bot, pas de partage du jeton
+  `xapp-`) :
   - jeton d'application `SLACK_OPENCLAW_NABLA_TOKEN` (`xapp-`) : valide
     (`apps.connections.open` ok), mais **exposé en clair dans une conversation le
     11/11 : à régénérer** (*Basic Information → App-Level Tokens*, portée
@@ -192,6 +197,12 @@ TrueNAS (`sudo cat` local). L'import est confié à une autre session.
 - **Agent `coder` sur `nabla-compose`** (appliqué le 19/11 : skills
   `nabla-compose-dev` et `nabla-roadmap-pass`, job `nabla-compose-roadmap-pass`
   à 02:00) :
+  0. **Décisions du propriétaire (21/11)**, voir [coder-agent.md](coder-agent.md) :
+     **O2** App GitHub dédiée à la devbox (pas de compte machine) ; manifeste
+     prêt, création et installation restent à faire par l'opérateur (étapes 1
+     à 4 de la section « Identité GitHub »), puis helpers à adapter ;
+     **O1** le Slack d'OpenClaw porte les notifications du control plane
+     FastAPI Sample (F18), en sortie seule (voir l'entrée Slack ci-dessus) ;
   1. ~~Ruleset « Protect master »~~ (fait le 19/11, aligné sur les 52 dépôts
      publics et `dotfiles`) : suppression et force-push interdits, historique
      linéaire, PR en squash, `GitGuardian Security Checks` exigé, App de
@@ -201,7 +212,7 @@ TrueNAS (`sudo cat` local). L'import est confié à une autre session.
      0 approbation requise, et le token de la devbox agit au nom du
      propriétaire : il peut techniquement fusionner sa propre PR. Seule la
      politique de l'agent l'en empêche ; la parade est une identité GitHub
-     dédiée à la devbox (App ou compte machine) avec 1 approbation exigée ;
+     dédiée à la devbox (**App, décision O2 du 21/11**) avec 1 approbation exigée ;
   2. réduire le token de la devbox aux cinq dépôts de l'agent (`repositories`
      de `deploy/truenas/devbox/contract.json`) : il couvre 10 dépôts le 19/11,
      dont `nabla-memo` (privé, sans protection possible) ;
