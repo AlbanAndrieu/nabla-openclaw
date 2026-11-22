@@ -37,6 +37,8 @@ En français, en Markdown simple, sans tableau :
   actif, en une phrase, au plus 5 puces, ou sa ligne `⚪` ;
 - `🩺 Homelab` : recopie les lignes de la section INFRA telles quelles, sans
   les reformuler, les regrouper ni les commenter ;
+- `🤖 Coder` **uniquement si la section LITELLM CODER existe** : recopie sa
+  ligne telle quelle (dépense de la clé LiteLLM du coder sur sa période) ;
 - `💻 Vercel FinOps` **uniquement si la section VERCEL FINOPS existe** : recopie les lignes expurgées sans enrichissement. Un statut `STALE` ou `NOT_MEASURED` signifie que le quota CPU n'est pas attesté, et non que la consommation est nulle.
 
 ## 4. Livraison

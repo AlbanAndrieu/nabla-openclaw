@@ -2,7 +2,7 @@
 // Homelab health collector for the OpenClaw heartbeat (TrueNAS and Workstation).
 // Read-only HTTP probes. Prints NO_REPLY unless an anomaly appeared or cleared;
 // the model only relays this text. Ongoing anomalies go to the morning briefing.
-import { mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { vercelFinopsCheck, vercelReportPath } from "./vercel-finops.mjs";
@@ -15,6 +15,15 @@ const FS = 'fstype!~"tmpfs|devtmpfs|overlay|squashfs|ramfs|nsfs|tracefs|fusectl|
 const LITELLM = { TrueNAS: "http://litellm:4000", Workstation: `http://${WORKSTATION}:4000` };
 export const STATE = process.env.HOMELAB_HEALTH_STATE
   ?? join(process.env.HOME ?? ".", ".openclaw/nabla-heartbeat/homelab-health.json");
+// The coder agent cannot reach the LAN: each of its sessions is seeded from
+// this workspace, so the heartbeat leaves it the current anomalies there.
+export const CODER_STATUS = process.env.CODER_STATUS_FILE
+  ?? join(process.env.HOME ?? ".", ".openclaw/workspace-coder/status/homelab-health.json");
+// The coder's own LiteLLM key (file SecretRef): /key/info on it returns only
+// its spend and budget. The key is sent to LiteLLM and nowhere else.
+export const CODER_KEY = process.env.CODER_LITELLM_KEY_FILE
+  ?? join(process.env.HOME ?? ".", ".openclaw/credentials/litellm/coder.key");
+let coderBudgetSeen = null;
 const ICON = { crit: "🔴", warn: "🟠", unknown: "⚪" };
 const RANK = { crit: 0, warn: 1, unknown: 2 };
 const MAX_LINES = 40;
@@ -40,6 +49,28 @@ export function dockerAnomalies(containers) {
       : null;
     return reason ? [[`docker:${name}`, "warn", `Conteneur TrueNAS ${name} : ${reason}`]] : [];
   });
+}
+
+const usd = (n) => (typeof n === "number" && Number.isFinite(n) && n >= 0 ? n : null);
+
+// Spend, cap and reset date only, from a LiteLLM /key/info payload.
+export function coderBudgetFrom(payload) {
+  const info = payload?.info ?? {};
+  const spend = usd(info.spend);
+  const max = usd(info.max_budget);
+  if (spend === null || max === null || max === 0) return null;
+  const reset = Date.parse(info.budget_reset_at ?? "");
+  return { spend: Math.round(spend * 100) / 100, max_budget: max, budget_duration: info.budget_duration ?? null,
+    budget_reset_at: Number.isFinite(reset) ? new Date(reset).toISOString() : null };
+}
+
+export function coderBudgetLine(budget = coderBudgetSeen) {
+  if (!budget) return "⚪ Budget LiteLLM du coder : non mesuré";
+  const pct = (100 * budget.spend) / budget.max_budget;
+  const icon = pct >= 100 ? "🔴" : pct >= 80 ? "🟠" : "✅";
+  const reset = budget.budget_reset_at
+    ? `, remise à zéro le ${new Date(budget.budget_reset_at).toLocaleDateString("fr-FR", { timeZone: "Europe/Paris" })}` : "";
+  return `${icon} Budget LiteLLM du coder : ${budget.spend.toFixed(2)} / ${budget.max_budget} USD (${pct.toFixed(0)} %)${reset}`;
 }
 
 // Each check returns [key, severity, text]; keys start with the check name so
@@ -148,6 +179,24 @@ export const checks = {
     return [["backup:Workstation:stale", hours > 72 ? "crit" : "warn",
       `Workstation : dernière sauvegarde Restic réussie il y a ${Math.round(hours)} h`]];
   },
+  async coderbudget(get, prev, keyFile = CODER_KEY) {
+    let key;
+    try {
+      key = readFileSync(keyFile, "utf8").trim();
+    } catch {
+      return []; // no coder agent on this Gateway
+    }
+    const res = await fetch(`${LITELLM.TrueNAS}/key/info`, {
+      headers: { Authorization: `Bearer ${key}` }, signal: AbortSignal.timeout(10_000),
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    coderBudgetSeen = coderBudgetFrom(await res.json());
+    if (!coderBudgetSeen) throw new Error("réponse /key/info sans budget");
+    const pct = (100 * coderBudgetSeen.spend) / coderBudgetSeen.max_budget;
+    if (pct < 80) return [];
+    return [[`coderbudget:${pct >= 100 ? "exhausted" : "high"}`, pct >= 100 ? "crit" : "warn",
+      coderBudgetLine(coderBudgetSeen).replace(/^\S+ /, "")]];
+  },
   async litellm(get) {
     const out = [];
     for (const [host, base] of Object.entries(LITELLM)) {
@@ -206,6 +255,27 @@ export function render({ fresh, gone, ongoing }, now) {
   return lines.join("\n");
 }
 
+// Severity, text and start time only: the texts never carry a credential.
+export function coderStatus(seen, now, budget = coderBudgetSeen) {
+  const anomalies = Object.values(seen).sort((a, b) => RANK[a.sev] - RANK[b.sev])
+    .map(({ sev, text, since }) => ({ sev, text, since: new Date(since).toISOString() }));
+  const counts = { crit: 0, warn: 0, unknown: 0 };
+  for (const { sev } of anomalies) counts[sev] += 1;
+  return { generated_at: new Date(now).toISOString(), sources: Object.keys(checks), counts, anomalies,
+    coder_budget: budget };
+}
+
+function writeCoderStatus(seen, now) {
+  if (!existsSync(dirname(dirname(CODER_STATUS)))) return; // no coder agent on this Gateway
+  try {
+    mkdirSync(dirname(CODER_STATUS), { recursive: true, mode: 0o700 });
+    writeFileSync(`${CODER_STATUS}.tmp`, JSON.stringify(coderStatus(seen, now), null, 1), { mode: 0o600 });
+    renameSync(`${CODER_STATUS}.tmp`, CODER_STATUS);
+  } catch {
+    // Best effort: the heartbeat itself must never fail on the coder copy.
+  }
+}
+
 async function main() {
   const now = Date.now();
   let prev = {};
@@ -219,6 +289,7 @@ async function main() {
   mkdirSync(dirname(STATE), { recursive: true, mode: 0o700 });
   writeFileSync(`${STATE}.tmp`, JSON.stringify({ seen: changes.seen }), { mode: 0o600 });
   renameSync(`${STATE}.tmp`, STATE);
+  writeCoderStatus(changes.seen, now);
 }
 
 if (import.meta.url === pathToFileURL(process.argv[1]).href) await main();

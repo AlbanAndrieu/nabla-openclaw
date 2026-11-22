@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { checks, collect, diff, dockerAnomalies, render } from "./homelab-health.mjs";
+import { checks, coderBudgetFrom, coderBudgetLine, coderStatus, collect, diff, dockerAnomalies, render } from "./homelab-health.mjs";
 
 const NOON = Date.parse("2026-11-04T11:00:00Z");
 
@@ -105,4 +105,51 @@ test("heartbeat passes previous state to the Vercel snapshot check without netwo
   }
   assert.deepEqual(await collect(previous, () => { throw Error("HTTP must not run"); }), []);
   assert.equal(visited, true);
+});
+
+test("coder status: anomalies ranked by severity, counted, dated, nothing else", () => {
+  const seen = {
+    "gatus:a": { sev: "warn", text: "Sonde Gatus web/a en échec", since: 1_000 },
+    "litellm:TrueNAS": { sev: "crit", text: "LiteLLM TrueNAS : down, base ?", since: 2_000 },
+  };
+  const status = coderStatus(seen, 3_000);
+  assert.equal(status.generated_at, new Date(3_000).toISOString());
+  assert.deepEqual(status.counts, { crit: 1, warn: 1, unknown: 0 });
+  assert.deepEqual(status.anomalies.map((a) => a.sev), ["crit", "warn"]);
+  assert.deepEqual(Object.keys(status.anomalies[0]), ["sev", "text", "since"]);
+  assert.ok(status.sources.includes("gatus") && status.sources.includes("alerts"));
+});
+
+test("coder budget: spend and cap from /key/info, nothing else, junk refused", () => {
+  const payload = { key: "hashed", info: { key_alias: "openclaw-coder", spend: 3.14159, max_budget: 11,
+    budget_duration: "7d", budget_reset_at: "2026-11-25T00:00:00Z", token: "never-copied" } };
+  const budget = coderBudgetFrom(payload);
+  assert.deepEqual(budget, { spend: 3.14, max_budget: 11, budget_duration: "7d", budget_reset_at: "2026-11-25T00:00:00.000Z" });
+  assert.match(coderBudgetLine(budget), /^✅ Budget LiteLLM du coder : 3\.14 \/ 11 USD \(29 %\), remise à zéro le 25\/11\/2026$/);
+  assert.match(coderBudgetLine({ ...budget, spend: 9 }), /^🟠 /);
+  assert.match(coderBudgetLine({ ...budget, spend: 11 }), /^🔴 /);
+  assert.equal(coderBudgetLine(null), "⚪ Budget LiteLLM du coder : non mesuré");
+  for (const info of [{}, { spend: -1, max_budget: 11 }, { spend: 1, max_budget: 0 }, { spend: Number.NaN, max_budget: 11 }]) {
+    assert.equal(coderBudgetFrom({ info }), null);
+  }
+});
+
+test("coder budget check: silent without a key file, warns from 80 %", async (t) => {
+  assert.deepEqual(await checks.coderbudget(null, {}, "/nonexistent/coder.key"), []);
+  const { mkdtempSync, writeFileSync } = await import("node:fs");
+  const { tmpdir } = await import("node:os");
+  const keyFile = `${mkdtempSync(`${tmpdir()}/coder-`)}/coder.key`;
+  writeFileSync(keyFile, "sk-test\n");
+  let auth;
+  t.mock.method(globalThis, "fetch", async (url, init) => {
+    auth = init.headers.Authorization;
+    assert.match(String(url), /\/key\/info$/);
+    return new Response(JSON.stringify({ info: { spend: 9.5, max_budget: 11 } }));
+  });
+  const [[key, sev, text]] = await checks.coderbudget(null, {}, keyFile);
+  assert.equal(auth, "Bearer sk-test");
+  assert.equal(key, "coderbudget:high");
+  assert.equal(sev, "warn");
+  assert.match(text, /^Budget LiteLLM du coder : 9\.50 \/ 11 USD \(86 %\)$/);
+  assert.equal(coderStatus({}, 0).coder_budget.spend, 9.5);
 });

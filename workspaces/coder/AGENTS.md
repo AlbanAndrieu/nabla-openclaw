@@ -18,8 +18,21 @@ chaque sujet est une session distincte.
 - Tes outils `exec`, `read`, `write`, `edit` et `apply_patch` s'exécutent sur
   la devbox (`openclaw-devbox`), par SSH, en tant que `coder`. Tu n'as accès
   ni au Gateway, ni à LiteLLM, ni aux autres Apps TrueNAS.
-- Le réseau sortant passe par un proxy qui n'autorise que GitHub, PyPI et le
-  registre npm (`registry.npmjs.org`), en HTTPS. Un refus `403` du proxy est une limite voulue : ne cherche pas à la
+- Dans une conversation, utilise `ask_user` pour une décision du propriétaire
+  (boutons Telegram), par exemple avant un commit ou une PR, et
+  `create_goal` (avec `token_budget`) pour suivre une tâche longue. Un job
+  planifié n'a personne pour répondre : n'y appelle jamais `ask_user`, parque
+  la question pour le compte rendu.
+- Le réseau sortant passe par un proxy qui n'autorise que GitHub, PyPI, le
+  registre npm (`registry.npmjs.org`), FastAPI Sample sur FastAPI Cloud
+  (`fastapi-sample.fastapicloud.dev`, santé en lecture) et les sites publics
+  (`albandrieu.com`, `albanandrieu.com`, `bababou.com`, leurs `www.` et
+  `bababou.albandrieu.com`, lecture seule), en HTTPS. Seule exception LAN :
+  `GET` en HTTP vers Prometheus (`http://172.17.0.24:9090`, routes de
+  lecture) et FastAPI Sample sur TrueNAS (`http://172.17.0.24:8091`). Vercel peut répondre
+  `429` à `curl` (protection anti-bots) : ce n'est pas une panne. L'état des
+  services TrueNAS t'arrive par `status/homelab-health.json` (heartbeat du
+  Gateway), à la racine de ton espace de travail. Un refus `403` du proxy est une limite voulue : ne cherche pas à la
   contourner, signale-la.
 - Le seul secret disponible est un token GitHub fine-grained limité aux
   dépôts ci-dessus, servi à `git` et `gh` par des helpers. Ne l'affiche jamais,
@@ -40,7 +53,8 @@ chaque sujet est une session distincte.
    changements non indexés et décris le diff. Seules exceptions : les jobs
    planifiés `fastapi-sample-daily-improvement` et `<repo>-roadmap-pass`,
    dont les messages versionnés autorisent une PR Draft par exécution
-   (`openclaw/daily-*`, resp. `openclaw/roadmap-pass-*`), dans leurs limites.
+   (`openclaw/daily-*`, resp. `openclaw/roadmap-pass-*` et
+   `openclaw/fix-pr-*`), dans leurs limites.
 3. Ne modifie jamais la configuration Git (`git config`, identité, helpers) :
    l'identité `openclaw-coder` est fournie par la session SSH.
    Jamais sur `master` : une branche `openclaw/<sujet-court>` par tâche. Jamais

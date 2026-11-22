@@ -22,9 +22,9 @@ jamais exécuter de code dans le conteneur du Gateway.
 Telegram (groupe forum, 1 sujet = 1 session)
   └─> Gateway OpenClaw (App openclaw-gateway, agent `coder`, modèle litellm-coder/gpt-4.1)
         │   clé LiteLLM : SecretRef `file` (credentials/litellm/coder.key), 11 USD / 7 jours
-        └─ sandbox `ssh` (exec, read, write, edit, apply_patch)
+        └─ sandbox `ssh` (exec, read, write, edit, apply_patch ; ask_user et goals côté Gateway)
              └─> openclaw-devbox:2222 (réseau Docker interne `openclaw-devbox`)
-                   └─ HTTPS CONNECT ─> openclaw-devbox-egress (squid) ─> GitHub, PyPI
+                   └─ HTTPS CONNECT ─> openclaw-devbox-egress (squid) ─> GitHub, PyPI, npm, FastAPI Cloud
 ```
 
 Ni le Gateway ni LiteLLM ne redémarrent : le réseau est rattaché à chaud
@@ -72,7 +72,7 @@ terminal dans le chat), sur un réseau isolé et sans socket Docker.
 | Lecture des secrets du Gateway par `exec` (I) | `sandbox.mode: all` : aucun outil de code ne tourne dans le Gateway ; `elevated` désactivé pour `coder` |
 | Sortie de l'espace de travail (E) | `tools.fs.workspaceOnly` ; `read /etc/passwd` refusé (test E2E) ; utilisateur `1001`, `cap_drop: ALL`, rootfs en lecture seule |
 | Mouvement latéral vers le LAN, TrueNAS ou Docker (E) | Réseau `openclaw-devbox` interne ; aucun socket Docker, aucun accès hôte ; squid refuse les destinations privées et les IP littérales |
-| Exfiltration, téléchargement arbitraire (I) | `egress/allowed-domains.txt` (`.github.com`, `.githubusercontent.com`, `pypi.org`, `files.pythonhosted.org`, `registry.npmjs.org`), `dstdomain -n` (pas de DNS inverse), CONNECT 443 uniquement |
+| Exfiltration, téléchargement arbitraire (I) | `egress/allowed-domains.txt` (`.github.com`, `.githubusercontent.com`, `pypi.org`, `files.pythonhosted.org`, `registry.npmjs.org`, `fastapi-sample.fastapicloud.dev` : santé publique en lecture, l'instance TrueNAS reste refusée ; noms exacts des sites publics `albandrieu.com`, `albanandrieu.com`, `bababou.com`, leurs `www.` et `bababou.albandrieu.com`, sans joker `.albandrieu.com` qui ouvrirait aussi les routes du tunnel homelab). Seule exception LAN (22/11, `egress.lan_readonly` du contrat) : HTTP `GET` vers `172.17.0.24`, ports 9090 (Prometheus : `query`, `query_range`, `series`, `labels`, `label/*/values`, `alerts`, `rules`, `targets`, `metadata`, `-/healthy`, `-/ready` ; pas `status/config` ni l'API admin) et 8091 (FastAPI Sample : santé, version, `openapi.json`, `/api/...` ; ses routes de diagnostic exigent toujours la clé). Les ACL squid dérivent du contrat et le checker refuse tout élargissement (hôte, méthode, port, chemin, ACL redéfinie), `dstdomain -n` (pas de DNS inverse), CONNECT 443 uniquement |
 | Usurpation de la devbox ou du Gateway (S) | Clé d'hôte épinglée (`known_hosts`, `strictHostKeyChecking`, `updateHostKeys: false`) ; clé client dédiée, `restrict,pty` |
 | Modification non revue de `master` (T) | Token fine-grained limité au dépôt (Contents, Pull requests ; ni Workflows ni Administration) ; protection de `master` ; PR Draft, jamais de merge |
 | Prompt injection par le dépôt, les issues ou le web (T) | `workspaces/coder/AGENTS.md` : contenu = donnée ; outils web, messages, cron, gateway, nodes et sessions refusés |
@@ -277,6 +277,32 @@ proxy, puis `test-local-first` en `PASS`, sans commit ni push.
   l'installation). Installation ou mise à jour d'un job :
   `just truenas-apply-coder-cron <repo>-roadmap-pass`, ou de tous les jobs du
   coder : `just truenas-apply-coder-cron all`.
+- **Alertes d'échec** : chaque job annonce sur le groupe Telegram du coder, donc
+  OpenClaw y envoie déjà une alerte après 2 échecs consécutifs (puis au plus
+  une par heure), par exemple quand le budget de la clé est épuisé
+  (`docs/cli/cron.md` d'OpenClaw 2026.10.7). Rien à configurer ;
+  `failureAlert: false` sur un job la couperait.
+- **Garde-fous de session** (22/11) : détection de boucles
+  (`agents.entries.coder.tools.loopDetection.enabled`, imposée par
+  `check-devbox-contract.py`), `ask_user` (boutons Telegram) et goals
+  (`get_goal`, `create_goal`, `update_goal`, `/goal`, plafond `token_budget`).
+  Après `just truenas-apply-coder`, la ligne `coder_sandbox=... tools=` doit
+  les lister ; sinon `/tools` dans un sujet du coder.
+- **Passe de roadmap enrichie** (22/11) : état des services TrueNAS par
+  l'instantané `status/homelab-health.json`, que le collecteur du heartbeat
+  (`scripts/heartbeat/homelab-health.mjs`) écrit dans `workspace-coder` toutes
+  les 30 min et que chaque session reçoit à l'amorçage de sa sandbox (aucun
+  accès LAN ni jeton dans la devbox) ; santé FastAPI Cloud par le proxy ; tri
+  des PR ouvertes, avec au plus 2 corrections par passe sur des branches
+  `openclaw/fix-pr-<n>-*` en PR Draft vers la branche de la PR ; actions
+  réservées à la Workstation (`apply`, secrets, déploiements) parquées sans
+  question.
+- **Budget du coder** (22/11) : le collecteur du heartbeat lit, avec la clé du
+  coder elle-même, `GET /key/info` de LiteLLM (sans paramètre : la clé
+  appelante, vérifié dans le code de LiteLLM) et n'en garde que la dépense, le
+  plafond et la date de remise à zéro. Ligne « LITELLM CODER » du briefing du
+  matin, anomalie à 80 % (🟠) et 100 % (🔴), champ `coder_budget` de
+  `status/homelab-health.json`, repris par chaque passe de roadmap.
 
 ## Rollback
 

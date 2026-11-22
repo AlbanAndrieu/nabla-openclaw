@@ -9,3 +9,14 @@ pypi.org
 files.pythonhosted.org
 # npm: npm ci for nabla-site-alban/-bababou (metadata and tarballs, same host).
 registry.npmjs.org
+# FastAPI Sample on FastAPI Cloud: public read-only health (/livez, /v2/version, /api/ui/services).
+fastapi-sample.fastapicloud.dev
+# Public sites (Vercel), exact names only: read-only checks of what is in production.
+# No .albandrieu.com wildcard, which would also open every homelab tunnel route.
+albandrieu.com
+www.albandrieu.com
+albanandrieu.com
+www.albanandrieu.com
+bababou.com
+www.bababou.com
+bababou.albandrieu.com

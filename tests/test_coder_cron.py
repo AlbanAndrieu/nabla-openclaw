@@ -32,14 +32,18 @@ class RoadmapPassCron(unittest.TestCase):
     def test_message_points_to_the_skill_and_its_branch_only(self):
         message = (ROOT / f"policies/cron/{ROADMAP}.message.md").read_text(encoding="utf-8")
         for marker in ("skills/nabla-roadmap-pass/SKILL.md", "`NO_REPLY` est interdit", "AUTOMATION_FAILED",
-                       "openclaw/roadmap-pass-", "PR Draft", "Jamais de merge"):
+                       "openclaw/roadmap-pass-", "openclaw/fix-pr-", "jamais de push sur une autre branche",
+                       "étapes 0 à 6", "PR Draft", "Jamais de merge"):
             with self.subTest(marker=marker):
                 self.assertIn(marker, message)
         self.assertNotRegex(message, r"(?i)(?:ghp_|github_pat_|sk-[a-z0-9]{12,}|token\s*=)")
 
     def test_skill_keeps_the_owner_directive_and_offline_limits(self):
         skill = (ROOT / "workspaces/coder/skills/nabla-roadmap-pass/SKILL.md").read_text(encoding="utf-8")
-        for marker in ("consolide la et recommandations la boucle trois fois", "NOT_RUN (vantage devbox)",
+        for marker in ("consolide la et recommandations la boucle trois fois", "status/homelab-health.json", "coder_budget",
+                       "fastapi-sample.fastapicloud.dev/livez", "http://172.17.0.24:9090/api/v1/alerts", "sans jamais pousser sur la branche de la",
+                       "au plus **2 PR par passe**", "isCrossRepository", "ne le demande jamais",
+                       "« Aucun item traitable » sans cette liste est une passe ratée",
                        "jamais `DEPLOYED` ni `ACCEPTED`", ".github/workflows/", "BLOQUÉ: push",
                        "questions restantes, numérotées", "git log --oneline origin/master..HEAD",
                        "n'est **pas** un", "`files=0`"):

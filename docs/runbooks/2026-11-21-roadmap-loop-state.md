@@ -11,6 +11,7 @@ sur TrueNAS : un autre agent détient le runtime OpenClaw et Coder.
 | --- | --- | --- |
 | 1 | `a195898` | Docs réconciliées, rien de codable hors ligne |
 | 2 | `a195898` | Contrat x-nabla corrigé (**TESTED**), affirmations « non déployé » retirées, B1 clos |
+| 3 (22/11) | `fe43cc3` | #26 et #27 fusionnées, pin nabla-compose#437 ouvert ; rien de codable hors ligne de plus |
 
 ## Passe 1
 
@@ -54,6 +55,24 @@ Contrôles : `just test` (103 tests Python dont 1 sauté, 31 + 11 tests Node),
 `just plan` (`active_truenas`), `just devbox-plan` (`active`),
 `docker compose config --quiet --no-interpolate --no-env-resolution` sur les
 deux Compose, `git diff --check`.
+
+## Passe 3 (22/11)
+
+- **#26 fusionnée le 21/11** (`60818bb`) : devbox 0.2.0, sites Next.js et
+  nabla-yubikey. **#27 fusionnée le 22/11** (`fe43cc3`) : une passe de roadmap
+  par nuit et par dépôt (01:00 à 05:00), message commun
+  `policies/cron/roadmap-pass.message.md`, `just truenas-apply-coder-cron all`.
+  Le budget de la clé `coder` (11 USD / 7 jours) n'est pas revu (décision du
+  propriétaire : plus tard).
+- **Pin** : nabla-compose#437 avance `apps/openclaw` de `a195898` à `fe43cc3`
+  et répare trois tests rouges sur son `master` (#432, #433). Préflight
+  `just truenas-deploy-coder` (lecture seule) du 22/11 : bloqué à l'étape 2/8,
+  `checkout_mismatch local=60818bb truenas=a195898`, attendu tant que #437
+  n'est pas fusionnée.
+- Le bloqué 2 ci-dessous devient : fusion de #437, mise à jour du checkout
+  TrueNAS, `NABLA_RUNTIME_CHANGE_APPROVED=yes just truenas-deploy-coder
+  --apply`, `just devbox-egress-check`, `just truenas-apply-coder-cron all`
+  (approuvé par le propriétaire le 22/11).
 
 ## Bloqués
 

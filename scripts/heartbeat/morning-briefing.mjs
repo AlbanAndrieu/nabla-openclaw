@@ -7,7 +7,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { promisify } from "node:util";
-import { STATE, WORKSTATION, collect, listLines } from "./homelab-health.mjs";
+import { STATE, WORKSTATION, coderBudgetLine, collect, listLines } from "./homelab-health.mjs";
 
 const OPENCLAW = join(process.env.HOME ?? ".", ".openclaw");
 const GOG_HOME = join(OPENCLAW, "gogcli");
@@ -149,6 +149,7 @@ async function main() {
   const slack = config.channels?.slack;
   const date = new Date(now).toLocaleDateString("fr-FR", { timeZone: "Europe/Paris", dateStyle: "full" });
   const out = [`DATE : ${date}`, "", "## INFRA", ...infraLines(await collect(readJson(STATE)))];
+  out.push("", "## LITELLM CODER", coderBudgetLine()); // measured by the collect() above
   if (process.env.VERCEL_FINOPS_REPORT) {
     out.push("", "## VERCEL FINOPS", ...vercelFinopsLines(readJson(process.env.VERCEL_FINOPS_REPORT), now));
   }
