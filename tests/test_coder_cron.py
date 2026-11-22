@@ -19,6 +19,13 @@ class CoderCron(unittest.TestCase):
                 self.assertIn(marker, message)
         self.assertNotRegex(message, r"(?i)(?:ghp_|github_pat_|sk-[a-z0-9]{12,}|token\s*=)")
 
+    def test_session_messages_need_owner_validation(self):
+        contract = (ROOT / "workspaces/coder/AGENTS.md").read_text(encoding="utf-8")
+        for marker in ("chaque envoi exige la", "n'envoie que sur un « Oui » explicite",
+                       "dans un job planifié, n'envoie rien"):
+            with self.subTest(marker=marker):
+                self.assertIn(marker, contract)
+
     def test_contract_exception_names_this_job_only(self):
         contract = (ROOT / "workspaces/coder/AGENTS.md").read_text(encoding="utf-8")
         self.assertIn(f"`{NAME}`", contract)

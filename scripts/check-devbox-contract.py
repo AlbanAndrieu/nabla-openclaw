@@ -22,8 +22,9 @@ STATUSES = ("prepared_not_deployed", "ready_to_deploy", "active")
 DOMAIN = re.compile(r"^\.?(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$")
 # Tools the coder may run inside its sandbox; everything else stays denied.
 SANDBOX_TOOLS = {"exec", "process", "read", "ls", "write", "edit", "apply_patch", "view_image", "session_status",
-                 "ask_user", "get_goal", "create_goal", "update_goal"}
-REQUIRED_DENIES = {"group:automation", "group:nodes", "group:ui", "group:web", "sessions_send", "sessions_spawn"}
+                 "ask_user", "get_goal", "create_goal", "update_goal", "sessions_list", "sessions_send"}
+REQUIRED_DENIES = {"group:automation", "group:nodes", "group:ui", "group:web", "sessions_spawn",
+                   "sessions_history", "sessions_search", "subagents"}
 # Session commit identity: environment beats any `git config` written by the agent.
 GIT_IDENTITY = "GIT_COMMITTER_EMAIL=openclaw-coder@users.noreply.github.com"
 SSHD_LINES = ("Port 2222", "UsePAM no", "AllowUsers coder", "PermitRootLogin no", "PasswordAuthentication no",
@@ -146,6 +147,10 @@ def gateway_agent_sandboxed(c, seed, root):
             and tools["elevated"]["enabled"] is False and tools["fs"]["workspaceOnly"] is True
             # Cheapest budget guard for unattended nightly runs.
             and tools["loopDetection"]["enabled"] is True
+            # sessions_send stays inside the coder: own-agent visibility, no cross-agent send.
+            and tools["agentToAgent"]["send"] == []
+            and seed["tools"]["sessions"]["visibility"] == "agent"
+            and seed["agents"]["defaults"]["sandbox"]["sessionToolsVisibility"] == "all"
             and allow <= SANDBOX_TOOLS and REQUIRED_DENIES <= set(tools["deny"])
             and agent["model"] == model_ref and model_ref in seed["agents"]["defaults"]["modelPolicy"]["allow"]
             and provider["apiKey"] == {"source": "file", "provider": c["model"]["key_secret_provider"], "id": "value"}

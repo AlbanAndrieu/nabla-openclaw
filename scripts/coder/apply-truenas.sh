@@ -43,6 +43,10 @@ console.log(JSON.stringify([
   { path: "models.providers.litellm-coder", value: c.models.providers["litellm-coder"] },
   { path: "agents.defaults.modelPolicy.allow", value: c.agents.defaults.modelPolicy.allow },
   { path: "agents.defaults.maxConcurrent", value: c.agents.defaults.maxConcurrent },
+  // Coder-to-coder messages: each agent sees only its own sessions, and the
+  // sandboxed coder follows that scope instead of its spawn tree.
+  { path: "tools.sessions.visibility", value: c.tools.sessions.visibility },
+  { path: "agents.defaults.sandbox.sessionToolsVisibility", value: c.agents.defaults.sandbox.sessionToolsVisibility },
   { path: "agents.entries.coder", value: c.agents.entries.coder },
 ]));')
 for mode in --dry-run ""; do
