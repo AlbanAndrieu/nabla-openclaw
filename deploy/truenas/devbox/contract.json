@@ -23,7 +23,7 @@
     "proxy": "openclaw-devbox-egress:3128",
     "squid_config": "deploy/truenas/devbox/egress/squid.conf",
     "allowed_domains": [".github.com", ".githubusercontent.com", "pypi.org", "files.pythonhosted.org",
-      "registry.npmjs.org"]
+      "registry.npmjs.org", "fastapi-sample.fastapicloud.dev"]
   },
   "github_token": {
     "file": "/mnt/cpool/secrets/runtime/openclaw-devbox/github_token",

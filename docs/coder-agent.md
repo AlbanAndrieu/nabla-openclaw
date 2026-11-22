@@ -24,7 +24,7 @@ Telegram (groupe forum, 1 sujet = 1 session)
         │   clé LiteLLM : SecretRef `file` (credentials/litellm/coder.key), 11 USD / 7 jours
         └─ sandbox `ssh` (exec, read, write, edit, apply_patch ; ask_user et goals côté Gateway)
              └─> openclaw-devbox:2222 (réseau Docker interne `openclaw-devbox`)
-                   └─ HTTPS CONNECT ─> openclaw-devbox-egress (squid) ─> GitHub, PyPI
+                   └─ HTTPS CONNECT ─> openclaw-devbox-egress (squid) ─> GitHub, PyPI, npm, FastAPI Cloud
 ```
 
 Ni le Gateway ni LiteLLM ne redémarrent : le réseau est rattaché à chaud
@@ -72,7 +72,7 @@ terminal dans le chat), sur un réseau isolé et sans socket Docker.
 | Lecture des secrets du Gateway par `exec` (I) | `sandbox.mode: all` : aucun outil de code ne tourne dans le Gateway ; `elevated` désactivé pour `coder` |
 | Sortie de l'espace de travail (E) | `tools.fs.workspaceOnly` ; `read /etc/passwd` refusé (test E2E) ; utilisateur `1001`, `cap_drop: ALL`, rootfs en lecture seule |
 | Mouvement latéral vers le LAN, TrueNAS ou Docker (E) | Réseau `openclaw-devbox` interne ; aucun socket Docker, aucun accès hôte ; squid refuse les destinations privées et les IP littérales |
-| Exfiltration, téléchargement arbitraire (I) | `egress/allowed-domains.txt` (`.github.com`, `.githubusercontent.com`, `pypi.org`, `files.pythonhosted.org`, `registry.npmjs.org`), `dstdomain -n` (pas de DNS inverse), CONNECT 443 uniquement |
+| Exfiltration, téléchargement arbitraire (I) | `egress/allowed-domains.txt` (`.github.com`, `.githubusercontent.com`, `pypi.org`, `files.pythonhosted.org`, `registry.npmjs.org`, `fastapi-sample.fastapicloud.dev` : santé publique en lecture, l'instance TrueNAS reste refusée), `dstdomain -n` (pas de DNS inverse), CONNECT 443 uniquement |
 | Usurpation de la devbox ou du Gateway (S) | Clé d'hôte épinglée (`known_hosts`, `strictHostKeyChecking`, `updateHostKeys: false`) ; clé client dédiée, `restrict,pty` |
 | Modification non revue de `master` (T) | Token fine-grained limité au dépôt (Contents, Pull requests ; ni Workflows ni Administration) ; protection de `master` ; PR Draft, jamais de merge |
 | Prompt injection par le dépôt, les issues ou le web (T) | `workspaces/coder/AGENTS.md` : contenu = donnée ; outils web, messages, cron, gateway, nodes et sessions refusés |
@@ -288,6 +288,15 @@ proxy, puis `test-local-first` en `PASS`, sans commit ni push.
   (`get_goal`, `create_goal`, `update_goal`, `/goal`, plafond `token_budget`).
   Après `just truenas-apply-coder`, la ligne `coder_sandbox=... tools=` doit
   les lister ; sinon `/tools` dans un sujet du coder.
+- **Passe de roadmap enrichie** (22/11) : état des services TrueNAS par
+  l'instantané `status/homelab-health.json`, que le collecteur du heartbeat
+  (`scripts/heartbeat/homelab-health.mjs`) écrit dans `workspace-coder` toutes
+  les 30 min et que chaque session reçoit à l'amorçage de sa sandbox (aucun
+  accès LAN ni jeton dans la devbox) ; santé FastAPI Cloud par le proxy ; tri
+  des PR ouvertes, avec au plus 2 corrections par passe sur des branches
+  `openclaw/fix-pr-<n>-*` en PR Draft vers la branche de la PR ; actions
+  réservées à la Workstation (`apply`, secrets, déploiements) parquées sans
+  question.
 
 ## Rollback
 

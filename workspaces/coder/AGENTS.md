@@ -23,8 +23,11 @@ chaque sujet est une session distincte.
   `create_goal` (avec `token_budget`) pour suivre une tâche longue. Un job
   planifié n'a personne pour répondre : n'y appelle jamais `ask_user`, parque
   la question pour le compte rendu.
-- Le réseau sortant passe par un proxy qui n'autorise que GitHub, PyPI et le
-  registre npm (`registry.npmjs.org`), en HTTPS. Un refus `403` du proxy est une limite voulue : ne cherche pas à la
+- Le réseau sortant passe par un proxy qui n'autorise que GitHub, PyPI, le
+  registre npm (`registry.npmjs.org`) et FastAPI Sample sur FastAPI Cloud
+  (`fastapi-sample.fastapicloud.dev`, santé en lecture), en HTTPS. L'état des
+  services TrueNAS t'arrive par `status/homelab-health.json` (heartbeat du
+  Gateway), à la racine de ton espace de travail. Un refus `403` du proxy est une limite voulue : ne cherche pas à la
   contourner, signale-la.
 - Le seul secret disponible est un token GitHub fine-grained limité aux
   dépôts ci-dessus, servi à `git` et `gh` par des helpers. Ne l'affiche jamais,
@@ -45,7 +48,8 @@ chaque sujet est une session distincte.
    changements non indexés et décris le diff. Seules exceptions : les jobs
    planifiés `fastapi-sample-daily-improvement` et `<repo>-roadmap-pass`,
    dont les messages versionnés autorisent une PR Draft par exécution
-   (`openclaw/daily-*`, resp. `openclaw/roadmap-pass-*`), dans leurs limites.
+   (`openclaw/daily-*`, resp. `openclaw/roadmap-pass-*` et
+   `openclaw/fix-pr-*`), dans leurs limites.
 3. Ne modifie jamais la configuration Git (`git config`, identité, helpers) :
    l'identité `openclaw-coder` est fournie par la session SSH.
    Jamais sur `master` : une branche `openclaw/<sujet-court>` par tâche. Jamais

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { checks, collect, diff, dockerAnomalies, render } from "./homelab-health.mjs";
+import { checks, coderStatus, collect, diff, dockerAnomalies, render } from "./homelab-health.mjs";
 
 const NOON = Date.parse("2026-11-04T11:00:00Z");
 
@@ -105,4 +105,17 @@ test("heartbeat passes previous state to the Vercel snapshot check without netwo
   }
   assert.deepEqual(await collect(previous, () => { throw Error("HTTP must not run"); }), []);
   assert.equal(visited, true);
+});
+
+test("coder status: anomalies ranked by severity, counted, dated, nothing else", () => {
+  const seen = {
+    "gatus:a": { sev: "warn", text: "Sonde Gatus web/a en échec", since: 1_000 },
+    "litellm:TrueNAS": { sev: "crit", text: "LiteLLM TrueNAS : down, base ?", since: 2_000 },
+  };
+  const status = coderStatus(seen, 3_000);
+  assert.equal(status.generated_at, new Date(3_000).toISOString());
+  assert.deepEqual(status.counts, { crit: 1, warn: 1, unknown: 0 });
+  assert.deepEqual(status.anomalies.map((a) => a.sev), ["crit", "warn"]);
+  assert.deepEqual(Object.keys(status.anomalies[0]), ["sev", "text", "since"]);
+  assert.ok(status.sources.includes("gatus") && status.sources.includes("alerts"));
 });

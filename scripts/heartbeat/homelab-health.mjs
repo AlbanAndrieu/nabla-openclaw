@@ -2,7 +2,7 @@
 // Homelab health collector for the OpenClaw heartbeat (TrueNAS and Workstation).
 // Read-only HTTP probes. Prints NO_REPLY unless an anomaly appeared or cleared;
 // the model only relays this text. Ongoing anomalies go to the morning briefing.
-import { mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { vercelFinopsCheck, vercelReportPath } from "./vercel-finops.mjs";
@@ -15,6 +15,10 @@ const FS = 'fstype!~"tmpfs|devtmpfs|overlay|squashfs|ramfs|nsfs|tracefs|fusectl|
 const LITELLM = { TrueNAS: "http://litellm:4000", Workstation: `http://${WORKSTATION}:4000` };
 export const STATE = process.env.HOMELAB_HEALTH_STATE
   ?? join(process.env.HOME ?? ".", ".openclaw/nabla-heartbeat/homelab-health.json");
+// The coder agent cannot reach the LAN: each of its sessions is seeded from
+// this workspace, so the heartbeat leaves it the current anomalies there.
+export const CODER_STATUS = process.env.CODER_STATUS_FILE
+  ?? join(process.env.HOME ?? ".", ".openclaw/workspace-coder/status/homelab-health.json");
 const ICON = { crit: "🔴", warn: "🟠", unknown: "⚪" };
 const RANK = { crit: 0, warn: 1, unknown: 2 };
 const MAX_LINES = 40;
@@ -206,6 +210,26 @@ export function render({ fresh, gone, ongoing }, now) {
   return lines.join("\n");
 }
 
+// Severity, text and start time only: the texts never carry a credential.
+export function coderStatus(seen, now) {
+  const anomalies = Object.values(seen).sort((a, b) => RANK[a.sev] - RANK[b.sev])
+    .map(({ sev, text, since }) => ({ sev, text, since: new Date(since).toISOString() }));
+  const counts = { crit: 0, warn: 0, unknown: 0 };
+  for (const { sev } of anomalies) counts[sev] += 1;
+  return { generated_at: new Date(now).toISOString(), sources: Object.keys(checks), counts, anomalies };
+}
+
+function writeCoderStatus(seen, now) {
+  if (!existsSync(dirname(dirname(CODER_STATUS)))) return; // no coder agent on this Gateway
+  try {
+    mkdirSync(dirname(CODER_STATUS), { recursive: true, mode: 0o700 });
+    writeFileSync(`${CODER_STATUS}.tmp`, JSON.stringify(coderStatus(seen, now), null, 1), { mode: 0o600 });
+    renameSync(`${CODER_STATUS}.tmp`, CODER_STATUS);
+  } catch {
+    // Best effort: the heartbeat itself must never fail on the coder copy.
+  }
+}
+
 async function main() {
   const now = Date.now();
   let prev = {};
@@ -219,6 +243,7 @@ async function main() {
   mkdirSync(dirname(STATE), { recursive: true, mode: 0o700 });
   writeFileSync(`${STATE}.tmp`, JSON.stringify({ seen: changes.seen }), { mode: 0o600 });
   renameSync(`${STATE}.tmp`, STATE);
+  writeCoderStatus(changes.seen, now);
 }
 
 if (import.meta.url === pathToFileURL(process.argv[1]).href) await main();

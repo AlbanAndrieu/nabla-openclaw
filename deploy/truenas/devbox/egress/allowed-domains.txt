@@ -9,3 +9,5 @@ pypi.org
 files.pythonhosted.org
 # npm: npm ci for nabla-site-alban/-bababou (metadata and tarballs, same host).
 registry.npmjs.org
+# FastAPI Sample on FastAPI Cloud: public read-only health (/livez, /v2/version, /api/ui/services).
+fastapi-sample.fastapicloud.dev
