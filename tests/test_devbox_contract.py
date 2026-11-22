@@ -95,6 +95,29 @@ class DevboxContract(unittest.TestCase):
                 self.edit_json(mod.CONTRACT, lambda c: c["egress"]["allowed_domains"].append(entry))
                 self.assertEqual(mod.violations(self.root), ["egress_allowlist_matches_contract"])
 
+    def test_read_only_lan_exception_cannot_widen(self):
+        squid = "deploy/truenas/devbox/egress/squid.conf"
+        for old, new in (
+                ("acl lan_observer dst 172.17.0.24\n", "acl lan_observer dst 172.17.0.0/16\n"),
+                ("acl GET method GET\n", "acl GET method GET POST\n"),
+                ("acl prometheus_port port 9090\n", "acl prometheus_port port 9090\nacl prometheus_port port 8085\n"),
+                ("http_access allow GET lan_observer prometheus_port prometheus_read\n",
+                 "http_access allow lan_observer prometheus_port\n"),
+                ("|alerts|", "|alerts|status/config|"),
+                ("http_access deny !CONNECT\n", "http_access deny !CONNECT\nhttp_access allow lan_observer\n")):
+            with self.subTest(change=new):
+                self.tearDown()
+                self.setUp()
+                self.edit(squid, old, new)
+                self.assertEqual(mod.violations(self.root), ["egress_allowlist_matches_contract"])
+        for change in (lambda c: c["egress"]["lan_readonly"].update(host="10.0.0.1"),
+                       lambda c: c["egress"]["lan_readonly"]["services"]["prometheus"].update(paths="^/.*")):
+            with self.subTest(change=change):
+                self.tearDown()
+                self.setUp()
+                self.edit_json(mod.CONTRACT, change)
+                self.assertEqual(mod.violations(self.root), ["egress_allowlist_matches_contract"])
+
     def test_ip_literals_and_reverse_dns_must_stay_refused(self):
         for old, new in (("http_access deny ip_literal\n", ""),
                          ('dstdomain -n "/etc/squid/allowed-domains.txt"', 'dstdomain "/etc/squid/allowed-domains.txt"')):

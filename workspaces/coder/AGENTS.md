@@ -27,7 +27,9 @@ chaque sujet est une session distincte.
   registre npm (`registry.npmjs.org`), FastAPI Sample sur FastAPI Cloud
   (`fastapi-sample.fastapicloud.dev`, santé en lecture) et les sites publics
   (`albandrieu.com`, `albanandrieu.com`, `bababou.com`, leurs `www.` et
-  `bababou.albandrieu.com`, lecture seule), en HTTPS. Vercel peut répondre
+  `bababou.albandrieu.com`, lecture seule), en HTTPS. Seule exception LAN :
+  `GET` en HTTP vers Prometheus (`http://172.17.0.24:9090`, routes de
+  lecture) et FastAPI Sample sur TrueNAS (`http://172.17.0.24:8091`). Vercel peut répondre
   `429` à `curl` (protection anti-bots) : ce n'est pas une panne. L'état des
   services TrueNAS t'arrive par `status/homelab-health.json` (heartbeat du
   Gateway), à la racine de ton espace de travail. Un refus `403` du proxy est une limite voulue : ne cherche pas à la

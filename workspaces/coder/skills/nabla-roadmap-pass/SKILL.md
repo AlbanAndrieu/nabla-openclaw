@@ -29,9 +29,10 @@ précédente.
 > questions qu'il reste.
 
 Sur la devbox, cela devient les étapes 1 à 6 ci-dessous. La devbox est hors
-ligne (`AGENT_EXECUTION_MODE=offline`, proxy limité à GitHub, PyPI, npm et
-FastAPI Cloud) : elle ne voit ni le LAN, ni TrueNAS, ni pfSense, ni Talos, ni
-Vaultwarden, ni Cloudflare. Toutes les règles de ton `AGENTS.md` et de la
+ligne (`AGENT_EXECUTION_MODE=offline`, proxy limité à GitHub, PyPI, npm,
+FastAPI Cloud, aux sites publics et, en lecture seule, à Prometheus et FastAPI
+Sample sur TrueNAS) : elle ne voit ni le reste du LAN, ni pfSense, ni Talos,
+ni Vaultwarden, ni Cloudflare. Toutes les règles de ton `AGENTS.md` et de la
 skill du dépôt (tableau ci-dessus) restent applicables, y compris ses
 interdits propres.
 
@@ -71,8 +72,22 @@ python3 -c 'import json;d=json.load(open("status/homelab-health.json"));print(d[
 ```
 
 Fichier absent, ou `generated_at` vieux de plus de 2 h : état `STALE`, jamais
-`PASS`. Ne tente pas de joindre TrueNAS, Gatus ou Prometheus toi-même : le
-proxy refuse, c'est voulu.
+`PASS`.
+
+**En direct sur TrueNAS** (HTTP en `GET`, lecture seule ; Gatus, POST et tout
+autre chemin ou port du LAN sont refusés par le proxy, c'est voulu) :
+
+```bash
+curl -s 'http://172.17.0.24:9090/api/v1/query?query=up==0' | python3 -c 'import json,sys;[print("DOWN",r["metric"].get("job"),r["metric"].get("instance")) for r in json.load(sys.stdin)["data"]["result"]]'
+curl -s http://172.17.0.24:9090/api/v1/alerts | python3 -c 'import json,sys;[print(a["labels"].get("severity"),a["labels"]["alertname"],a["labels"].get("job","")) for a in json.load(sys.stdin)["data"]["alerts"] if a["state"]=="firing"]'
+curl -s http://172.17.0.24:8091/v2/version
+curl -s http://172.17.0.24:8091/api/ui/services | python3 -c 'import json,sys,collections;d=json.load(sys.stdin);print(d.get("boardState"),collections.Counter(s.get("state") for s in d.get("services",[])))'
+```
+
+Prometheus n'accepte que `query`, `query_range`, `series`, `labels`,
+`label/<nom>/values`, `alerts`, `rules`, `targets` et `metadata` ; les routes
+de diagnostic de FastAPI (`/readyz`, `/api/health-board`…) répondent `401`
+sans clé, c'est normal.
 
 **FastAPI Sample sur FastAPI Cloud** (seule instance joignable) :
 

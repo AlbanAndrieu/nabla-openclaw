@@ -94,22 +94,42 @@ def sshd_locked_down(c, seed, root):
             and not any(line.startswith(("AcceptEnv", "PermitOpen", "AllowTcpForwarding yes")) for line in lines))
 
 
+def lan_readonly_rules(c):
+    """Squid acl and allow lines of the read-only LAN exception, derived from the contract."""
+    lan = c["egress"]["lan_readonly"]
+    if not (re.fullmatch(r"172\.17\.0\.\d{1,3}", lan["host"]) and lan["services"]):
+        raise ValueError("lan_readonly host")
+    acls = ["acl GET method GET", f'acl lan_observer dst {lan["host"]}']
+    allows = []
+    for name, service in lan["services"].items():
+        acl = name.replace("-", "_")
+        paths = service["paths"]
+        if type(service["port"]) is not int or not paths.startswith("^/") or not paths.endswith("(\\?.*)?$"):
+            raise ValueError("lan_readonly service")
+        acls += [f"acl {acl}_port port {service['port']}", f"acl {acl}_read urlpath_regex {paths}"]
+        allows.append(f"http_access allow GET lan_observer {acl}_port {acl}_read")
+    return acls, allows
+
+
 def egress_allowlist(c, seed, root):
-    """Squid: name-only allowlist file equal to the contract, every refusal before the single allow."""
+    """Squid: name-only allowlist equal to the contract, plus the contract's read-only LAN
+    GETs; every other request, private destinations included, refused in a fixed order."""
     conf = [line.strip() for line in text(root, c["egress"]["squid_config"]).splitlines()
             if line.strip() and not line.strip().startswith("#")]
     domains = [line.strip() for line in text(root, ALLOWLIST).splitlines()
                if line.strip() and not line.strip().startswith("#")]
+    acls, allows = lan_readonly_rules(c)
+    acl_names = [line.split()[1] for line in conf if line.startswith("acl ")]
     access = [line for line in conf if line.startswith("http_access ")]
-    allow = access.index("http_access allow allowed_domains")
     return ('acl allowed_domains dstdomain -n "/etc/squid/allowed-domains.txt"' in conf
             and domains == c["egress"]["allowed_domains"]
             and all(DOMAIN.fullmatch(domain) for domain in domains)
-            and access[-1] == "http_access deny all" and allow == len(access) - 2
-            and [line for line in access if line.startswith("http_access allow")] == [access[allow]]
-            and all(rule in access[:allow] for rule in (
-                "http_access deny !devbox_clients", "http_access deny !CONNECT", "http_access deny !https_port",
-                "http_access deny ip_literal", "http_access deny private_destinations")))
+            # Squid merges repeated acl names: one definition each, so none can be widened.
+            and len(acl_names) == len(set(acl_names)) and all(line in conf for line in acls)
+            and access == ["http_access deny !devbox_clients", *allows,
+                           "http_access deny !CONNECT", "http_access deny !https_port",
+                           "http_access deny ip_literal", "http_access deny private_destinations",
+                           "http_access allow allowed_domains", "http_access deny all"])
 
 
 def gateway_agent_sandboxed(c, seed, root):

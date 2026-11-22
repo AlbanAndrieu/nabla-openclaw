@@ -22,6 +22,7 @@
   "egress": {
     "proxy": "openclaw-devbox-egress:3128",
     "squid_config": "deploy/truenas/devbox/egress/squid.conf",
+    "lan_readonly": {"host": "172.17.0.24", "services": {"prometheus": {"port": 9090, "paths": "^/(-/(healthy|ready)|api/v1/(query|query_range|series|labels|label/[A-Za-z0-9_]+/values|alerts|rules|targets|metadata))(\\?.*)?$"}, "fastapi-sample": {"port": 8091, "paths": "^/(livez|health|readyz|healthz|v2/version|openapi\\.json|api(/[A-Za-z0-9_/-]*)?)(\\?.*)?$"}}},
     "allowed_domains": [".github.com", ".githubusercontent.com", "pypi.org", "files.pythonhosted.org",
       "registry.npmjs.org", "fastapi-sample.fastapicloud.dev",
       "albandrieu.com", "www.albandrieu.com", "albanandrieu.com", "www.albanandrieu.com", "bababou.com", "www.bababou.com", "bababou.albandrieu.com"]
