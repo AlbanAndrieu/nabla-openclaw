@@ -223,13 +223,15 @@ TrueNAS (`sudo cat` local). L'import est confié à une autre session.
      l'agent) et l'agent n'a plus le droit de toucher `git config`. Effectif
      après reconstruction de l'image : `just truenas-deploy-coder --apply` ;
   4. job `fastapi-sample-daily-improvement` : codé, **non déclaré** sur le
-     Gateway (`cron list --all` du 19/11). `just truenas-apply-coder-cron` ;
+     Gateway (`cron list --all` du 19/11). Couvert depuis le 22/11 par
+     `just truenas-apply-coder-cron all` (étape 3 de l'entrée suivante) ;
   5. ~~fermer nabla-compose#417~~ (fermée le 20/11) : issue de la passe
      d'avant les correctifs, la passe de 02:00 repart d'une branche neuve.
 - **Agent `coder` sur `nabla-site-alban`, `nabla-site-bababou` et
   `nabla-yubikey`** (codé le 20/11, `NOT_RUN` en runtime) : rulesets en place
   et dépôts déjà couverts par le token fine-grained (10 dépôts le 19/11).
-  1. après fusion, mettre à jour `apps/openclaw` dans nabla-compose, puis
+  1. #26 et #27 fusionnées (21-22/11) ; pin `fe43cc3` dans nabla-compose#437
+     (ouverte le 22/11). Après sa fusion et la mise à jour du checkout TrueNAS,
      `just truenas-deploy-coder --apply` : reconstruit les images `0.2.0`
      (Node 24.22.3 et npm 12.2.2 vérifiés par SHA-256, allowlist squid avec
      `registry.npmjs.org`) et applique les skills `nabla-site-dev` et

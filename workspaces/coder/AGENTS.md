@@ -18,6 +18,11 @@ chaque sujet est une session distincte.
 - Tes outils `exec`, `read`, `write`, `edit` et `apply_patch` s'exécutent sur
   la devbox (`openclaw-devbox`), par SSH, en tant que `coder`. Tu n'as accès
   ni au Gateway, ni à LiteLLM, ni aux autres Apps TrueNAS.
+- Dans une conversation, utilise `ask_user` pour une décision du propriétaire
+  (boutons Telegram), par exemple avant un commit ou une PR, et
+  `create_goal` (avec `token_budget`) pour suivre une tâche longue. Un job
+  planifié n'a personne pour répondre : n'y appelle jamais `ask_user`, parque
+  la question pour le compte rendu.
 - Le réseau sortant passe par un proxy qui n'autorise que GitHub, PyPI et le
   registre npm (`registry.npmjs.org`), en HTTPS. Un refus `403` du proxy est une limite voulue : ne cherche pas à la
   contourner, signale-la.

@@ -22,7 +22,7 @@ jamais exécuter de code dans le conteneur du Gateway.
 Telegram (groupe forum, 1 sujet = 1 session)
   └─> Gateway OpenClaw (App openclaw-gateway, agent `coder`, modèle litellm-coder/gpt-4.1)
         │   clé LiteLLM : SecretRef `file` (credentials/litellm/coder.key), 11 USD / 7 jours
-        └─ sandbox `ssh` (exec, read, write, edit, apply_patch)
+        └─ sandbox `ssh` (exec, read, write, edit, apply_patch ; ask_user et goals côté Gateway)
              └─> openclaw-devbox:2222 (réseau Docker interne `openclaw-devbox`)
                    └─ HTTPS CONNECT ─> openclaw-devbox-egress (squid) ─> GitHub, PyPI
 ```
@@ -277,6 +277,17 @@ proxy, puis `test-local-first` en `PASS`, sans commit ni push.
   l'installation). Installation ou mise à jour d'un job :
   `just truenas-apply-coder-cron <repo>-roadmap-pass`, ou de tous les jobs du
   coder : `just truenas-apply-coder-cron all`.
+- **Alertes d'échec** : chaque job annonce sur le groupe Telegram du coder, donc
+  OpenClaw y envoie déjà une alerte après 2 échecs consécutifs (puis au plus
+  une par heure), par exemple quand le budget de la clé est épuisé
+  (`docs/cli/cron.md` d'OpenClaw 2026.10.7). Rien à configurer ;
+  `failureAlert: false` sur un job la couperait.
+- **Garde-fous de session** (22/11) : détection de boucles
+  (`agents.entries.coder.tools.loopDetection.enabled`, imposée par
+  `check-devbox-contract.py`), `ask_user` (boutons Telegram) et goals
+  (`get_goal`, `create_goal`, `update_goal`, `/goal`, plafond `token_budget`).
+  Après `just truenas-apply-coder`, la ligne `coder_sandbox=... tools=` doit
+  les lister ; sinon `/tools` dans un sujet du coder.
 
 ## Rollback
 

@@ -114,7 +114,8 @@ class DevboxContract(unittest.TestCase):
                        lambda a: a["sandbox"].update(mode="non-main"),
                        lambda a: a["sandbox"]["ssh"].update(strictHostKeyChecking=False),
                        lambda a: a["tools"]["sandbox"]["tools"]["allow"].append("sessions_send"),
-                       lambda a: a["tools"]["deny"].remove("group:automation")):
+                       lambda a: a["tools"]["deny"].remove("group:automation"),
+                       lambda a: a["tools"]["loopDetection"].update(enabled=False)):
             with self.subTest(change=change):
                 self.tearDown()
                 self.setUp()

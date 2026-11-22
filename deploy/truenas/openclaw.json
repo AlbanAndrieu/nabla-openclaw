@@ -104,8 +104,10 @@
             "code_execution", "secrets", "skill_workshop"
           ],
           "sandbox": {
-            "tools": { "allow": ["exec", "process", "read", "ls", "write", "edit", "apply_patch", "session_status"] }
+            "tools": { "allow": ["exec", "process", "read", "ls", "write", "edit", "apply_patch", "session_status",
+                                 "ask_user", "get_goal", "create_goal", "update_goal"] }
           },
+          "loopDetection": { "enabled": true },
           "fs": { "workspaceOnly": true },
           "elevated": { "enabled": false }
         }

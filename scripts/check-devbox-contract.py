@@ -21,7 +21,8 @@ DOCKERFILE = "deploy/truenas/devbox/Dockerfile"
 STATUSES = ("prepared_not_deployed", "ready_to_deploy", "active")
 DOMAIN = re.compile(r"^\.?(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$")
 # Tools the coder may run inside its sandbox; everything else stays denied.
-SANDBOX_TOOLS = {"exec", "process", "read", "ls", "write", "edit", "apply_patch", "view_image", "session_status"}
+SANDBOX_TOOLS = {"exec", "process", "read", "ls", "write", "edit", "apply_patch", "view_image", "session_status",
+                 "ask_user", "get_goal", "create_goal", "update_goal"}
 REQUIRED_DENIES = {"group:automation", "group:nodes", "group:ui", "group:web", "sessions_send", "sessions_spawn"}
 # Session commit identity: environment beats any `git config` written by the agent.
 GIT_IDENTITY = "GIT_COMMITTER_EMAIL=openclaw-coder@users.noreply.github.com"
@@ -123,6 +124,8 @@ def gateway_agent_sandboxed(c, seed, root):
             and ssh["identityFile"] == c["ssh"]["gateway_identity_file"]
             and ssh["knownHostsFile"] == c["ssh"]["gateway_known_hosts_file"]
             and tools["elevated"]["enabled"] is False and tools["fs"]["workspaceOnly"] is True
+            # Cheapest budget guard for unattended nightly runs.
+            and tools["loopDetection"]["enabled"] is True
             and allow <= SANDBOX_TOOLS and REQUIRED_DENIES <= set(tools["deny"])
             and agent["model"] == model_ref and model_ref in seed["agents"]["defaults"]["modelPolicy"]["allow"]
             and provider["apiKey"] == {"source": "file", "provider": c["model"]["key_secret_provider"], "id": "value"}
