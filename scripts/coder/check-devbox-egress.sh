@@ -27,6 +27,9 @@ check direct_route_blocked '^000 000$' "$(probe https://github.com)"
 check github_tunnel '^200 [1-5][0-9][0-9]$' "$(probe "$proxy" https://api.github.com/zen)"
 check pypi_tunnel '^200 200$' "$(probe "$proxy" https://pypi.org/simple/uv/)"
 check fastapi_cloud_tunnel '^200 200$' "$(probe "$proxy" https://fastapi-sample.fastapicloud.dev/livez)"
+# Vercel may answer 429 (bot protection) to curl: any status proves the tunnel opened.
+check site_tunnel '^200 [1-5][0-9][0-9]$' "$(probe "$proxy" https://www.albanandrieu.com/)"
+check homelab_route_refused '^403 000$' "$(probe "$proxy" https://gatus.albandrieu.com/)"
 check other_domain_refused '^403 000$' "$(probe "$proxy" https://example.com)"
 # The TrueNAS instance stays out: its status reaches the coder through the heartbeat snapshot.
 check fastapi_truenas_refused '^403 000$' "$(probe "$proxy" https://fastapi-sample.albandrieu.com/livez)"

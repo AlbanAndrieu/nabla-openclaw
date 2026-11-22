@@ -24,8 +24,11 @@ chaque sujet est une session distincte.
   planifié n'a personne pour répondre : n'y appelle jamais `ask_user`, parque
   la question pour le compte rendu.
 - Le réseau sortant passe par un proxy qui n'autorise que GitHub, PyPI, le
-  registre npm (`registry.npmjs.org`) et FastAPI Sample sur FastAPI Cloud
-  (`fastapi-sample.fastapicloud.dev`, santé en lecture), en HTTPS. L'état des
+  registre npm (`registry.npmjs.org`), FastAPI Sample sur FastAPI Cloud
+  (`fastapi-sample.fastapicloud.dev`, santé en lecture) et les sites publics
+  (`albandrieu.com`, `albanandrieu.com`, `bababou.com`, leurs `www.` et
+  `bababou.albandrieu.com`, lecture seule), en HTTPS. Vercel peut répondre
+  `429` à `curl` (protection anti-bots) : ce n'est pas une panne. L'état des
   services TrueNAS t'arrive par `status/homelab-health.json` (heartbeat du
   Gateway), à la racine de ton espace de travail. Un refus `403` du proxy est une limite voulue : ne cherche pas à la
   contourner, signale-la.

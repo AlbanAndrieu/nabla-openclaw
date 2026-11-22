@@ -62,11 +62,12 @@ retentent pas sans fait nouveau.
 
 **Services TrueNAS** : le heartbeat du Gateway (toutes les 30 min) dépose
 dans ton espace de travail `status/homelab-health.json` : sondes Gatus en
-échec, alertes Prometheus, conteneurs en panne, LiteLLM. Lis-le à la racine
-de l'espace de travail (pas dans le clone) :
+échec, alertes Prometheus, conteneurs en panne, LiteLLM, et le budget de ta
+clé LiteLLM (`coder_budget` : dépense, plafond, remise à zéro). Lis-le à la
+racine de l'espace de travail (pas dans le clone) :
 
 ```bash
-python3 -c 'import json;d=json.load(open("status/homelab-health.json"));print(d["generated_at"],d["counts"]);[print(a["sev"],a["text"]) for a in d["anomalies"][:15]]'
+python3 -c 'import json;d=json.load(open("status/homelab-health.json"));print(d["generated_at"],d["counts"],d.get("coder_budget"));[print(a["sev"],a["text"]) for a in d["anomalies"][:15]]'
 ```
 
 Fichier absent, ou `generated_at` vieux de plus de 2 h : état `STALE`, jamais
@@ -202,7 +203,9 @@ En français, au plus 30 lignes, sans rien envoyer toi-même, dans cet ordre :
 
 1. **Services** : âge de `status/homelab-health.json` et compteurs
    (`crit`/`warn`/`unknown`, ou `STALE`), les 3 anomalies les plus graves ;
-   FastAPI Cloud : `/livez`, version, compteurs de `/api/ui/services`.
+   FastAPI Cloud : `/livez`, version, compteurs de `/api/ui/services` ;
+   budget du coder : `<dépense> / <plafond> USD`, remise à zéro, ou « non
+   mesuré ».
 2. **Code** : CI `master` (nom et conclusion des jobs), porte hors ligne
    (`PASS`, `FAIL` ou `NOT_RUN`).
 3. **PR ouvertes** : `#numéro titre → état → action` pour chacune, URL des PR

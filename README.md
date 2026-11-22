@@ -86,7 +86,7 @@ liste dans `deploy/truenas/devbox/contract.json`) depuis un groupe
 Telegram forum (un sujet = une session). Ses outils (`exec`, `read`, `write`,
 `edit`, `apply_patch`) s'exécutent par la sandbox `ssh` d'OpenClaw dans la
 devbox `openclaw-devbox` : conteneur non-root sur un réseau Docker interne,
-dont la seule sortie est un proxy squid limité à GitHub, PyPI, npm et FastAPI Cloud (lecture de santé). Aucun code ne
+dont la seule sortie est un proxy squid limité à GitHub, PyPI, npm, FastAPI Cloud et aux sites publics (lecture seule). Aucun code ne
 tourne dans le Gateway ; l'agent ouvre des PR Draft et ne fusionne jamais.
 
 | Source (ce dépôt) | Cible runtime |

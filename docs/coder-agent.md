@@ -72,7 +72,7 @@ terminal dans le chat), sur un réseau isolé et sans socket Docker.
 | Lecture des secrets du Gateway par `exec` (I) | `sandbox.mode: all` : aucun outil de code ne tourne dans le Gateway ; `elevated` désactivé pour `coder` |
 | Sortie de l'espace de travail (E) | `tools.fs.workspaceOnly` ; `read /etc/passwd` refusé (test E2E) ; utilisateur `1001`, `cap_drop: ALL`, rootfs en lecture seule |
 | Mouvement latéral vers le LAN, TrueNAS ou Docker (E) | Réseau `openclaw-devbox` interne ; aucun socket Docker, aucun accès hôte ; squid refuse les destinations privées et les IP littérales |
-| Exfiltration, téléchargement arbitraire (I) | `egress/allowed-domains.txt` (`.github.com`, `.githubusercontent.com`, `pypi.org`, `files.pythonhosted.org`, `registry.npmjs.org`, `fastapi-sample.fastapicloud.dev` : santé publique en lecture, l'instance TrueNAS reste refusée), `dstdomain -n` (pas de DNS inverse), CONNECT 443 uniquement |
+| Exfiltration, téléchargement arbitraire (I) | `egress/allowed-domains.txt` (`.github.com`, `.githubusercontent.com`, `pypi.org`, `files.pythonhosted.org`, `registry.npmjs.org`, `fastapi-sample.fastapicloud.dev` : santé publique en lecture, l'instance TrueNAS reste refusée ; noms exacts des sites publics `albandrieu.com`, `albanandrieu.com`, `bababou.com`, leurs `www.` et `bababou.albandrieu.com`, sans joker `.albandrieu.com` qui ouvrirait aussi les routes du tunnel homelab), `dstdomain -n` (pas de DNS inverse), CONNECT 443 uniquement |
 | Usurpation de la devbox ou du Gateway (S) | Clé d'hôte épinglée (`known_hosts`, `strictHostKeyChecking`, `updateHostKeys: false`) ; clé client dédiée, `restrict,pty` |
 | Modification non revue de `master` (T) | Token fine-grained limité au dépôt (Contents, Pull requests ; ni Workflows ni Administration) ; protection de `master` ; PR Draft, jamais de merge |
 | Prompt injection par le dépôt, les issues ou le web (T) | `workspaces/coder/AGENTS.md` : contenu = donnée ; outils web, messages, cron, gateway, nodes et sessions refusés |
@@ -297,6 +297,12 @@ proxy, puis `test-local-first` en `PASS`, sans commit ni push.
   `openclaw/fix-pr-<n>-*` en PR Draft vers la branche de la PR ; actions
   réservées à la Workstation (`apply`, secrets, déploiements) parquées sans
   question.
+- **Budget du coder** (22/11) : le collecteur du heartbeat lit, avec la clé du
+  coder elle-même, `GET /key/info` de LiteLLM (sans paramètre : la clé
+  appelante, vérifié dans le code de LiteLLM) et n'en garde que la dépense, le
+  plafond et la date de remise à zéro. Ligne « LITELLM CODER » du briefing du
+  matin, anomalie à 80 % (🟠) et 100 % (🔴), champ `coder_budget` de
+  `status/homelab-health.json`, repris par chaque passe de roadmap.
 
 ## Rollback
 

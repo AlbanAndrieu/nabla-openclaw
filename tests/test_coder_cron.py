@@ -40,7 +40,7 @@ class RoadmapPassCron(unittest.TestCase):
 
     def test_skill_keeps_the_owner_directive_and_offline_limits(self):
         skill = (ROOT / "workspaces/coder/skills/nabla-roadmap-pass/SKILL.md").read_text(encoding="utf-8")
-        for marker in ("consolide la et recommandations la boucle trois fois", "status/homelab-health.json",
+        for marker in ("consolide la et recommandations la boucle trois fois", "status/homelab-health.json", "coder_budget",
                        "fastapi-sample.fastapicloud.dev/livez", "sans jamais pousser sur la branche de la",
                        "au plus **2 PR par passe**", "isCrossRepository", "ne le demande jamais",
                        "« Aucun item traitable » sans cette liste est une passe ratée",
