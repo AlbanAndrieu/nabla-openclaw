@@ -38,7 +38,7 @@ truenas-bootstrap-coder:
 truenas-apply-coder:
     scripts/coder/apply-truenas.sh
 
-# TrueNAS daily coder job (fastapi-sample-daily-improvement by default, or nabla-compose-roadmap-pass).
+# TrueNAS coder job: fastapi-sample-daily-improvement (default), <repo>-roadmap-pass, or all.
 truenas-apply-coder-cron job="fastapi-sample-daily-improvement":
     scripts/coder/apply-cron-truenas.sh {{job}}
 

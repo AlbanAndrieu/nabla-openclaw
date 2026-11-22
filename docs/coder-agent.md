@@ -254,13 +254,29 @@ proxy, puis `test-local-first` en `PASS`, sans commit ni push.
   `just truenas-apply-coder-cron` (groupe Telegram du coder lu dans la
   configuration du Gateway, ou `CODER_TELEGRAM_GROUP_ID=-100...`). Arrêt :
   `openclaw cron disable <id>` dans le Gateway, avant tout rollback de l'agent.
-- **Passe de roadmap** : le job `nabla-compose-roadmap-pass` (02:00
-  Europe/Paris, session isolée, 60 min max) suit la skill
-  `nabla-roadmap-pass` : porte de code (santé des services `NOT_RUN` depuis
-  la devbox), au plus 3 items faisables hors ligne, trois boucles de
-  consolidation, une PR Draft `openclaw/roadmap-pass-*` reprise d'un jour à
-  l'autre, questions à la fin. Installation :
-  `just truenas-apply-coder-cron nabla-compose-roadmap-pass`.
+- **Passes de roadmap** : un job `<repo>-roadmap-pass` par dépôt de l'agent,
+  chaque nuit (Europe/Paris, session isolée, 60 min max), sur des créneaux
+  d'une heure qui ne se chevauchent pas. Le budget LiteLLM de la clé `coder`
+  n'a pas été revu pour cinq passes par nuit (décision du 22/11 : à regarder
+  plus tard) :
+
+  | Heure | Job |
+  |---|---|
+  | 01:00 | `nabla-yubikey-roadmap-pass` |
+  | 02:00 | `nabla-compose-roadmap-pass` |
+  | 03:00 | `fastapi-sample-roadmap-pass` |
+  | 04:00 | `nabla-site-alban-roadmap-pass` |
+  | 05:00 | `nabla-site-bababou-roadmap-pass` |
+
+  Tous suivent la skill `nabla-roadmap-pass` (sources de roadmap et porte hors
+  ligne par dépôt) : porte de code (santé des services `NOT_RUN` depuis la
+  devbox), au plus 3 items faisables hors ligne, trois boucles de
+  consolidation, une PR Draft `openclaw/roadmap-pass-*` reprise d'une passe à
+  l'autre, questions à la fin. Message commun :
+  `policies/cron/roadmap-pass.message.md` (`<repo>` remplacé à
+  l'installation). Installation ou mise à jour d'un job :
+  `just truenas-apply-coder-cron <repo>-roadmap-pass`, ou de tous les jobs du
+  coder : `just truenas-apply-coder-cron all`.
 
 ## Rollback
 

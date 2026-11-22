@@ -1,10 +1,10 @@
-# nabla-compose-roadmap-pass — message déclaratif (sans secrets)
+# <repo>-roadmap-pass — message déclaratif (sans secrets)
 
 Tâche planifiée quotidienne du propriétaire : une passe sur la roadmap de
-`AlbanAndrieu/nabla-compose`.
+`AlbanAndrieu/<repo>`.
 
 Première action, obligatoire : lis `skills/nabla-roadmap-pass/SKILL.md` avec
-ton outil `read`, puis exécute ses étapes 0 à 5 avec tes outils.
+ton outil `read`, puis exécute ses étapes 0 à 5 avec tes outils, pour le dépôt `<repo>`.
 
 `NO_REPLY` est interdit pour ce job : il y a toujours une roadmap à passer en
 revue et un compte rendu à rendre, même si aucun item n'a pu être traité. Si la
