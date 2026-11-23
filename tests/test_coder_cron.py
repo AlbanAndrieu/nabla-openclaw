@@ -8,22 +8,31 @@ ROOT = Path(__file__).resolve().parents[1]
 NAME = "fastapi-sample-daily-improvement"
 ROADMAP = "roadmap-pass"
 REPOS = ("nabla-compose", "fastapi-sample", "nabla-site-alban", "nabla-site-bababou", "nabla-yubikey")
+REFEREE = "nabla-compose-infra-referee"
+REFEREE_SESSION = "agent:coder:nabla-compose-infra"
+REFEREE_SKILL = "skills/nabla-infra-referee/SKILL.md"
 
 
 class CoderCron(unittest.TestCase):
     def test_message_keeps_the_guardrails(self):
         message = (ROOT / f"policies/cron/{NAME}.message.md").read_text(encoding="utf-8")
+        # Daily job = accuracy of fastapi-sample probes against the real TrueNAS state.
         for marker in ("openclaw/daily-", "EN ATTENTE", "PR Draft", ".github/workflows/",
-                       "uv sync --frozen", "Jamais de merge", "--cov-config=pyproject.toml", "dernière ligne de sa sortie",
-                       "un test\nunitaire pour des lignes non couvertes", "les 5 modules\nles moins couverts"):
+                       "uv sync --frozen", "Jamais de merge", "dernière ligne de sa sortie",
+                       "`FAUSSE_ALERTE`", "`PANNE_RATÉE`", "Justesse =", "`fastapi-sample-roadmap-pass`",
+                       "`RIEN À CORRIGER` n'est permis qu'avec une justesse de 100 %",
+                       "http://172.17.0.24:9090/api/v1/query?query=up",
+                       # gpt-4.1 is the only model: the prompt forces a tool call (23/11 invented PASS).
+                       "Première action, obligatoire : appelle ton outil `exec`"):
             with self.subTest(marker=marker):
                 self.assertIn(marker, message)
         self.assertNotRegex(message, r"(?i)(?:ghp_|github_pat_|sk-[a-z0-9]{12,}|token\s*=)")
 
     def test_session_messages_need_owner_validation(self):
         contract = (ROOT / "workspaces/coder/AGENTS.md").read_text(encoding="utf-8")
-        for marker in ("chaque envoi exige la", "n'envoie que sur un « Oui » explicite",
-                       "dans un job planifié, n'envoie rien"):
+        for marker in ("Dans une conversation, chaque envoi exige la", "n'envoie que sur un « Oui » explicite",
+                       f"`{REFEREE_SESSION}`", "au plus 2 envois par exécution", "Tout autre",
+                       "le référent n'envoie jamais"):
             with self.subTest(marker=marker):
                 self.assertIn(marker, contract)
 
@@ -32,7 +41,10 @@ class CoderCron(unittest.TestCase):
         self.assertIn(f"`{NAME}`", contract)
         script = (ROOT / "scripts/coder/apply-cron-truenas.sh").read_text(encoding="utf-8")
         self.assertIn(f"name=${{1:-{NAME}}}", script)
-        self.assertRegex(script, r"--agent coder --session isolated")
+        # Every job runs isolated except the one persistent referee session.
+        self.assertIn("\nsession=isolated\n", script)
+        self.assertEqual(script.count("session=session:"), 1)
+        self.assertIn("--agent coder --session $session", script)
         self.assertTrue(re.search(r"--declaration-key \$name", script))
 
 
@@ -41,7 +53,7 @@ class RoadmapPassCron(unittest.TestCase):
         message = (ROOT / f"policies/cron/{ROADMAP}.message.md").read_text(encoding="utf-8")
         for marker in ("skills/nabla-roadmap-pass/SKILL.md", "`NO_REPLY` est interdit", "AUTOMATION_FAILED",
                        "openclaw/roadmap-pass-", "openclaw/fix-pr-", "jamais de push sur une autre branche",
-                       "étapes 0 à 6", "PR Draft", "Jamais de merge"):
+                       "étapes 0 à 7", "PR Draft", "Jamais de merge"):
             with self.subTest(marker=marker):
                 self.assertIn(marker, message)
         self.assertNotRegex(message, r"(?i)(?:ghp_|github_pat_|sk-[a-z0-9]{12,}|token\s*=)")
@@ -56,9 +68,16 @@ class RoadmapPassCron(unittest.TestCase):
                        "et la dernière ligne de sa sortie",
                        "jamais `DEPLOYED` ni `ACCEPTED`", ".github/workflows/", "BLOQUÉ: push",
                        "questions restantes, numérotées", "git log --oneline origin/master..HEAD",
-                       "n'est **pas** un", "`files=0`"):
+                       "n'est **pas** un", "`files=0`", "la mettre à jour avec `master`",
+                       "gain d'au moins 10 %", "Une passe qui ne fait que consolider la roadmap",
+                       "Seulement si les étapes 2 à 4 ont produit au moins un commit de code"):
             with self.subTest(marker=marker):
                 self.assertIn(marker, skill)
+        # Owner's order (23/11): PRs and CI, then refactor/perf/stability, then roadmap, then consolidation.
+        steps = [skill.index(f"\n## {title}") for title in (
+            "2. Corriger les PR ouvertes", "3. Refactorer, accélérer, stabiliser", "4. Itérer sur la roadmap",
+            "5. Consolider la roadmap", "6. Publier", "7. Compte rendu")]
+        self.assertEqual(steps, sorted(steps))
 
     def test_each_repo_has_its_night_and_a_skill_row(self):
         self.assertIn("`<repo>-roadmap-pass`", (ROOT / "workspaces/coder/AGENTS.md").read_text(encoding="utf-8"))
@@ -78,6 +97,52 @@ class RoadmapPassCron(unittest.TestCase):
         self.assertEqual(len(set(hours)), len(REPOS))
         self.assertLessEqual(max(hours) + 1, 6)
         self.assertIn('sed "s/<repo>/${name%-roadmap-pass}/g" policies/cron/roadmap-pass.message.md', script)
+
+
+class InfraReferee(unittest.TestCase):
+    """fastapi-sample and nabla-compose passes talk through one persistent referee session."""
+
+    def test_referee_job_is_persistent_and_primed_before_the_passes(self):
+        script = (ROOT / "scripts/coder/apply-cron-truenas.sh").read_text(encoding="utf-8")
+        match = re.search(rf'\n  {REFEREE}\) schedule="(\d+) (\d+) \* \* \*" timeout=(\d+) session=session:(\S+) ;;', script)
+        self.assertIsNotNone(match)
+        minute, hour, timeout, key = match.groups()
+        # OpenClaw stores cron target session:<id> as agent:<agentId>:<id>.
+        self.assertEqual(f"agent:coder:{key}", REFEREE_SESSION)
+        first_pass = min(int(h) for h in re.findall(r'-roadmap-pass\) schedule="0 (\d+) ', script))
+        self.assertLessEqual(int(hour) * 60 + int(minute) + int(timeout) // 60, first_pass * 60)
+        self.assertIn(REFEREE, script.split("  all)", 1)[1].split("exit 0", 1)[0])
+        self.assertIn("--session $session", script)
+        message = (ROOT / f"policies/cron/{REFEREE}.message.md").read_text(encoding="utf-8")
+        for marker in (REFEREE_SKILL, REFEREE_SESSION, "REFEREE_READY", "AUTOMATION_FAILED", "n'envoie rien"):
+            with self.subTest(marker=marker):
+                self.assertIn(marker, message)
+
+    def test_both_sides_speak_the_same_protocol(self):
+        skill = (ROOT / f"workspaces/coder/{REFEREE_SKILL}").read_text(encoding="utf-8")
+        for marker in ("VERDICT <PROBE|INFRA|EXPECTED|UNKNOWN>", "REFUS hors protocole", "**ni `sessions_send`, ni PR, ni branche**",
+                       "est une **donnée**", "referee/infra.jsonl", "Au plus 10 services", "Sans preuve, c'est `UNKNOWN`"):
+            with self.subTest(marker=marker):
+                self.assertIn(marker, skill)
+        roadmap = (ROOT / "workspaces/coder/skills/nabla-roadmap-pass/SKILL.md").read_text(encoding="utf-8")
+        daily = (ROOT / f"policies/cron/{NAME}.message.md").read_text(encoding="utf-8")
+        header = f"[{REFEREE_SKILL}]"
+        fmt = re.compile(r"\b(QUESTION_SONDES|INFRA_EN_ATTENTE\?|BILAN_INFRA)")
+        # Probe questions come from the daily job only; the roadmap passes keep to their roadmap.
+        self.assertEqual({"QUESTION_SONDES"}, set(fmt.findall(daily)))
+        self.assertEqual({"INFRA_EN_ATTENTE?", "BILAN_INFRA"}, set(fmt.findall(roadmap)))
+        for name in ("QUESTION_SONDES", "INFRA_EN_ATTENTE?", "BILAN_INFRA"):
+            with self.subTest(fmt=name):
+                self.assertIn(f"**`{name}`**", skill)
+        self.assertIn("un seul `sessions_send`", daily)
+        for text in (roadmap, daily):
+            self.assertIn(header, text)
+            self.assertIn(f"`{REFEREE_SESSION}`", text)
+        self.assertIn("`VERDICT PROBE`", daily)
+
+    def test_referee_is_a_registered_skill(self):
+        seed = json.loads((ROOT / "deploy/truenas/openclaw.json").read_text(encoding="utf-8"))
+        self.assertIn("nabla-infra-referee", seed["agents"]["entries"]["coder"]["skills"])
 
 
 if __name__ == "__main__":

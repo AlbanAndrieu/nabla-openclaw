@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Declares one scheduled job of the coder agent on the TrueNAS Gateway, without
 # restart. --declaration-key makes a re-run update the same job.
-#   just truenas-apply-coder-cron [fastapi-sample-daily-improvement|<repo>-roadmap-pass|all]
+#   just truenas-apply-coder-cron [fastapi-sample-daily-improvement|<repo>-roadmap-pass|nabla-compose-infra-referee|all]
 # The Telegram group id stays out of Git: CODER_TELEGRAM_GROUP_ID=-100..., or by
 # default the group that apply-truenas.sh routed to coder in the Gateway config.
 set -euo pipefail
@@ -9,8 +9,12 @@ self=$(realpath "$0")
 cd "$(dirname "$self")/../.."
 
 name=${1:-fastapi-sample-daily-improvement}
+session=isolated
 case $name in
   fastapi-sample-daily-improvement) schedule="17 6 * * *" timeout=1800 ;;
+  # Persistent session (not isolated), primed before the passes: they ask it, by
+  # sessions_send, whether a failing probe comes from fastapi-sample or nabla-compose.
+  nabla-compose-infra-referee) schedule="30 0 * * *" timeout=900 session=session:nabla-compose-infra ;;
   # Roadmap passes: every repository every night, one-hour slots that never
   # overlap and end before the 06:17 fastapi-sample job.
   nabla-yubikey-roadmap-pass) schedule="0 1 * * *" timeout=3600 ;;
@@ -19,7 +23,7 @@ case $name in
   nabla-site-alban-roadmap-pass) schedule="0 4 * * *" timeout=3600 ;;
   nabla-site-bababou-roadmap-pass) schedule="0 5 * * *" timeout=3600 ;;
   all)
-    for job in fastapi-sample-daily-improvement nabla-compose-roadmap-pass fastapi-sample-roadmap-pass \
+    for job in nabla-compose-infra-referee fastapi-sample-daily-improvement nabla-compose-roadmap-pass fastapi-sample-roadmap-pass \
                nabla-site-alban-roadmap-pass nabla-site-bababou-roadmap-pass nabla-yubikey-roadmap-pass; do
       "$self" "$job"
     done
@@ -40,7 +44,7 @@ fi
 
 # The message goes through stdin: it holds quotes and backticks.
 ssh -o BatchMode=yes truenas "sudo -n docker exec -i openclaw-gateway sh -c 'node openclaw.mjs cron add \
-  --declaration-key $name --name $name --agent coder --session isolated \
+  --declaration-key $name --name $name --agent coder --session $session \
   --cron \"$schedule\" --tz Europe/Paris --timeout-seconds $timeout \
   --announce --channel telegram --to $group $thread \
   --message \"\$(cat)\"'" < <(if [[ $name == *-roadmap-pass ]]; then
@@ -48,4 +52,4 @@ ssh -o BatchMode=yes truenas "sudo -n docker exec -i openclaw-gateway sh -c 'nod
   else
     cat "policies/cron/$name.message.md"
   fi)
-echo "coder_cron=$name declared ($schedule Europe/Paris, ${timeout}s max)"
+echo "coder_cron=$name declared ($schedule Europe/Paris, ${timeout}s max, $session)"

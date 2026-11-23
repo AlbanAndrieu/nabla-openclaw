@@ -245,10 +245,14 @@ proxy, puis `test-local-first` en `PASS`, sans commit ni push.
   vérifie), puis `just truenas-deploy-coder --apply`.
 - **Coût** : `just openclaw-truenas-virtual-keys-quota` (`nabla-compose`) ; le
   budget se réinitialise tous les 7 jours.
-- **Revue quotidienne** (codée, non déclarée sur le Gateway au 19/11) : le job `fastapi-sample-daily-improvement` (06:17
-  Europe/Paris, session isolée, 30 min max) lance les gates de
-  `fastapi-sample` et propose au plus une PR Draft `openclaw/daily-*` ; il ne
-  fait rien tant qu'une précédente est ouverte. Message :
+- **Justesse des sondes, chaque jour** (déclaré le 23/11) : le job `fastapi-sample-daily-improvement` (06:17
+  Europe/Paris, session isolée, 30 min max) confronte les sondes de
+  `fastapi-sample` (`/api/ui/services` TrueNAS) à l'état réel (Prometheus,
+  alertes, `homelab-health.json`), calcule leur justesse
+  (`JUSTE`/`FAUSSE_ALERTE`/`PANNE_RATÉE`/`INCONNU`), fait arbitrer les écarts
+  par le référent infra et corrige au plus une sonde en PR Draft
+  `openclaw/daily-*` ; il ne fait rien tant qu'une précédente est ouverte. La
+  roadmap de fastapi-sample reste à `fastapi-sample-roadmap-pass`. Message :
   `policies/cron/fastapi-sample-daily-improvement.message.md`. Installation ou
   mise à jour (idempotente) :
   `just truenas-apply-coder-cron` (groupe Telegram du coder lu dans la
@@ -269,10 +273,13 @@ proxy, puis `test-local-first` en `PASS`, sans commit ni push.
   | 05:00 | `nabla-site-bababou-roadmap-pass` |
 
   Tous suivent la skill `nabla-roadmap-pass` (sources de roadmap et porte hors
-  ligne par dépôt) : porte de code (santé des services `NOT_RUN` depuis la
-  devbox), au plus 3 items faisables hors ligne, trois boucles de
-  consolidation, une PR Draft `openclaw/roadmap-pass-*` reprise d'une passe à
-  l'autre, questions à la fin. Message commun :
+  ligne par dépôt), dans l'ordre fixé le 23/11 : corriger les PR ouvertes
+  (retard sur `master`, conflits, CI rouge) puis la CI de `master` ;
+  refactor, performance et stabilité, chacun mesuré avant et après ; puis au
+  plus 3 items de roadmap faisables hors ligne. Les trois boucles de
+  consolidation n'ont lieu qu'après un commit de code : une passe qui ne fait
+  que consolider est ratée. Une PR Draft `openclaw/roadmap-pass-*` est reprise
+  d'une passe à l'autre, questions à la fin. Message commun :
   `policies/cron/roadmap-pass.message.md` (`<repo>` remplacé à
   l'installation). Installation ou mise à jour d'un job :
   `just truenas-apply-coder-cron <repo>-roadmap-pass`, ou de tous les jobs du
@@ -316,6 +323,27 @@ proxy, puis `test-local-first` en `PASS`, sans commit ni push.
   Validation du propriétaire avant chaque envoi : règle de
   `workspaces/coder/AGENTS.md` (`ask_user`), **pas** un contrôle technique,
   car les approbations d'OpenClaw ne couvrent que `exec` sur l'hôte.
+- **Référent infra entre fastapi-sample et nabla-compose** (23/11) : le job
+  `nabla-compose-infra-referee` (00:30, 900 s) amorce chaque nuit la session
+  **persistante** `agent:coder:nabla-compose-infra` (cible cron
+  `session:nabla-compose-infra`, que OpenClaw 2026.10.7 range sous
+  `agent:<agent>:<id>`) avec la skill `nabla-infra-referee`. Le job
+  `fastapi-sample-daily-improvement` lui envoie les écarts entre ses sondes et
+  l'état réel (`/api/ui/services` TrueNAS, `up==0`, alertes) par **un**
+  `sessions_send` et reçoit un verdict par sonde : `PROBE` (la sonde contredit l'état
+  déclaré dans nabla-compose → correction dans fastapi-sample), `INFRA`
+  (service en panne → journal du référent), `EXPECTED` ou `UNKNOWN`, chacun
+  avec une preuve (`fichier:ligne@sha` ou requête Prometheus). La passe
+  nabla-compose reprend les `INFRA` ouverts (`INFRA_EN_ATTENTE?`) et signale
+  ses corrections (`BILAN_INFRA`). Seule exception à la validation du
+  propriétaire pour `sessions_send`, au plus 2 envois par exécution ; le
+  référent ne commite et n'envoie jamais. Aucune config Gateway nouvelle
+  (`sessions_send`, visibilité `agent` déjà en place) ; la devbox garde son
+  proxy : le MCP TrueNAS reste réservé à l'App fastapi-sample, ses sondes
+  se lisent par `/api/ui/services` et Prometheus. Réception Workstation :
+  `just truenas-apply-coder` (skill), `just truenas-apply-coder-cron all`,
+  puis `openclaw cron run <id du référent>` une fois pour créer la session
+  et vérifier `REFEREE_READY` sur Telegram.
 
 ## Rollback
 
