@@ -24,7 +24,7 @@ VERSION = re.compile(r"^[0-9]+\.[0-9]+\.[0-9]+$")
 UNVERIFIED = "__unverified_openclaw_runtime__"
 MAX_JSON = 1024 * 1024
 
-DIGEST_JOB_ID = "7ed5dd9a-da30-479f-b0eb-4cc494fb4966"
+DIGEST_JOB_ID = "27d71377-5b51-4e8a-8b6b-80207112f2a0"
 DIGEST_JOB_NAME = "daily-tech-news-digest"
 
 

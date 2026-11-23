@@ -153,3 +153,22 @@ test("coder budget check: silent without a key file, warns from 80 %", async (t)
   assert.match(text, /^Budget LiteLLM du coder : 9\.50 \/ 11 USD \(86 %\)$/);
   assert.equal(coderStatus({}, 0).coder_budget.spend, 9.5);
 });
+
+test("digest check: no archive after 09:10 Paris flags an invented digest", async () => {
+  const { mkdtempSync, writeFileSync } = await import("node:fs");
+  const { tmpdir } = await import("node:os");
+  const dir = mkdtempSync(`${tmpdir()}/digest-`);
+  const at = (iso) => checks.digest(null, {}, Date.parse(iso), dir);
+  assert.deepEqual(await checks.digest(null, {}, NOON, `${dir}/none`), []);
+  // 09:05 Paris: today's job may still run, so yesterday's archive is checked.
+  assert.equal((await at("2026-11-23T08:05:00Z"))[0][0], "digest:2026-11-22");
+  writeFileSync(`${dir}/daily-2026-11-22.md`, "- [Titre]\n");
+  assert.deepEqual(await at("2026-11-23T08:05:00Z"), []);
+  const [[key, sev, text]] = await at("2026-11-23T08:30:00Z");
+  assert.deepEqual([key, sev], ["digest:2026-11-23", "warn"]);
+  assert.match(text, /^Digest tech du 2026-11-23 sans archive/);
+  // Overnight the anomaly stays open instead of "resolving" at midnight.
+  assert.equal((await at("2026-11-23T23:30:00Z"))[0][0], "digest:2026-11-23");
+  writeFileSync(`${dir}/daily-2026-11-23.md`, "- [Titre]\n");
+  assert.deepEqual(await at("2026-11-23T08:30:00Z"), []);
+});

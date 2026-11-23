@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "id": "daily-tech-news-digest",
-  "runtime_job_id": "7ed5dd9a-da30-479f-b0eb-4cc494fb4966",
+  "runtime_job_id": "27d71377-5b51-4e8a-8b6b-80207112f2a0",
   "lifecycle": "review_only_no_automatic_reconcile",
   "schedule": {
     "expr": "0 9 * * *",
@@ -11,7 +11,7 @@
   "execution": {
     "model": "litellm-cron/gpt-4.1-mini",
     "isolated": true,
-    "agent_id": "verify_runtime_agent",
+    "agent_id": "main",
     "timeout_seconds": 300,
     "tools_allow": ["exec", "process"],
     "light_context": true
