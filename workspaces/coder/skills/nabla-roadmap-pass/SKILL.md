@@ -148,6 +148,9 @@ contourne pas (jamais de test désactivé ni de `skip`).
 
 ## 3. Itérer sur la roadmap
 
+**Objectif de chaque passe : au moins un commit de code** (script, test,
+correctif ; une modification de roadmap ou de runbook seule ne compte pas).
+
 Sources : celles du tableau, dans leur ordre. Commence par **lister** les
 items ouverts (ni `DONE` ni `ACCEPTED`) : identifiant et titre des 10
 premiers. « Aucun item traitable » sans cette liste est une passe ratée.
@@ -169,6 +172,22 @@ cette part est `CODE`.
 
 Un item déjà livré sur `master` (PR fusionnée, code présent) n'est **pas** un
 item traité par toi : ferme-le à la boucle 1 avec sa référence.
+
+Aucun item `CODE` dans la roadmap, ou tous bloqués : prends le premier
+chantier de cette liste qui donne un commit, dans cet ordre :
+
+1. un test ou une gate en échec (porte hors ligne, CI `master`) ;
+2. un test pour du code non couvert : `uv run pytest -q --cov --cov-report=term-missing:skip-covered`
+   (Python ; pour `fastapi-sample`, `--cov=nabla --cov-config=pyproject.toml`, son
+   `.coveragerc` ne rapporte que `hooks/`) ou `node --test --experimental-test-coverage`
+   (sites), module le moins couvert que la roadmap cite ;
+3. la part code d'un item `RUNTIME` : script de réception, test de contrat,
+   validation hors ligne de la commande que la Workstation lancera ;
+4. un `TODO`/`FIXME` du code (`git grep -nE 'TODO|FIXME' -- '*.py' '*.ts' '*.sh'`) ;
+5. un avertissement de lint ou de dépréciation.
+
+Une passe sans commit de code doit lister, pour chacun des 5 chantiers, la
+commande lancée et pourquoi elle n'a rien donné.
 
 Bloqué : note le blocage, passe à l'item suivant, ne pose **aucune** question
 en cours de passe. « Jusqu'à avoir fait l'ensemble » se fait sur plusieurs
@@ -228,7 +247,8 @@ En français, au plus 30 lignes, sans rien envoyer toi-même, dans cet ordre :
 4. **Roadmap** : les items listés à l'étape 3 avec leur classe ; items
    traités : uniquement les commits de cette passe, tels que les liste
    `git log --oneline origin/master..HEAD`. Chaque `PASS`/`FAIL` cite une
-   commande exécutée dans cette passe, toute autre vérification est `NOT_RUN`.
+   commande exécutée dans cette passe **et la dernière ligne de sa sortie** ;
+   toute autre vérification est `NOT_RUN`.
 5. **Consolidation** : une ligne par boucle, ou « sans objet ».
 6. **Publication** : exactement une de ces formes : URL de la PR Draft ;
    « aucun commit, aucune PR » ; `BLOQUÉ: push` et le chemin `~/outbox/...`.

@@ -14,7 +14,8 @@ class CoderCron(unittest.TestCase):
     def test_message_keeps_the_guardrails(self):
         message = (ROOT / f"policies/cron/{NAME}.message.md").read_text(encoding="utf-8")
         for marker in ("openclaw/daily-", "EN ATTENTE", "PR Draft", ".github/workflows/",
-                       "uv sync --frozen", "Jamais de merge"):
+                       "uv sync --frozen", "Jamais de merge", "--cov-config=pyproject.toml", "dernière ligne de sa sortie",
+                       "un test\nunitaire pour des lignes non couvertes", "les 5 modules\nles moins couverts"):
             with self.subTest(marker=marker):
                 self.assertIn(marker, message)
         self.assertNotRegex(message, r"(?i)(?:ghp_|github_pat_|sk-[a-z0-9]{12,}|token\s*=)")
@@ -51,6 +52,8 @@ class RoadmapPassCron(unittest.TestCase):
                        "fastapi-sample.fastapicloud.dev/livez", "http://172.17.0.24:9090/api/v1/alerts", "sans jamais pousser sur la branche de la",
                        "au plus **2 PR par passe**", "isCrossRepository", "ne le demande jamais",
                        "« Aucun item traitable » sans cette liste est une passe ratée",
+                       "au moins un commit de code", "--experimental-test-coverage",
+                       "et la dernière ligne de sa sortie",
                        "jamais `DEPLOYED` ni `ACCEPTED`", ".github/workflows/", "BLOQUÉ: push",
                        "questions restantes, numérotées", "git log --oneline origin/master..HEAD",
                        "n'est **pas** un", "`files=0`"):
