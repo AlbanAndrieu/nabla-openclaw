@@ -139,7 +139,10 @@ export const checks = {
       }
       const [[cpu], [mem], disks, pools, units] = await Promise.all([
         q(`100 * (1 - avg(rate(node_cpu_seconds_total{${sel},mode="idle"}[15m])))`),
-        q(`100 * (1 - node_memory_MemAvailable_bytes{${sel}} / node_memory_MemTotal_bytes{${sel}})`),
+        // MemAvailable leaves out the ZFS ARC the kernel reclaims down to c_min: count it as available,
+        // like nabla-compose's TrueNASHostOutOfMemory rule; hosts without ZFS metrics fall back to MemAvailable.
+        q(`100 * (1 - (node_memory_MemAvailable_bytes{${sel}} + (clamp_min(node_zfs_arc_size{${sel}} - node_zfs_arc_c_min{${sel}}, 0)`
+          + ` or node_memory_MemAvailable_bytes{${sel}} * 0)) / node_memory_MemTotal_bytes{${sel}})`),
         q(`100 * (1 - node_filesystem_avail_bytes{${sel},${FS}} / node_filesystem_size_bytes{${sel},${FS}}) >= 85`),
         q(`node_zfs_zpool_state{${sel},state!="online"} == 1`),
         q(`node_systemd_unit_state{${sel},state="failed"} == 1`),
