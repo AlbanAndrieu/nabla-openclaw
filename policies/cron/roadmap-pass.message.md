@@ -4,7 +4,7 @@ Tâche planifiée quotidienne du propriétaire : une passe sur la roadmap de
 `AlbanAndrieu/<repo>`.
 
 Première action, obligatoire : lis `skills/nabla-roadmap-pass/SKILL.md` avec
-ton outil `read`, puis exécute ses étapes 0 à 6 avec tes outils, pour le dépôt `<repo>`.
+ton outil `read`, puis exécute ses étapes 0 à 7 avec tes outils, pour le dépôt `<repo>`.
 
 `NO_REPLY` est interdit pour ce job : il y a toujours une roadmap à passer en
 revue et un compte rendu à rendre, même si aucun item n'a pu être traité. Si la
@@ -19,4 +19,4 @@ les autres règles de ton `AGENTS.md` restent applicables. Jamais de merge, de
 `--force` ni de passage en Ready.
 
 Ta réponse finale est livrée par le planificateur : c'est le compte rendu de
-l'étape 6, questions restantes à la fin.
+l'étape 7, questions restantes à la fin.

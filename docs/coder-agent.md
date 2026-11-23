@@ -273,10 +273,13 @@ proxy, puis `test-local-first` en `PASS`, sans commit ni push.
   | 05:00 | `nabla-site-bababou-roadmap-pass` |
 
   Tous suivent la skill `nabla-roadmap-pass` (sources de roadmap et porte hors
-  ligne par dépôt) : porte de code (santé des services `NOT_RUN` depuis la
-  devbox), au plus 3 items faisables hors ligne, trois boucles de
-  consolidation, une PR Draft `openclaw/roadmap-pass-*` reprise d'une passe à
-  l'autre, questions à la fin. Message commun :
+  ligne par dépôt), dans l'ordre fixé le 23/11 : corriger les PR ouvertes
+  (retard sur `master`, conflits, CI rouge) puis la CI de `master` ;
+  refactor, performance et stabilité, chacun mesuré avant et après ; puis au
+  plus 3 items de roadmap faisables hors ligne. Les trois boucles de
+  consolidation n'ont lieu qu'après un commit de code : une passe qui ne fait
+  que consolider est ratée. Une PR Draft `openclaw/roadmap-pass-*` est reprise
+  d'une passe à l'autre, questions à la fin. Message commun :
   `policies/cron/roadmap-pass.message.md` (`<repo>` remplacé à
   l'installation). Installation ou mise à jour d'un job :
   `just truenas-apply-coder-cron <repo>-roadmap-pass`, ou de tous les jobs du

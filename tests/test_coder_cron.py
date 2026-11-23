@@ -21,7 +21,9 @@ class CoderCron(unittest.TestCase):
                        "uv sync --frozen", "Jamais de merge", "dernière ligne de sa sortie",
                        "`FAUSSE_ALERTE`", "`PANNE_RATÉE`", "Justesse =", "`fastapi-sample-roadmap-pass`",
                        "`RIEN À CORRIGER` n'est permis qu'avec une justesse de 100 %",
-                       "http://172.17.0.24:9090/api/v1/query?query=up"):
+                       "http://172.17.0.24:9090/api/v1/query?query=up",
+                       # gpt-4.1 is the only model: the prompt forces a tool call (23/11 invented PASS).
+                       "Première action, obligatoire : appelle ton outil `exec`"):
             with self.subTest(marker=marker):
                 self.assertIn(marker, message)
         self.assertNotRegex(message, r"(?i)(?:ghp_|github_pat_|sk-[a-z0-9]{12,}|token\s*=)")
@@ -51,7 +53,7 @@ class RoadmapPassCron(unittest.TestCase):
         message = (ROOT / f"policies/cron/{ROADMAP}.message.md").read_text(encoding="utf-8")
         for marker in ("skills/nabla-roadmap-pass/SKILL.md", "`NO_REPLY` est interdit", "AUTOMATION_FAILED",
                        "openclaw/roadmap-pass-", "openclaw/fix-pr-", "jamais de push sur une autre branche",
-                       "étapes 0 à 6", "PR Draft", "Jamais de merge"):
+                       "étapes 0 à 7", "PR Draft", "Jamais de merge"):
             with self.subTest(marker=marker):
                 self.assertIn(marker, message)
         self.assertNotRegex(message, r"(?i)(?:ghp_|github_pat_|sk-[a-z0-9]{12,}|token\s*=)")
@@ -66,9 +68,16 @@ class RoadmapPassCron(unittest.TestCase):
                        "et la dernière ligne de sa sortie",
                        "jamais `DEPLOYED` ni `ACCEPTED`", ".github/workflows/", "BLOQUÉ: push",
                        "questions restantes, numérotées", "git log --oneline origin/master..HEAD",
-                       "n'est **pas** un", "`files=0`"):
+                       "n'est **pas** un", "`files=0`", "la mettre à jour avec `master`",
+                       "gain d'au moins 10 %", "Une passe qui ne fait que consolider la roadmap",
+                       "Seulement si les étapes 2 à 4 ont produit au moins un commit de code"):
             with self.subTest(marker=marker):
                 self.assertIn(marker, skill)
+        # Owner's order (23/11): PRs and CI, then refactor/perf/stability, then roadmap, then consolidation.
+        steps = [skill.index(f"\n## {title}") for title in (
+            "2. Corriger les PR ouvertes", "3. Refactorer, accélérer, stabiliser", "4. Itérer sur la roadmap",
+            "5. Consolider la roadmap", "6. Publier", "7. Compte rendu")]
+        self.assertEqual(steps, sorted(steps))
 
     def test_each_repo_has_its_night_and_a_skill_row(self):
         self.assertIn("`<repo>-roadmap-pass`", (ROOT / "workspaces/coder/AGENTS.md").read_text(encoding="utf-8"))

@@ -8,6 +8,11 @@ pas de ce job. Ce message vaut demande explicite de commit, push et PR Draft
 **pour cette seule exécution**, dans les limites ci-dessous ; toutes les
 autres règles de ton `AGENTS.md` restent applicables.
 
+Première action, obligatoire : appelle ton outil `exec` (section 1). Chaque
+SHA, compteur, `PASS` ou `FAIL` du compte rendu recopie une sortie d'outil de
+cette exécution ; un compte rendu écrit sans aucun appel d'outil est une
+exécution ratée, même s'il paraît plausible (23/11 : `PASS` inventés en 23 s).
+
 ## 1. Pas de doublon
 
 Suis la skill `fastapi-sample-dev` (section 1) pour préparer le clone, puis :
