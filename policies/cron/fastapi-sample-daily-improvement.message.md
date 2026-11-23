@@ -40,9 +40,20 @@ fichier de test : il ne prouve pas le comportement. La commande `pytest
 les modules les moins couverts ; des échecs propres à la devbox (réseau, Docker) ne sont pas
 des régressions, cite-les.
 
+Puis les sondes de l'instance TrueNAS (lecture seule par le proxy) :
+
+```bash
+curl -s http://172.17.0.24:8091/api/ui/services | python3 -c 'import json,sys;[print(s["state"],s["name"]) for s in json.load(sys.stdin).get("services",[]) if s.get("state") in ("fail","warn")]'
+```
+
+Pour les sondes en échec, demande le verdict du référent infra comme le
+décrit l'étape 1 de `skills/nabla-roadmap-pass/SKILL.md` (« Sondes en échec
+→ référent infra », un seul `sessions_send`).
+
 ## 3. Choisir une seule amélioration
 
-Par ordre de priorité : un test ou une gate en échec sur `master` ; **un test
+Par ordre de priorité : un test ou une gate en échec sur `master` ; une sonde
+au `VERDICT PROBE` (correction de la sonde et son test) ; **un test
 unitaire pour des lignes non couvertes** d'un des 5 modules `nabla/` les moins
 couverts de la sortie `--cov` (comportement réel, testable hors ligne, sans
 mock du code testé) ; un avertissement (dépréciation, lint). Une
@@ -66,6 +77,7 @@ changement : abandonne la branche sans pousser et réponds `ÉCHEC`.
 Ta réponse finale est livrée par le planificateur : n'envoie rien toi-même.
 En français, au plus 15 lignes : SHA testé, état des vérifications avec leur
 dernière ligne de sortie, couverture totale et les 3 modules les moins
-couverts, amélioration choisie et pourquoi, URL de la PR Draft (ou `EN ATTENTE`, `RIEN À PROPOSER`,
+couverts, verdicts du référent infra (une ligne par sonde, ou « aucune sonde
+en échec »), amélioration choisie et pourquoi, URL de la PR Draft (ou `EN ATTENTE`, `RIEN À PROPOSER`,
 `ÉCHEC`). Jamais de merge ni de passage en Ready ; n'annonce aucune réussite
 non vérifiée.

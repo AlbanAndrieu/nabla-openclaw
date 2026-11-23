@@ -25,6 +25,7 @@ FILES = (mod.CONTRACT, mod.SEED, mod.GATEWAY_COMPOSE, mod.REQUIREMENTS, mod.ALLO
          "deploy/truenas/devbox/egress/squid.conf", "workspaces/coder/AGENTS.md",
          "workspaces/coder/skills/fastapi-sample-dev/SKILL.md",
          "workspaces/coder/skills/nabla-compose-dev/SKILL.md",
+         "workspaces/coder/skills/nabla-infra-referee/SKILL.md",
          "workspaces/coder/skills/nabla-roadmap-pass/SKILL.md",
          "workspaces/coder/skills/nabla-site-dev/SKILL.md",
          "workspaces/coder/skills/nabla-yubikey-dev/SKILL.md")

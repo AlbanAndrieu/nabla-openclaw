@@ -101,6 +101,28 @@ curl -s https://fastapi-sample.fastapicloud.dev/api/ui/services | python3 -c 'im
 (lecture passive du cache). Cloud ne voit pas le LAN : la plupart des services
 y sont `unknown`, la référence pour TrueNAS reste `status/homelab-health.json`.
 
+**Sondes en échec → référent infra** (`fastapi-sample` et `nabla-compose`
+seulement). Une panne n'est imputée ni à la sonde ni au service sans le
+verdict du référent, la session persistante `agent:coder:nabla-compose-infra`
+(skill `nabla-infra-referee`) :
+
+- `fastapi-sample` : réunis les sondes en échec (services `fail` ou `warn` de
+  `http://172.17.0.24:8091/api/ui/services`, cibles `up==0` et alertes qui
+  les concernent) et leur source dans le clone (`git grep -n '<service>' --
+  nabla/`). S'il y en a, un seul `sessions_send` : `sessionKey`
+  `agent:coder:nabla-compose-infra`, `timeoutSeconds: 600`, message
+  `[skills/nabla-infra-referee/SKILL.md]` puis le format `QUESTION_SONDES` de
+  cette skill (au plus 10 sondes). Suite de chaque `VERDICT` : `PROBE` →
+  item `CODE` prioritaire, corriger la sonde avec un test ; `INFRA` →
+  `RUNTIME`, parqué avec la preuve du référent (la passe nabla-compose le
+  reprend) ; `EXPECTED` → rien à changer, citer la preuve ; `UNKNOWN`, refus,
+  erreur ou délai dépassé → `UNKNOWN`, parqué sans question.
+- `nabla-compose` : un `sessions_send` (`timeoutSeconds: 300`) de
+  `[skills/nabla-infra-referee/SKILL.md] INFRA_EN_ATTENTE?` ; chaque ligne
+  `INFRA` est une anomalie de service, traitée comme ci-dessous.
+
+Aucun autre envoi : le référent ne répond qu'à ces formats.
+
 **Code** :
 
 ```bash
@@ -227,6 +249,10 @@ Puis `gh pr create --draft` (titre `docs(roadmap): openclaw roadmap pass
 <AAAA-MM-JJ>`, base `master`), ou un commentaire de bilan si la PR existe déjà. Le corps
 liste les commandes restées `NOT_RUN` à lancer sur la Workstation.
 
+`nabla-compose` : si la passe a traité une entrée `INFRA` du référent, envoie
+`[skills/nabla-infra-referee/SKILL.md] BILAN_INFRA` avec les services touchés
+et l'URL de la PR (`timeoutSeconds: 0`, sans attendre la réponse).
+
 Push ou PR refusé (permission, 403) : ne cherche pas d'autre voie. Exporte
 `git format-patch origin/master -o ~/outbox/<repo>-roadmap-pass-<AAAAMMJJ>/` et
 réponds `BLOQUÉ: push` avec ce chemin.
@@ -239,7 +265,8 @@ En français, au plus 30 lignes, sans rien envoyer toi-même, dans cet ordre :
    (`crit`/`warn`/`unknown`, ou `STALE`), les 3 anomalies les plus graves ;
    FastAPI Cloud : `/livez`, version, compteurs de `/api/ui/services` ;
    budget du coder : `<dépense> / <plafond> USD`, remise à zéro, ou « non
-   mesuré ».
+   mesuré » ; référent infra : compteurs `PROBE`/`INFRA`/`EXPECTED`/`UNKNOWN`
+   des verdicts reçus, « aucune sonde en échec » ou `NOT_RUN` (sans réponse).
 2. **Code** : CI `master` (nom et conclusion des jobs), porte hors ligne
    (`PASS`, `FAIL` ou `NOT_RUN`).
 3. **PR ouvertes** : `#numéro titre → état → action` pour chacune, URL des PR

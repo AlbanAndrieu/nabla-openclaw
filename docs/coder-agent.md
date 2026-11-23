@@ -316,6 +316,28 @@ proxy, puis `test-local-first` en `PASS`, sans commit ni push.
   Validation du propriétaire avant chaque envoi : règle de
   `workspaces/coder/AGENTS.md` (`ask_user`), **pas** un contrôle technique,
   car les approbations d'OpenClaw ne couvrent que `exec` sur l'hôte.
+- **Référent infra entre fastapi-sample et nabla-compose** (23/11) : le job
+  `nabla-compose-infra-referee` (00:30, 900 s) amorce chaque nuit la session
+  **persistante** `agent:coder:nabla-compose-infra` (cible cron
+  `session:nabla-compose-infra`, que OpenClaw 2026.10.7 range sous
+  `agent:<agent>:<id>`) avec la skill `nabla-infra-referee`. Les passes
+  fastapi-sample (`fastapi-sample-roadmap-pass`,
+  `fastapi-sample-daily-improvement`) lui envoient leurs sondes en échec
+  (`/api/ui/services` TrueNAS, `up==0`, alertes) par **un** `sessions_send`
+  et reçoivent un verdict par sonde : `PROBE` (la sonde contredit l'état
+  déclaré dans nabla-compose → correction dans fastapi-sample), `INFRA`
+  (service en panne → journal du référent), `EXPECTED` ou `UNKNOWN`, chacun
+  avec une preuve (`fichier:ligne@sha` ou requête Prometheus). La passe
+  nabla-compose reprend les `INFRA` ouverts (`INFRA_EN_ATTENTE?`) et signale
+  ses corrections (`BILAN_INFRA`). Seule exception à la validation du
+  propriétaire pour `sessions_send`, au plus 2 envois par exécution ; le
+  référent ne commite et n'envoie jamais. Aucune config Gateway nouvelle
+  (`sessions_send`, visibilité `agent` déjà en place) ; la devbox garde son
+  proxy : le MCP TrueNAS reste réservé à l'App fastapi-sample, ses sondes
+  se lisent par `/api/ui/services` et Prometheus. Réception Workstation :
+  `just truenas-apply-coder` (skill), `just truenas-apply-coder-cron all`,
+  puis `openclaw cron run <id du référent>` une fois pour créer la session
+  et vérifier `REFEREE_READY` sur Telegram.
 
 ## Rollback
 
