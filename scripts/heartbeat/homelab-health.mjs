@@ -23,6 +23,9 @@ export const CODER_STATUS = process.env.CODER_STATUS_FILE
 // its spend and budget. The key is sent to LiteLLM and nowhere else.
 export const CODER_KEY = process.env.CODER_LITELLM_KEY_FILE
   ?? join(process.env.HOME ?? ".", ".openclaw/credentials/litellm/coder.key");
+// The 09:00 tech digest archives the titles it publishes: no archive means its
+// model answered without running the pipeline (invented digests, 20 and 23/11).
+export const DIGEST_ARCHIVE = join(process.env.HOME ?? ".", ".openclaw/workspace/archive/tech-news-digest");
 let coderBudgetSeen = null;
 const ICON = { crit: "🔴", warn: "🟠", unknown: "⚪" };
 const RANK = { crit: 0, warn: 1, unknown: 2 };
@@ -178,6 +181,15 @@ export const checks = {
     if (hours <= 26) return [];
     return [["backup:Workstation:stale", hours > 72 ? "crit" : "warn",
       `Workstation : dernière sauvegarde Restic réussie il y a ${Math.round(hours)} h`]];
+  },
+  async digest(_get, _prev, now = Date.now(), dir = DIGEST_ARCHIVE) {
+    if (!existsSync(dir)) return []; // no digest job on this Gateway
+    const paris = (t) => new Date(t).toLocaleString("sv-SE", { timeZone: "Europe/Paris" });
+    // Before 09:10 the last expected run is yesterday's (12 h back, whatever the DST).
+    const day = paris(paris(now).slice(11) >= "09:10" ? now : now - 12 * 3600_000).slice(0, 10);
+    if (existsSync(join(dir, `daily-${day}.md`))) return [];
+    return [[`digest:${day}`, "warn",
+      `Digest tech du ${day} sans archive : pipeline non exécuté, digest livré probablement inventé`]];
   },
   async coderbudget(get, prev, keyFile = CODER_KEY) {
     let key;

@@ -31,7 +31,17 @@ N'invente ni script ni option et n'écris pas de Python. Si la commande
 échoue, réponds `AUTOMATION_FAILED` suivi des dernières lignes affichées,
 sans autre tentative.
 
+Une sortie valide de l'outil `exec` commence par la date du jour puis
+`=== Merged Data Summary ===` et `Total articles: <n>`. Sans cette sortie
+(outil non appelé, sortie vide ou autre), réponds seulement
+`AUTOMATION_FAILED` : n'écris jamais de digest de mémoire.
+
 ## 2. Rédaction
+
+Chaque article de la sortie a une ligne `Source:` et une ligne `Link:`.
+Recopie chaque lien tel quel depuis la ligne `Link:` de son article, sans le
+modifier ni le compléter ; omets un article sans ligne `Link:`. N'écris
+aucune URL absente de la sortie.
 
 À partir de cette seule sortie, rédige le digest en français :
 
@@ -42,7 +52,8 @@ sans autre tentative.
   `💰 Cryptocurrency` (`crypto`) ou `🔬 Frontier Tech` (`frontier-tech`),
   avec au plus 5 articles de score ≥ 5, chacun au format
   `• 🔥<score> | <résumé en une phrase> — [<source>](<lien>)` ;
-- pied : `📊 <total> articles fusionnés | tech-news-digest v3.16.0`.
+- pied : `📊 <total> articles fusionnés | tech-news-digest v3.16.0`, où
+  `<total>` est le nombre de la ligne `Total articles:` de la sortie.
 
 Pas de tableau, de section supplémentaire ni de liste d'articles hors des
 sections.
