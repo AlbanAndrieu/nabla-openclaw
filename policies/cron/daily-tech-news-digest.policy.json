@@ -9,7 +9,7 @@
     "verified_at_runtime": false
   },
   "execution": {
-    "model": "litellm-cron/gpt-4.1-mini",
+    "model": "litellm-main/gpt-4.1",
     "isolated": true,
     "agent_id": "main",
     "timeout_seconds": 300,
