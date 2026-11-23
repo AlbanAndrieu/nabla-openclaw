@@ -47,8 +47,10 @@
       "litellm-coder-key": { "source": "file", "path": "/home/node/.openclaw/credentials/litellm/coder.key", "mode": "singleValue" }
     }
   },
+  "tools": { "sessions": { "visibility": "agent" } },
   "agents": {
     "defaults": {
+      "sandbox": { "sessionToolsVisibility": "all" },
       "model": { "primary": "litellm-main/gpt-4.1" },
       "workspace": "/home/node/.openclaw/workspace",
       "maxConcurrent": 2,
@@ -100,13 +102,14 @@
           "profile": "coding",
           "deny": [
             "group:automation", "group:nodes", "group:ui", "group:media", "group:web", "group:memory", "group:plugins",
-            "sessions_send", "sessions_spawn", "subagents", "conversations_send", "conversations_turn",
+            "sessions_spawn", "sessions_history", "sessions_search", "subagents", "conversations_send", "conversations_turn",
             "code_execution", "secrets", "skill_workshop"
           ],
           "sandbox": {
             "tools": { "allow": ["exec", "process", "read", "ls", "write", "edit", "apply_patch", "session_status",
-                                 "ask_user", "get_goal", "create_goal", "update_goal"] }
+                                 "ask_user", "get_goal", "create_goal", "update_goal", "sessions_list", "sessions_send"] }
           },
+          "agentToAgent": { "send": [] },
           "loopDetection": { "enabled": true },
           "fs": { "workspaceOnly": true },
           "elevated": { "enabled": false }

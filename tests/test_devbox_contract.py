@@ -136,7 +136,9 @@ class DevboxContract(unittest.TestCase):
         for change in (lambda a: a["tools"]["elevated"].update(enabled=True),
                        lambda a: a["sandbox"].update(mode="non-main"),
                        lambda a: a["sandbox"]["ssh"].update(strictHostKeyChecking=False),
-                       lambda a: a["tools"]["sandbox"]["tools"]["allow"].append("sessions_send"),
+                       lambda a: a["tools"]["sandbox"]["tools"]["allow"].append("sessions_spawn"),
+                       lambda a: a["tools"]["agentToAgent"].update(send=["main"]),
+                       lambda a: a["tools"]["deny"].remove("sessions_history"),
                        lambda a: a["tools"]["deny"].remove("group:automation"),
                        lambda a: a["tools"]["loopDetection"].update(enabled=False)):
             with self.subTest(change=change):
@@ -144,6 +146,10 @@ class DevboxContract(unittest.TestCase):
                 self.setUp()
                 self.coder(change)
                 self.assertEqual(mod.violations(self.root), ["gateway_agent_sandboxed"])
+
+    def test_gateway_wide_session_visibility_must_stay_per_agent(self):
+        self.edit_json(mod.SEED, lambda seed: seed["tools"]["sessions"].update(visibility="all"))
+        self.assertEqual(mod.violations(self.root), ["gateway_agent_sandboxed"])
 
     def test_coder_key_must_be_its_own_file_secret_ref(self):
         for change in (lambda seed: seed["models"]["providers"]["litellm-coder"].update(

@@ -303,6 +303,19 @@ proxy, puis `test-local-first` en `PASS`, sans commit ni push.
   plafond et la date de remise à zéro. Ligne « LITELLM CODER » du briefing du
   matin, anomalie à 80 % (🟠) et 100 % (🔴), champ `coder_budget` de
   `status/homelab-health.json`, repris par chaque passe de roadmap.
+- **Messages entre sessions du coder** (22/11) : `sessions_list` et
+  `sessions_send` autorisés au coder. `tools.sessions.visibility: "agent"`
+  (pour tout le Gateway : chaque agent ne voit que ses sessions),
+  `agents.defaults.sandbox.sessionToolsVisibility: "all"` (sinon une session
+  sandboxée ne joint que les sessions qu'elle a créées) et
+  `agents.entries.coder.tools.agentToAgent.send: []` (aucun envoi vers `main`
+  ni un autre agent) ; `sessions_history`, `sessions_search`, `sessions_spawn`
+  et `subagents` restent refusés. Le tout est imposé par
+  `check-devbox-contract.py` et appliqué par `just truenas-apply-coder`.
+  `openclaw security audit` ne signale plus l'accès inter-agents par défaut.
+  Validation du propriétaire avant chaque envoi : règle de
+  `workspaces/coder/AGENTS.md` (`ask_user`), **pas** un contrôle technique,
+  car les approbations d'OpenClaw ne couvrent que `exec` sur l'hôte.
 
 ## Rollback
 
