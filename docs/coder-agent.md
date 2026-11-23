@@ -289,6 +289,36 @@ proxy, puis `test-local-first` en `PASS`, sans commit ni push.
   une par heure), par exemple quand le budget de la clé est épuisé
   (`docs/cli/cron.md` d'OpenClaw 2026.10.7). Rien à configurer ;
   `failureAlert: false` sur un job la couperait.
+- **Run « ok » sans outil** (23/11) : le collecteur du heartbeat lit
+  l'historique (`node /app/openclaw.mjs cron runs --all --status ok --json`,
+  lecture seule) et signale 🟠 le dernier run « ok » d'un job du coder qui a
+  duré moins de 60 s **ou** produit moins de 400 tokens de sortie. Seuils
+  tirés des runs du 23/11 : `fastapi-sample-daily-improvement` affichait des
+  `PASS` en 17 à 30 s avec ~180 tokens de sortie (le compte rendu seul), alors
+  que `pytest --cov` dure à lui seul ~80 s ; la passe nabla-compose réelle
+  dure 548 s. L'anomalie reste ouverte jusqu'au prochain run réel du même job
+  et figure dans le briefing du matin ; aucun signal sans `workspace-coder`.
+- **Première tentative nocturne en échec** (`cron: isolated agent setup timed
+  out before runner start`, puis relance réussie 1 à 9 min plus tard) :
+  diagnostic par lecture du code d'OpenClaw 2026.10.7, **sans réglage à
+  appliquer** :
+  - les 60 s sont la constante `CRON_AGENT_SETUP_WATCHDOG_MS`
+    (`src/cron/service/agent-watchdog.ts`) : ni `cron.*`, ni `sandbox.*`, ni
+    `--timeout-seconds` (phase d'exécution seulement) ne la changent, donc
+    rien à porter dans le seed ni dans `check-devbox-contract.py` ;
+  - l'attente de file (`maxConcurrent`) suspend ce délai : la concurrence
+    n'est pas en cause ;
+  - la sandbox SSH n'est résolue et amorcée qu'après l'entrée du runner : un
+    amorçage lent donnerait un délai `pre-execution` avec sa phase, pas cette
+    erreur ;
+  - le message sans phase place le blocage avant le runner : préparation de
+    la session `cron:<jobId>`, `ensureAgentWorkspace` sur `workspace-coder`,
+    choix du modèle, authentification ou préflight du fournisseur local
+    (`litellm:4000`, réseau privé, sonde `/models`) ;
+  - 02:00, 02:01, 02:03 puis succès : c'est le backoff documenté (30 s, 1 min,
+    5 min). Étape bloquante à lire dans
+    `sudo docker logs openclaw-gateway --since <heure-5min> --until <heure+5min>`
+    (lignes `cron:` précédant `setup timed out`).
 - **Garde-fous de session** (22/11) : détection de boucles
   (`agents.entries.coder.tools.loopDetection.enabled`, imposée par
   `check-devbox-contract.py`), `ask_user` (boutons Telegram) et goals

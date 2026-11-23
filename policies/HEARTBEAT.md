@@ -12,7 +12,8 @@ Le collecteur (scripts/heartbeat/homelab-health.mjs) lit en lecture seule Promet
 (alertes, cibles, CPU, RAM, disques, pools ZFS, services systemd), Gatus, Docker,
 Scrutiny, la readiness LiteLLM (TrueNAS et Workstation, base PostgreSQL comprise)
 et la santé de postgres et redis et la fraîcheur de la sauvegarde Restic
-(au-delà de 26 h) sur la Workstation.
+(au-delà de 26 h) sur la Workstation, et l'historique des runs du coder
+(`openclaw cron runs`) : un run « ok » trop court ou trop bref pour avoir appelé un outil.
 Il vérifie également un instantané **privé et local** du budget Fluid Active
 CPU Vercel de l'équipe (seuils 50/75/90 %), jamais directement l'API Vercel :
 un fichier absent, invalide ou périmé est signalé comme preuve insuffisante.
