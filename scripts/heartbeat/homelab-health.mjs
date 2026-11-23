@@ -2,9 +2,11 @@
 // Homelab health collector for the OpenClaw heartbeat (TrueNAS and Workstation).
 // Read-only HTTP probes. Prints NO_REPLY unless an anomaly appeared or cleared;
 // the model only relays this text. Ongoing anomalies go to the morning briefing.
+import { execFile } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { pathToFileURL } from "node:url";
+import { promisify } from "node:util";
 import { vercelFinopsCheck, vercelReportPath } from "./vercel-finops.mjs";
 
 const TRUENAS = "172.17.0.24";
@@ -27,6 +29,12 @@ let coderBudgetSeen = null;
 const ICON = { crit: "🔴", warn: "🟠", unknown: "⚪" };
 const RANK = { crit: 0, warn: 1, unknown: 2 };
 const MAX_LINES = 40;
+// Gateway CLI of the packaged image (`cd /app && node openclaw.mjs`).
+export const OPENCLAW_CLI = process.env.OPENCLAW_CLI ?? "/app/openclaw.mjs";
+// A coder run recorded "ok" below either bound ran no tool: on 23/11 the
+// fastapi-sample job reported PASS in 17-30 s with ~180 output tokens (the
+// report alone), while its `pytest --cov` takes ~80 s by itself.
+export const HOLLOW_RUN = { minMs: 60_000, minOutputTokens: 400 };
 
 async function getJson(url) {
   const res = await fetch(url, { signal: AbortSignal.timeout(10_000) });
@@ -72,6 +80,27 @@ export function coderBudgetLine(budget = coderBudgetSeen) {
     ? `, remise à zéro le ${new Date(budget.budget_reset_at).toLocaleDateString("fr-FR", { timeZone: "Europe/Paris" })}` : "";
   return `${icon} Budget LiteLLM du coder : ${budget.spend.toFixed(2)} / ${budget.max_budget} USD (${pct.toFixed(0)} %)${reset}`;
 }
+
+// Latest "ok" run of each coder job (`cron runs` entries), flagged when it ran no tool.
+// It stays flagged until a later run of the same job does real work.
+export function hollowCoderRuns(entries) {
+  const latest = new Map();
+  for (const run of entries) {
+    if (run.status !== "ok" || !run.sessionKey?.startsWith("agent:coder:")) continue;
+    if (!(latest.get(run.jobId)?.ts >= run.ts)) latest.set(run.jobId, run);
+  }
+  return [...latest.values()]
+    .filter((run) => run.durationMs < HOLLOW_RUN.minMs || run.usage?.output_tokens < HOLLOW_RUN.minOutputTokens)
+    .map((run) => [`coderruns:${run.jobId}`, "warn", `Run coder ${run.jobName ?? run.jobId} « ok » en `
+      + `${Number.isFinite(run.durationMs) ? Math.round(run.durationMs / 1000) : "?"} s, `
+      + `${run.usage?.output_tokens ?? "?"} tokens de sortie : aucun outil exécuté, compte rendu non fondé`]);
+}
+
+// execFile's message is the command line; the cause is the CLI's first stderr line.
+const openclawCli = (args) => promisify(execFile)(process.execPath, [OPENCLAW_CLI, ...args],
+  { timeout: 25_000, maxBuffer: 4 << 20 }).then(({ stdout }) => stdout, (err) => {
+  throw new Error(err.killed ? "délai dépassé" : err.stderr?.trim().split("\n")[0] || "CLI OpenClaw en échec");
+});
 
 // Each check returns [key, severity, text]; keys start with the check name so
 // an unreachable source keeps its previous anomalies instead of "resolving" them.
@@ -207,6 +236,13 @@ export const checks = {
       }
     }
     return out;
+  },
+  // Read-only run history (SQLite, so through the CLI). Newest first: the
+  // nightly coder runs sit well inside the last 100 "ok" runs.
+  async coderruns(_get, _prev, cli = openclawCli, workspace = dirname(dirname(CODER_STATUS))) {
+    if (!existsSync(workspace)) return []; // no coder agent on this Gateway
+    const page = JSON.parse(await cli(["cron", "runs", "--all", "--status", "ok", "--limit", "100", "--timeout", "20000", "--json"]));
+    return hollowCoderRuns(page.entries ?? []);
   },
 };
 
