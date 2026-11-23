@@ -245,10 +245,14 @@ proxy, puis `test-local-first` en `PASS`, sans commit ni push.
   vérifie), puis `just truenas-deploy-coder --apply`.
 - **Coût** : `just openclaw-truenas-virtual-keys-quota` (`nabla-compose`) ; le
   budget se réinitialise tous les 7 jours.
-- **Revue quotidienne** (codée, non déclarée sur le Gateway au 19/11) : le job `fastapi-sample-daily-improvement` (06:17
-  Europe/Paris, session isolée, 30 min max) lance les gates de
-  `fastapi-sample` et propose au plus une PR Draft `openclaw/daily-*` ; il ne
-  fait rien tant qu'une précédente est ouverte. Message :
+- **Justesse des sondes, chaque jour** (déclaré le 23/11) : le job `fastapi-sample-daily-improvement` (06:17
+  Europe/Paris, session isolée, 30 min max) confronte les sondes de
+  `fastapi-sample` (`/api/ui/services` TrueNAS) à l'état réel (Prometheus,
+  alertes, `homelab-health.json`), calcule leur justesse
+  (`JUSTE`/`FAUSSE_ALERTE`/`PANNE_RATÉE`/`INCONNU`), fait arbitrer les écarts
+  par le référent infra et corrige au plus une sonde en PR Draft
+  `openclaw/daily-*` ; il ne fait rien tant qu'une précédente est ouverte. La
+  roadmap de fastapi-sample reste à `fastapi-sample-roadmap-pass`. Message :
   `policies/cron/fastapi-sample-daily-improvement.message.md`. Installation ou
   mise à jour (idempotente) :
   `just truenas-apply-coder-cron` (groupe Telegram du coder lu dans la
@@ -320,11 +324,10 @@ proxy, puis `test-local-first` en `PASS`, sans commit ni push.
   `nabla-compose-infra-referee` (00:30, 900 s) amorce chaque nuit la session
   **persistante** `agent:coder:nabla-compose-infra` (cible cron
   `session:nabla-compose-infra`, que OpenClaw 2026.10.7 range sous
-  `agent:<agent>:<id>`) avec la skill `nabla-infra-referee`. Les passes
-  fastapi-sample (`fastapi-sample-roadmap-pass`,
-  `fastapi-sample-daily-improvement`) lui envoient leurs sondes en échec
-  (`/api/ui/services` TrueNAS, `up==0`, alertes) par **un** `sessions_send`
-  et reçoivent un verdict par sonde : `PROBE` (la sonde contredit l'état
+  `agent:<agent>:<id>`) avec la skill `nabla-infra-referee`. Le job
+  `fastapi-sample-daily-improvement` lui envoie les écarts entre ses sondes et
+  l'état réel (`/api/ui/services` TrueNAS, `up==0`, alertes) par **un**
+  `sessions_send` et reçoit un verdict par sonde : `PROBE` (la sonde contredit l'état
   déclaré dans nabla-compose → correction dans fastapi-sample), `INFRA`
   (service en panne → journal du référent), `EXPECTED` ou `UNKNOWN`, chacun
   avec une preuve (`fichier:ligne@sha` ou requête Prometheus). La passe

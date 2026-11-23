@@ -13,8 +13,8 @@ préparation, ses sources de roadmap (par priorité) et sa porte hors ligne :
 | `nabla-compose` | `nabla-compose-dev` | `docs/roadmap-portfolio.md`, `docs/roadmap.md` | `export AGENT_EXECUTION_MODE=offline && uv sync --frozen && just offline` |
 | `fastapi-sample` | `fastapi-sample-dev` | `docs/engineering-roadmap.md`, `docs/homelab-security-roadmap.md` | `uv sync --frozen && just test-local-first` |
 | `nabla-site-alban` | `nabla-site-dev` | `docs/quality-roadmap.md`, `docs/homelab-roadmap.md`, `docs/stripe-hardening-roadmap.md` | `npm ci --no-fund && npm run lint && npm run typecheck && npm run test:unit` |
-| `nabla-site-bababou` | `nabla-site-dev` | `docs/roadmap.md` | `npm ci --no-fund && npm run lint && npm run typecheck && npm run test:unit` |
-| `nabla-yubikey` | `nabla-yubikey-dev` | `docs/roadmap.md`, `docs/roadmap-workstation-yubikey.md`, `docs/roadmap-vault-pki.md` | `export AGENT_EXECUTION_MODE=offline && just test` |
+| `nabla-site-bababou` | `nabla-site-dev` | `docs/roadmap.md`, `docs/engineering-roadmap.md` | `npm ci --no-fund && npm run lint && npm run typecheck && npm run test:unit` |
+| `nabla-yubikey` | `nabla-yubikey-dev` | `docs/roadmap.md`, `docs/roadmap-workstation-yubikey.md`, `docs/roadmap-vault-pki.md`, `docs/workstation-yubikey-gpg-vault-roadmap.md` | `export AGENT_EXECUTION_MODE=offline && just test` |
 
 Une source absente n'est pas une erreur : passe à la suivante. Le dernier
 `docs/runbooks/*roadmap*.md` du dépôt, s'il existe, est l'état de la passe
@@ -101,27 +101,15 @@ curl -s https://fastapi-sample.fastapicloud.dev/api/ui/services | python3 -c 'im
 (lecture passive du cache). Cloud ne voit pas le LAN : la plupart des services
 y sont `unknown`, la référence pour TrueNAS reste `status/homelab-health.json`.
 
-**Sondes en échec → référent infra** (`fastapi-sample` et `nabla-compose`
-seulement). Une panne n'est imputée ni à la sonde ni au service sans le
-verdict du référent, la session persistante `agent:coder:nabla-compose-infra`
-(skill `nabla-infra-referee`) :
-
-- `fastapi-sample` : réunis les sondes en échec (services `fail` ou `warn` de
-  `http://172.17.0.24:8091/api/ui/services`, cibles `up==0` et alertes qui
-  les concernent) et leur source dans le clone (`git grep -n '<service>' --
-  nabla/`). S'il y en a, un seul `sessions_send` : `sessionKey`
-  `agent:coder:nabla-compose-infra`, `timeoutSeconds: 600`, message
-  `[skills/nabla-infra-referee/SKILL.md]` puis le format `QUESTION_SONDES` de
-  cette skill (au plus 10 sondes). Suite de chaque `VERDICT` : `PROBE` →
-  item `CODE` prioritaire, corriger la sonde avec un test ; `INFRA` →
-  `RUNTIME`, parqué avec la preuve du référent (la passe nabla-compose le
-  reprend) ; `EXPECTED` → rien à changer, citer la preuve ; `UNKNOWN`, refus,
-  erreur ou délai dépassé → `UNKNOWN`, parqué sans question.
-- `nabla-compose` : un `sessions_send` (`timeoutSeconds: 300`) de
-  `[skills/nabla-infra-referee/SKILL.md] INFRA_EN_ATTENTE?` ; chaque ligne
-  `INFRA` est une anomalie de service, traitée comme ci-dessous.
-
-Aucun autre envoi : le référent ne répond qu'à ces formats.
+**Pannes transmises par le référent infra** (`nabla-compose` seulement) :
+un `sessions_send` à la session persistante `agent:coder:nabla-compose-infra`
+(skill `nabla-infra-referee`, `timeoutSeconds: 300`) de
+`[skills/nabla-infra-referee/SKILL.md] INFRA_EN_ATTENTE?` ; chaque ligne
+`INFRA` est une anomalie de service confirmée par le job
+`fastapi-sample-daily-improvement`, traitée comme ci-dessous. Aucun autre
+envoi : le référent ne répond qu'à ces formats. Pour `fastapi-sample`, la
+justesse des sondes est le travail de ce job quotidien, pas de la passe :
+la passe s'en tient à sa roadmap.
 
 **Code** :
 
@@ -265,8 +253,8 @@ En français, au plus 30 lignes, sans rien envoyer toi-même, dans cet ordre :
    (`crit`/`warn`/`unknown`, ou `STALE`), les 3 anomalies les plus graves ;
    FastAPI Cloud : `/livez`, version, compteurs de `/api/ui/services` ;
    budget du coder : `<dépense> / <plafond> USD`, remise à zéro, ou « non
-   mesuré » ; référent infra : compteurs `PROBE`/`INFRA`/`EXPECTED`/`UNKNOWN`
-   des verdicts reçus, « aucune sonde en échec » ou `NOT_RUN` (sans réponse).
+   mesuré » ; `nabla-compose` : entrées `INFRA` reçues du référent, `AUCUNE`
+   ou `NOT_RUN` (sans réponse).
 2. **Code** : CI `master` (nom et conclusion des jobs), porte hors ligne
    (`PASS`, `FAIL` ou `NOT_RUN`).
 3. **PR ouvertes** : `#numéro titre → état → action` pour chacune, URL des PR

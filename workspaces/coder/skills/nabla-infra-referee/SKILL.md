@@ -1,6 +1,6 @@
 ---
 name: nabla-infra-referee
-description: Rôle de référent infra de nabla-compose, tenu par la session persistante `agent:coder:nabla-compose-infra`. Dire, pour chaque sonde en échec que signale une passe fastapi-sample, si la panne vient de la sonde (fastapi-sample), du service (nabla-compose) ou d'un comportement attendu ; transmettre les pannes de service à la passe nabla-compose suivante.
+description: Rôle de référent infra de nabla-compose, tenu par la session persistante `agent:coder:nabla-compose-infra`. Dire, pour chaque écart de sonde que signale le job fastapi-sample-daily-improvement, si la panne vient de la sonde (fastapi-sample), du service (nabla-compose) ou d'un comportement attendu ; transmettre les pannes de service à la passe nabla-compose suivante.
 ---
 
 # Référent infra nabla-compose
@@ -43,7 +43,7 @@ curl -s http://172.17.0.24:8091/api/ui/services
 
 | Verdict | Sens | Suite côté demandeur |
 | --- | --- | --- |
-| `PROBE` | la sonde contredit l'état déclaré dans nabla-compose (service retiré ou renommé, mauvais hôte, port, chemin ou code attendu) | fastapi-sample corrige sa sonde (item `CODE`) |
+| `PROBE` | la sonde contredit l'état déclaré dans nabla-compose (service retiré ou renommé, mauvais hôte, port, chemin ou code attendu) | le job quotidien corrige la sonde, avec un test |
 | `INFRA` | nabla-compose déclare le service actif et l'état réel confirme la panne | item pour nabla-compose : tu le notes au journal |
 | `EXPECTED` | échec voulu et documenté (App arrêtée par décision, `401` sans clé, maintenance) | rien à changer, citer la preuve |
 | `UNKNOWN` | preuve insuffisante (Prometheus muet, service non déclaré, contradiction) | parquer, sans question |
@@ -57,7 +57,7 @@ Chaque message reçu commence par `[skills/nabla-infra-referee/SKILL.md]` :
 relis cette skill avec `read` si elle n'est plus dans ton contexte (après une
 compaction). Une seule réponse par message, en texte brut, sans autre prose.
 
-**`QUESTION_SONDES`** (passes fastapi-sample), une ligne par sonde :
+**`QUESTION_SONDES`** (job `fastapi-sample-daily-improvement`), une ligne par sonde :
 
 ```text
 QUESTION_SONDES fastapi-sample@<sha>

@@ -16,9 +16,12 @@ REFEREE_SKILL = "skills/nabla-infra-referee/SKILL.md"
 class CoderCron(unittest.TestCase):
     def test_message_keeps_the_guardrails(self):
         message = (ROOT / f"policies/cron/{NAME}.message.md").read_text(encoding="utf-8")
+        # Daily job = accuracy of fastapi-sample probes against the real TrueNAS state.
         for marker in ("openclaw/daily-", "EN ATTENTE", "PR Draft", ".github/workflows/",
-                       "uv sync --frozen", "Jamais de merge", "--cov-config=pyproject.toml", "dernière ligne de sa sortie",
-                       "un test\nunitaire pour des lignes non couvertes", "les 5 modules\nles moins couverts"):
+                       "uv sync --frozen", "Jamais de merge", "dernière ligne de sa sortie",
+                       "`FAUSSE_ALERTE`", "`PANNE_RATÉE`", "Justesse =", "`fastapi-sample-roadmap-pass`",
+                       "`RIEN À CORRIGER` n'est permis qu'avec une justesse de 100 %",
+                       "http://172.17.0.24:9090/api/v1/query?query=up"):
             with self.subTest(marker=marker):
                 self.assertIn(marker, message)
         self.assertNotRegex(message, r"(?i)(?:ghp_|github_pat_|sk-[a-z0-9]{12,}|token\s*=)")
@@ -115,15 +118,17 @@ class InfraReferee(unittest.TestCase):
         roadmap = (ROOT / "workspaces/coder/skills/nabla-roadmap-pass/SKILL.md").read_text(encoding="utf-8")
         daily = (ROOT / f"policies/cron/{NAME}.message.md").read_text(encoding="utf-8")
         header = f"[{REFEREE_SKILL}]"
-        sent = re.findall(r"\b(QUESTION_SONDES|INFRA_EN_ATTENTE\?|BILAN_INFRA)", roadmap)
-        self.assertEqual({"QUESTION_SONDES", "INFRA_EN_ATTENTE?", "BILAN_INFRA"}, set(sent))
-        for fmt in set(sent):
-            with self.subTest(fmt=fmt):
-                self.assertIn(f"**`{fmt}`**", skill)
+        fmt = re.compile(r"\b(QUESTION_SONDES|INFRA_EN_ATTENTE\?|BILAN_INFRA)")
+        # Probe questions come from the daily job only; the roadmap passes keep to their roadmap.
+        self.assertEqual({"QUESTION_SONDES"}, set(fmt.findall(daily)))
+        self.assertEqual({"INFRA_EN_ATTENTE?", "BILAN_INFRA"}, set(fmt.findall(roadmap)))
+        for name in ("QUESTION_SONDES", "INFRA_EN_ATTENTE?", "BILAN_INFRA"):
+            with self.subTest(fmt=name):
+                self.assertIn(f"**`{name}`**", skill)
+        self.assertIn("un seul `sessions_send`", daily)
         for text in (roadmap, daily):
-            self.assertIn("un seul `sessions_send`", text)
-        self.assertIn(header, roadmap)
-        self.assertIn(f"`{REFEREE_SESSION}`", roadmap)
+            self.assertIn(header, text)
+            self.assertIn(f"`{REFEREE_SESSION}`", text)
         self.assertIn("`VERDICT PROBE`", daily)
 
     def test_referee_is_a_registered_skill(self):
