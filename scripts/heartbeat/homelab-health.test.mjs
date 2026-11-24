@@ -45,6 +45,19 @@ test("hosts: a device mounted twice is reported once, at its shortest mountpoint
     ["TrueNAS : disque /docker plein à 90 %", "Workstation : disque /docker plein à 90 %"]);
 });
 
+test("hosts: RAM counts the reclaimable ZFS ARC as available, with a MemAvailable fallback", async () => {
+  const queries = [];
+  const get = async (url) => {
+    const q = decodeURIComponent(url.split("query=")[1]);
+    queries.push(q);
+    return { data: { result: q.startsWith("node_memory_MemTotal_bytes") ? [{ metric: {}, value: [0, "1"] }] : [] } };
+  };
+  await checks.hosts(get);
+  const mem = queries.find((q) => q.includes("MemAvailable") && q.startsWith("100 *"));
+  assert.match(mem, /clamp_min\(node_zfs_arc_size\{job="truenas_node"\} - node_zfs_arc_c_min\{job="truenas_node"\}, 0\)/);
+  assert.match(mem, / or node_memory_MemAvailable_bytes\{job="truenas_node"\} \* 0\)/);
+});
+
 test("services: Workstation postgres and redis health, stale or missing file", async () => {
   const sample = (metric, v) => ({ metric, value: [0, String(v)] });
   const fake = ({ health, age = 30, up = 1 }) => async (url) => {
