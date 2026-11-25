@@ -230,22 +230,19 @@ TrueNAS (`sudo cat` local). L'import est confié à une autre session.
 - **Agent `coder` sur `nabla-site-alban`, `nabla-site-bababou` et
   `nabla-yubikey`** (codé le 20/11, `NOT_RUN` en runtime) : rulesets en place
   et dépôts déjà couverts par le token fine-grained (10 dépôts le 19/11).
-  1. #26 et #27 fusionnées (21-22/11) ; pin `fe43cc3` dans nabla-compose#437
-     (ouverte le 22/11). Après sa fusion et la mise à jour du checkout TrueNAS,
-     `just truenas-deploy-coder --apply` : reconstruit les images `0.2.0`
-     (Node 24.22.3 et npm 12.2.2 vérifiés par SHA-256, allowlist squid avec
-     `registry.npmjs.org`) et applique les skills `nabla-site-dev` et
-     `nabla-yubikey-dev`, sans redémarrer le Gateway ;
-  2. preuve : `just devbox-egress-check`, puis depuis Telegram « Clone
+  1. ~~déployer la devbox 0.2.0~~ (fait le 25/11 depuis `c6b3a8b`) : le
+     sous-module TrueNAS était resté à `a195898`, car le cron horaire n'avance
+     pas les sous-modules. Après chaque pin `apps/openclaw`, il faut
+     `git -C /mnt/cpool/compose/nabla-compose submodule update apps/openclaw`
+     ([runbook du 25/11](runbooks/2026-11-25-telegram-failures.md)) ;
+  2. ~~preuve d'egress~~ (17 sondes `ok` le 25/11) ; reste depuis Telegram « Clone
      nabla-site-alban, lance `npm ci` et `npm run test:unit`, ne commite
      rien et donne le compte rendu. »
-  3. passes de roadmap quotidiennes sur les cinq dépôts (codé le 22/11) :
-     après l'étape 1, `just truenas-apply-coder-cron all` met à jour
-     `nabla-compose-roadmap-pass` (même clé de déclaration, toujours 02:00)
-     et déclare les quatre autres passes (01:00, 03:00, 04:00, 05:00) ;
-     preuve : `cron list --all` dans le Gateway, puis les comptes rendus
-     Telegram de la nuit suivante. Budget de la clé `coder` (11 USD / 7
-     jours) à revoir : il couvrait une seule passe par nuit.
+  3. passes de roadmap quotidiennes sur les cinq dépôts : `just
+     truenas-apply-coder-cron all` **appliqué le 25/11** (7 jobs coder, 11 au
+     total, sans doublon). Reste la preuve par les comptes rendus Telegram de
+     la nuit du 25 au 26/11. Budget de la clé `coder` (11 USD / 7 jours,
+     1,35 USD dépensés le 25/11) à revoir : il couvrait une seule passe par nuit.
 - **Discord** : attester un `doctor` avec le vrai token avant de réactiver le
   canal, puis router `#fastapi-sample-dev` vers `coder`.
 - **Homarr** : la clé créée le 11/11 (`nabla/prod/homarr`) est installée dans

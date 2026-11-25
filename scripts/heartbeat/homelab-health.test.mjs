@@ -143,12 +143,17 @@ test("coder runs: the latest ok run of a coder job that ran no tool is flagged",
     run("pass", 3, 548_000, 6_000), // nabla-compose pass with real tool calls
     run("terse", 3, 90_000, 150), // long enough, but no tool call could fit in 150 tokens
     run("nousage", 3, 120_000, undefined),
+    // 24/11: one model call, invented SHA and PR; a real pass reads its prompt back from cache.
+    run("onecall", 3, 65_000, 795, { usage: { input_tokens: 8_760, output_tokens: 795 } }),
+    run("toolloop", 3, 548_000, 2_152, { usage: { input_tokens: 45_573, output_tokens: 2_152, cache_read_tokens: 588_416 } }),
     run("digest", 3, 5_000, 100, { sessionKey: "agent:main:cron:digest:run:s3" }),
   ];
   const flagged = hollowCoderRuns(entries);
-  assert.deepEqual(flagged.map(([key, sev]) => [key, sev]), [["coderruns:daily", "warn"], ["coderruns:terse", "warn"]]);
+  assert.deepEqual(flagged.map(([key, sev]) => [key, sev]),
+    [["coderruns:daily", "warn"], ["coderruns:terse", "warn"], ["coderruns:onecall", "warn"]]);
   assert.equal(flagged[0][2], "Run coder daily « ok » en 23 s, 180 tokens de sortie : aucun outil exécuté, compte rendu non fondé");
-  assert.deepEqual(hollowCoderRuns([...entries, run("daily", 4, 300_000, 4_000)]).map(([key]) => key), ["coderruns:terse"]);
+  assert.deepEqual(hollowCoderRuns([...entries, run("daily", 4, 300_000, 4_000)]).map(([key]) => key),
+    ["coderruns:terse", "coderruns:onecall"]);
 
   const { mkdtempSync } = await import("node:fs");
   const { tmpdir } = await import("node:os");
@@ -156,7 +161,7 @@ test("coder runs: the latest ok run of a coder job that ran no tool is flagged",
   const cli = async (a) => { args = a; return JSON.stringify({ entries }); };
   assert.deepEqual(await checks.coderruns(null, {}, cli, "/nonexistent/workspace-coder"), []);
   assert.equal(args, undefined);
-  assert.equal((await checks.coderruns(null, {}, cli, mkdtempSync(`${tmpdir()}/coder-`))).length, 2);
+  assert.equal((await checks.coderruns(null, {}, cli, mkdtempSync(`${tmpdir()}/coder-`))).length, 3);
   assert.deepEqual(args.slice(0, 5), ["cron", "runs", "--all", "--status", "ok"]);
 });
 

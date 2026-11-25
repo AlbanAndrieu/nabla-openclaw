@@ -32,8 +32,10 @@ let coderBudgetSeen = null;
 const ICON = { crit: "🔴", warn: "🟠", unknown: "⚪" };
 const RANK = { crit: 0, warn: 1, unknown: 2 };
 const MAX_LINES = 40;
-// Gateway CLI of the packaged image (`cd /app && node openclaw.mjs`).
-export const OPENCLAW_CLI = process.env.OPENCLAW_CLI ?? "/app/openclaw.mjs";
+// Gateway CLI of the packaged image (`cd /app && node openclaw.mjs`). Not read from
+// $OPENCLAW_CLI: OpenClaw's exec tool sets it to "1" as a child-shell marker, so the
+// heartbeat ran `node 1` and the coderruns check never worked (25/11).
+export const OPENCLAW_CLI = "/app/openclaw.mjs";
 // A coder run recorded "ok" below either bound ran no tool: on 23/11 the
 // fastapi-sample job reported PASS in 17-30 s with ~180 output tokens (the
 // report alone), while its `pytest --cov` takes ~80 s by itself.
@@ -93,7 +95,11 @@ export function hollowCoderRuns(entries) {
     if (!(latest.get(run.jobId)?.ts >= run.ts)) latest.set(run.jobId, run);
   }
   return [...latest.values()]
-    .filter((run) => run.durationMs < HOLLOW_RUN.minMs || run.usage?.output_tokens < HOLLOW_RUN.minOutputTokens)
+    // A single model call never reads its own prompt back from cache: on 24/11 the
+    // daily job invented a SHA and a PR in one call (65 s, 795 tokens, no cache read),
+    // while every run with tool round trips reads 30k-600k cached tokens.
+    .filter((run) => run.durationMs < HOLLOW_RUN.minMs || run.usage?.output_tokens < HOLLOW_RUN.minOutputTokens
+      || (Number.isFinite(run.usage?.input_tokens) && !run.usage.cache_read_tokens))
     .map((run) => [`coderruns:${run.jobId}`, "warn", `Run coder ${run.jobName ?? run.jobId} « ok » en `
       + `${Number.isFinite(run.durationMs) ? Math.round(run.durationMs / 1000) : "?"} s, `
       + `${run.usage?.output_tokens ?? "?"} tokens de sortie : aucun outil exécuté, compte rendu non fondé`]);
