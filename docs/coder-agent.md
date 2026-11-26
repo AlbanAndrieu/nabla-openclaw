@@ -245,7 +245,7 @@ proxy, puis `test-local-first` en `PASS`, sans commit ni push.
   vérifie), puis `just truenas-deploy-coder --apply`.
 - **Coût** : `just openclaw-truenas-virtual-keys-quota` (`nabla-compose`) ; le
   budget se réinitialise tous les 7 jours.
-- **Justesse des sondes, chaque jour** (déclaré le 23/11) : le job `fastapi-sample-daily-improvement` (22:30
+- **Justesse des sondes, chaque jour** (déclaré le 23/11) : le job `fastapi-sample-daily-improvement` (00:45
   Europe/Paris, session isolée, 30 min max) confronte les sondes de
   `fastapi-sample` (`/api/ui/services` TrueNAS) à l'état réel (Prometheus,
   alertes, `homelab-health.json`), calcule leur justesse
@@ -259,21 +259,31 @@ proxy, puis `test-local-first` en `PASS`, sans commit ni push.
   configuration du Gateway, ou `CODER_TELEGRAM_GROUP_ID=-100...`). Arrêt :
   `openclaw cron disable <id>` dans le Gateway, avant tout rollback de l'agent.
 - **Passes de roadmap** : un job `<repo>-roadmap-pass` par dépôt de l'agent,
-  chaque nuit (Europe/Paris, session isolée, 60 min max). Depuis le 26/11,
-  tous les jobs du coder partent avant minuit, en vagues de deux jobs
-  espacées d'une heure (= timeout d'une passe) : au plus deux sandboxes à la
-  fois sur la devbox (2 CPU, 3 Go), et aucun setup dans la saturation IO de
-  TrueNAS (voir l'échec du setup plus bas). La file `cron` d'OpenClaw admet 8
-  runs parallèles et n'occupe pas la file `main` (`maxConcurrent: 2`) :
-  Telegram reste libre. Le budget LiteLLM de la clé `coder` n'a pas été revu
-  pour cinq passes par nuit (décision du 22/11 : à regarder plus tard) :
+  **toutes les heures de 08:00 à 23:00** depuis le 27/11 (demande du
+  propriétaire ; Europe/Paris, session isolée, 24 min max), soit 16 passes par
+  jour et par dépôt. Les cinq dépôts sont décalés de 12 min : au plus deux
+  sandboxes à la fois sur la devbox (2 CPU, 3 Go). Aucun setup de 01:00 à
+  08:00, dans la saturation IO de TrueNAS (voir l'échec du setup plus bas).
+  Chaque passe reprend la branche de la précédente (étape 0 de la skill). La
+  file `cron` d'OpenClaw admet 8 runs parallèles et n'occupe pas la file
+  `main` (`maxConcurrent: 2`) : Telegram reste libre. Chaque passe annonce son
+  compte rendu sur Telegram (80 messages par jour).
 
   | Heure | Job |
   |---|---|
-  | 21:00 | `nabla-compose-infra-referee` (amorce, 15 min max) |
-  | 21:30 | `nabla-compose-roadmap-pass`, `nabla-yubikey-roadmap-pass` |
-  | 22:30 | `fastapi-sample-daily-improvement`, `nabla-site-alban-roadmap-pass` |
-  | 23:30 | `fastapi-sample-roadmap-pass`, `nabla-site-bababou-roadmap-pass` |
+  | 00:30 | `nabla-compose-infra-referee` (amorce, 15 min max) |
+  | 00:45 | `fastapi-sample-daily-improvement` (30 min max) |
+  | HH:00 (08-23) | `nabla-compose-roadmap-pass` |
+  | HH:12 | `fastapi-sample-roadmap-pass` |
+  | HH:24 | `nabla-site-alban-roadmap-pass` |
+  | HH:36 | `nabla-site-bababou-roadmap-pass` |
+  | HH:48 | `nabla-yubikey-roadmap-pass` |
+
+  **Budget** : la clé `coder` (11 USD / 7 jours) avait été dimensionnée pour
+  une passe par nuit et par dépôt. Relevé du 27/11 : 1,51 USD dépensés sur
+  une dizaine de runs aboutis, soit environ 0,15 USD par run. À 80 passes par
+  jour, ce rythme épuise la clé en moins d'une journée ; les runs suivants
+  échouent jusqu'à la remise à zéro (anomalie `coder_budget` du heartbeat).
 
   Tous suivent la skill `nabla-roadmap-pass` (sources de roadmap et porte hors
   ligne par dépôt), dans l'ordre fixé le 23/11 : corriger les PR ouvertes
@@ -336,7 +346,7 @@ proxy, puis `test-local-first` en `PASS`, sans commit ni push.
     et le scrub du dimanche 00:00 fait de même. Le SQLite des sessions de la
     Gateway ralentit, et la préparation dépasse 60 s. Les jobs de 00:30 et
     01:00 passaient, tous ceux de 02:00 à 06:17 échouaient 5 à 6 nuits de
-    suite : d'où les vagues avant minuit ci-dessus.
+    suite : d'où, depuis, aucun setup entre 01:00 et 08:00.
 - **Garde-fous de session** (22/11) : détection de boucles
   (`agents.entries.coder.tools.loopDetection.enabled`, imposée par
   `check-devbox-contract.py`), `ask_user` (boutons Telegram) et goals
@@ -372,7 +382,7 @@ proxy, puis `test-local-first` en `PASS`, sans commit ni push.
   `workspaces/coder/AGENTS.md` (`ask_user`), **pas** un contrôle technique,
   car les approbations d'OpenClaw ne couvrent que `exec` sur l'hôte.
 - **Référent infra entre fastapi-sample et nabla-compose** (23/11) : le job
-  `nabla-compose-infra-referee` (21:00, 900 s) amorce chaque nuit la session
+  `nabla-compose-infra-referee` (00:30, 900 s) amorce chaque nuit la session
   **persistante** `agent:coder:nabla-compose-infra` (cible cron
   `session:nabla-compose-infra`, que OpenClaw 2026.10.7 range sous
   `agent:<agent>:<id>`) avec la skill `nabla-infra-referee`. Le job

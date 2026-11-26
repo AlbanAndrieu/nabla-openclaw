@@ -11,13 +11,19 @@ REPOS = ("nabla-compose", "fastapi-sample", "nabla-site-alban", "nabla-site-baba
 REFEREE = "nabla-compose-infra-referee"
 REFEREE_SESSION = "agent:coder:nabla-compose-infra"
 REFEREE_SKILL = "skills/nabla-infra-referee/SKILL.md"
-SCHEDULE = re.compile(r'\n  ([a-z-]+)\) schedule="(\d+) (\d+) \* \* \*" timeout=(\d+)')
+SCHEDULE = re.compile(r'\n  ([a-z-]+)\) schedule="(\d+) (\d+|\d+-\d+) \* \* \*" timeout=(\d+)')
+
+
+def hours(field):
+    first, _, last = field.partition("-")
+    return range(int(first), int(last or first) + 1)
 
 
 def schedules():
-    """Job name -> (start minute of the day, timeout in minutes)."""
+    """Job name -> (start minutes of the day, timeout in minutes)."""
     script = (ROOT / "scripts/coder/apply-cron-truenas.sh").read_text(encoding="utf-8")
-    return {name: (int(h) * 60 + int(m), int(t) // 60) for name, m, h, t in SCHEDULE.findall(script)}
+    return {name: ([h * 60 + int(m) for h in hours(field)], int(t) // 60)
+            for name, m, field, t in SCHEDULE.findall(script)}
 
 
 class CoderCron(unittest.TestCase):
@@ -86,7 +92,7 @@ class RoadmapPassCron(unittest.TestCase):
             "5. Consolider la roadmap", "6. Publier", "7. Compte rendu")]
         self.assertEqual(steps, sorted(steps))
 
-    def test_each_repo_has_its_night_and_a_skill_row(self):
+    def test_each_repo_has_its_hourly_pass_and_a_skill_row(self):
         self.assertIn("`<repo>-roadmap-pass`", (ROOT / "workspaces/coder/AGENTS.md").read_text(encoding="utf-8"))
         script = (ROOT / "scripts/coder/apply-cron-truenas.sh").read_text(encoding="utf-8")
         skill = (ROOT / "workspaces/coder/skills/nabla-roadmap-pass/SKILL.md").read_text(encoding="utf-8")
@@ -94,7 +100,7 @@ class RoadmapPassCron(unittest.TestCase):
         self.assertEqual(sorted(f"AlbanAndrieu/{repo}" for repo in REPOS), sorted(repos))
         for repo in REPOS:
             with self.subTest(repo=repo):
-                self.assertRegex(script, rf'\n  {repo}-{ROADMAP}\) schedule="\d+ \d+ \* \* \*" timeout=3600 ;;')
+                self.assertRegex(script, rf'\n  {repo}-{ROADMAP}\) schedule="\d+ 8-23 \* \* \*" timeout=1440 ;;')
                 self.assertIn(f"{repo}-{ROADMAP}", script.split("  all)", 1)[1].split("exit 0", 1)[0])
                 self.assertIn(f"\n| `{repo}` | `", skill)
         self.assertIn('sed "s/<repo>/${name%-roadmap-pass}/g" policies/cron/roadmap-pass.message.md', script)
@@ -103,19 +109,23 @@ class RoadmapPassCron(unittest.TestCase):
         self.assertIn("Deuxième action, obligatoire : appelle ton outil `exec`", message)
         self.assertIn("`test -d <repo>/.git || git clone --filter=blob:none https://github.com/AlbanAndrieu/<repo>.git <repo>`", message)
 
-    def test_waves_start_before_the_night_io_stall(self):
+    def test_runs_avoid_the_night_io_stall_two_at_a_time(self):
         jobs = schedules()
         self.assertEqual(len(jobs), len(REPOS) + 2)
-        # 26/11: the 01:00 night window (Mon-Sat) and the Sunday 00:00 scrub stall
-        # TrueNAS IO, so the 60 s cron setup watchdog timed out every job after 01:00.
-        for name, (start, _) in jobs.items():
-            with self.subTest(job=name):
-                self.assertTrue(21 * 60 <= start < 24 * 60)
+        runs = [(name, start, start + t) for name, (starts, t) in jobs.items() for start in starts]
+        # A run started late in the evening still holds its sandbox after midnight.
+        day = 24 * 60
+        spans = runs + [(name, s - day, e - day) for name, s, e in runs]
+        for name, start, _ in runs:
+            with self.subTest(job=name, start=start):
+                # 26/11: the nabla-compose night window stalls TrueNAS IO from 01:15 to
+                # 07:30 (Mon-Sat), so the 60 s cron setup watchdog timed out every job.
+                self.assertFalse(60 <= start < 8 * 60)
                 # 2-CPU, 3 GB devbox: never more than two sandboxes at once.
-                running = [other for other, (s, t) in jobs.items() if s <= start < s + t]
-                self.assertLessEqual(len(running), 2)
-        daily, roadmap = jobs[NAME], jobs[f"fastapi-sample-{ROADMAP}"]
-        self.assertLessEqual(sum(daily), roadmap[0])
+                self.assertLessEqual(len([other for other, s, e in spans if s <= start < e]), 2)
+        roadmap = [(s, e) for name, s, e in spans if name == f"fastapi-sample-{ROADMAP}"]
+        for _, start, end in (run for run in spans if run[0] == NAME):
+            self.assertFalse(any(s < end and start < e for s, e in roadmap))
 
 
 class InfraReferee(unittest.TestCase):
@@ -128,7 +138,7 @@ class InfraReferee(unittest.TestCase):
         minute, hour, timeout, key = match.groups()
         # OpenClaw stores cron target session:<id> as agent:<agentId>:<id>.
         self.assertEqual(f"agent:coder:{key}", REFEREE_SESSION)
-        first_pass = min(start for name, (start, _) in schedules().items() if name.endswith(ROADMAP))
+        first_pass = min(min(starts) for name, (starts, _) in schedules().items() if name.endswith(ROADMAP))
         self.assertLessEqual(int(hour) * 60 + int(minute) + int(timeout) // 60, first_pass)
         self.assertIn(REFEREE, script.split("  all)", 1)[1].split("exit 0", 1)[0])
         self.assertIn("--session $session", script)

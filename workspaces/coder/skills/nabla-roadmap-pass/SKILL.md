@@ -1,6 +1,6 @@
 ---
 name: nabla-roadmap-pass
-description: Passe nocturne sur un dépôt de l'agent (nabla-compose, fastapi-sample, nabla-site-alban, nabla-site-bababou, nabla-yubikey) depuis la devbox. Vérifier l'état des services, réparer d'abord les PR ouvertes (retard sur master, conflits, CI rouge) et la CI de master, puis refactorer, améliorer la performance et stabiliser le code avec une mesure, puis implémenter un par un les items de roadmap faisables hors ligne ; consolider la roadmap en trois boucles seulement après un commit de code, et regrouper les blocages et les questions à la fin. Lancée par les jobs planifiés `<repo>-roadmap-pass`.
+description: Passe horaire (24 min max) sur un dépôt de l'agent (nabla-compose, fastapi-sample, nabla-site-alban, nabla-site-bababou, nabla-yubikey) depuis la devbox. Vérifier l'état des services, réparer d'abord les PR ouvertes (retard sur master, conflits, CI rouge) et la CI de master, puis refactorer, améliorer la performance et stabiliser le code avec une mesure, puis implémenter un par un les items de roadmap faisables hors ligne ; consolider la roadmap en trois boucles seulement après un commit de code, et regrouper les blocages et les questions à la fin. Lancée par les jobs planifiés `<repo>-roadmap-pass`.
 ---
 
 # Passe de roadmap d'un dépôt
@@ -135,7 +135,7 @@ Une anomalie de service que le code de `<repo>` explique devient un item
 (script, test, correctif ; une modification de roadmap ou de runbook seule ne
 compte pas).
 
-## 2. Corriger les PR ouvertes, puis la CI de `master` (≤ 15 min)
+## 2. Corriger les PR ouvertes, puis la CI de `master` (≤ 6 min)
 
 ```bash
 cd <repo> && gh pr list --state open --limit 20 --json number,title,author,headRefName,isCrossRepository,mergeable,mergeStateStatus,statusCheckRollup
@@ -172,7 +172,7 @@ Puis la CI de `master` (étape 1) : rouge, ou porte hors ligne en échec,
 répare ce qui casse par un commit sur ta branche de passe avant toute autre
 chose.
 
-## 3. Refactorer, accélérer, stabiliser (≤ 15 min)
+## 3. Refactorer, accélérer, stabiliser (≤ 6 min)
 
 Au plus un commit par axe, chacun **mesuré** avant et après dans cette passe
 (sinon pas de commit) ; comportement inchangé, porte hors ligne verte :
@@ -221,8 +221,8 @@ ligne de la commande que la Workstation lancera).
 
 Bloqué : note le blocage, passe à l'item suivant, ne pose **aucune** question
 en cours de passe. « Jusqu'à avoir fait l'ensemble » se fait sur plusieurs
-jours : au plus 3 items `CODE` par exécution, ≤ 10 fichiers et ≤ 400 lignes
-chacun ; après 45 minutes de passe, termine l'item en cours et passe à l'étape 5.
+passes (une par heure, 24 min max) : au plus 3 items `CODE` par exécution, ≤ 10 fichiers et ≤ 400 lignes
+chacun ; après 15 minutes de passe, termine l'item en cours et passe à l'étape 5.
 
 Interdits : `.github/workflows/`, les contrôles de sécurité, les fichiers de
 verrouillage, toute valeur de secret, la suppression de données persistantes.
