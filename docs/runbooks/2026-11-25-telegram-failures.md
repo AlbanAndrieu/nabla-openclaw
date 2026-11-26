@@ -49,5 +49,8 @@ Le digest du 24/11 est **ACCEPTED** : `ok` en 66 s, archive
   (`150369b`) : 7 jobs redéclarés sans doublon (11 jobs au total),
   prochains départs le 27/11 de 21:00 à 23:30. Rollback : réappliquer
   `apply-cron-truenas.sh all` depuis `master` (anciens horaires 00:30 à
-  06:17). npm, FastAPI Cloud, sites et résolution des alertes `coderruns` :
-  **ACCEPTED** `NOT_RUN` jusqu'au relevé du 28/11 au matin.
+  06:17). Remplacé le même jour vers 00:36, à la demande du propriétaire,
+  par des passes horaires de 08:00 à 23:00 (24 min max, décalées de 12 min)
+  et une clé `coder` à 90 USD / 7 jours. npm, FastAPI Cloud, sites et
+  résolution des alertes `coderruns` : **ACCEPTED** `NOT_RUN` jusqu'au relevé
+  du 27/11 vers 09:00.

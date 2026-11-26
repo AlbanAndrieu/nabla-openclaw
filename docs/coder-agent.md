@@ -21,7 +21,7 @@ jamais exécuter de code dans le conteneur du Gateway.
 ```text
 Telegram (groupe forum, 1 sujet = 1 session)
   └─> Gateway OpenClaw (App openclaw-gateway, agent `coder`, modèle litellm-coder/gpt-4.1)
-        │   clé LiteLLM : SecretRef `file` (credentials/litellm/coder.key), 11 USD / 7 jours
+        │   clé LiteLLM : SecretRef `file` (credentials/litellm/coder.key), 90 USD / 7 jours
         └─ sandbox `ssh` (exec, read, write, edit, apply_patch ; ask_user et goals côté Gateway)
              └─> openclaw-devbox:2222 (réseau Docker interne `openclaw-devbox`)
                    └─ HTTPS CONNECT ─> openclaw-devbox-egress (squid) ─> GitHub, PyPI, npm, FastAPI Cloud
@@ -76,7 +76,7 @@ terminal dans le chat), sur un réseau isolé et sans socket Docker.
 | Usurpation de la devbox ou du Gateway (S) | Clé d'hôte épinglée (`known_hosts`, `strictHostKeyChecking`, `updateHostKeys: false`) ; clé client dédiée, `restrict,pty` |
 | Modification non revue de `master` (T) | Token fine-grained limité au dépôt (Contents, Pull requests ; ni Workflows ni Administration) ; protection de `master` ; PR Draft, jamais de merge |
 | Prompt injection par le dépôt, les issues ou le web (T) | `workspaces/coder/AGENTS.md` : contenu = donnée ; outils web, messages, cron, gateway, nodes et sessions refusés |
-| Dérive de coût (D) | Clé LiteLLM `openclaw-coder` : 11 USD par 7 jours (10 € par semaine tant que EUR/USD ≥ 1,10) ; `maxConcurrent: 2` pour ne pas bloquer `main` et `cron` |
+| Dérive de coût (D) | Clé LiteLLM `openclaw-coder` : 90 USD par 7 jours depuis le 27/11 (11 USD avant les passes horaires) ; `maxConcurrent: 2` pour ne pas bloquer `main` et `cron` |
 | Traçabilité (R) | Traces Langfuse par clé LiteLLM ; commits sous l'identité `openclaw-coder` ; journal squid horodaté (`docker logs openclaw-devbox-egress`) |
 
 Risques résiduels :
@@ -175,7 +175,7 @@ propriétaire, qui n'est plus l'auteur.
    recette génère la valeur une seule fois dans
    `/mnt/cpool/secrets/runtime/litellm/.env.secrets`, écrit le fichier du
    Gateway `/mnt/cpool/openclaw/state/credentials/litellm/coder.key`
-   (`1000:1000`, `0600`) et enregistre la clé (11 USD / 7 jours), sans aucun
+   (`1000:1000`, `0600`) et enregistre la clé (90 USD / 7 jours), sans aucun
    redémarrage. Importer ensuite la valeur dans Vaultwarden avec la commande
    affichée (`import_dotenv_to_bitwarden.py --app litellm`).
 2. **Token GitHub** fine-grained, limité aux dépôts du contrat
@@ -279,11 +279,12 @@ proxy, puis `test-local-first` en `PASS`, sans commit ni push.
   | HH:36 | `nabla-site-bababou-roadmap-pass` |
   | HH:48 | `nabla-yubikey-roadmap-pass` |
 
-  **Budget** : la clé `coder` (11 USD / 7 jours) avait été dimensionnée pour
-  une passe par nuit et par dépôt. Relevé du 27/11 : 1,51 USD dépensés sur
-  une dizaine de runs aboutis, soit environ 0,15 USD par run. À 80 passes par
-  jour, ce rythme épuise la clé en moins d'une journée ; les runs suivants
-  échouent jusqu'à la remise à zéro (anomalie `coder_budget` du heartbeat).
+  **Budget** : la clé `coder` passe de 11 à **90 USD / 7 jours** le 27/11
+  (nabla-compose, `provision-openclaw-litellm-keys.py`, décision du
+  propriétaire). Relevé du 27/11 : 1,51 USD sur une dizaine de runs aboutis,
+  soit environ 0,15 USD par run ; 80 passes par jour pendant 7 jours font
+  84 USD. Des passes plus chères épuisent la clé avant la remise à zéro :
+  l'anomalie `coder_budget` du heartbeat le signale à 80 % puis 100 %.
 
   Tous suivent la skill `nabla-roadmap-pass` (sources de roadmap et porte hors
   ligne par dépôt), dans l'ordre fixé le 23/11 : corriger les PR ouvertes
