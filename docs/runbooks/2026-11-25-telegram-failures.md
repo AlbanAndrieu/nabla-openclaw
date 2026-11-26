@@ -37,6 +37,14 @@ Le digest du 24/11 est **ACCEPTED** : `ok` en 66 s, archive
   `provision-openclaw-litellm-keys.py` (ajout hors script), d'où
   `model_scope=mismatch` dans `--quota-audit`. Intégrer ce modèle au script
   ou le retirer de la clé : à arbitrer.
-- **ACCEPTED** `NOT_RUN` : passes coder de la nuit du 25 au 26/11 (npm,
-  FastAPI Cloud, sites), briefing et digest du 26/11 avec le nouveau budget,
-  résolution des trois alertes `coderruns` après de vraies passes.
+- **Relevé du 26/11 au soir** (lecture seule, `cron list`) : briefing du
+  26/11 `ok` et livré, digest `ok` en 75 s, livré, archive
+  `daily-2026-11-26.md` de 20 titres : **ACCEPTED** avec le nouveau budget.
+  Passes coder : 6 jobs sur 7 en échec, et la ligne « relance suivante
+  passe » ci-dessus ne tient plus. Cinq dépassent le délai de setup chaque nuit
+  depuis le 20/11, dans la saturation IO de TrueNAS (fenêtre de nuit de
+  nabla-compose) ; la passe nabla-yubikey tourne sans cloner son dépôt.
+  Correctifs dans la PR #36 (vagues avant minuit, clone imposé, contrôle
+  `coderjobs`). npm, FastAPI Cloud, sites et résolution des alertes
+  `coderruns` : **ACCEPTED** `NOT_RUN` jusqu'à la première nuit après
+  application.

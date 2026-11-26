@@ -301,6 +301,12 @@ proxy, puis `test-local-first` en `PASS`, sans commit ni push.
   que `pytest --cov` dure à lui seul ~80 s ; la passe nabla-compose réelle
   dure 548 s. L'anomalie reste ouverte jusqu'au prochain run réel du même job
   et figure dans le briefing du matin ; aucun signal sans `workspace-coder`.
+- **Job en échec répété** (26/11) : le même collecteur lit
+  `node /app/openclaw.mjs cron list --agent coder --json` (lecture seule) et
+  signale 🟠 chaque job actif à au moins 2 échecs consécutifs, avec la
+  première ligne de `lastError`. L'anomalie reste dans le briefing jusqu'au
+  premier run réussi. Du 20 au 26/11, seules les alertes d'échec d'OpenClaw
+  annonçaient les 5 à 6 nuits d'échec des passes.
 - **Première tentative nocturne en échec** (`cron: isolated agent setup timed
   out before runner start`, puis relance réussie 1 à 9 min plus tard) :
   diagnostic par lecture du code d'OpenClaw 2026.10.7, **sans réglage à
