@@ -45,6 +45,9 @@ Le digest du 24/11 est **ACCEPTED** : `ok` en 66 s, archive
   depuis le 20/11, dans la saturation IO de TrueNAS (fenêtre de nuit de
   nabla-compose) ; la passe nabla-yubikey tourne sans cloner son dépôt.
   Correctifs dans la PR #36 (vagues avant minuit, clone imposé, contrôle
-  `coderjobs`). npm, FastAPI Cloud, sites et résolution des alertes
-  `coderruns` : **ACCEPTED** `NOT_RUN` jusqu'à la première nuit après
-  application.
+  `coderjobs`). Horaires **DEPLOYED** le 27/11 à 00:25 depuis la branche
+  (`150369b`) : 7 jobs redéclarés sans doublon (11 jobs au total),
+  prochains départs le 27/11 de 21:00 à 23:30. Rollback : réappliquer
+  `apply-cron-truenas.sh all` depuis `master` (anciens horaires 00:30 à
+  06:17). npm, FastAPI Cloud, sites et résolution des alertes `coderruns` :
+  **ACCEPTED** `NOT_RUN` jusqu'au relevé du 28/11 au matin.
