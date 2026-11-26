@@ -245,7 +245,7 @@ proxy, puis `test-local-first` en `PASS`, sans commit ni push.
   vérifie), puis `just truenas-deploy-coder --apply`.
 - **Coût** : `just openclaw-truenas-virtual-keys-quota` (`nabla-compose`) ; le
   budget se réinitialise tous les 7 jours.
-- **Justesse des sondes, chaque jour** (déclaré le 23/11) : le job `fastapi-sample-daily-improvement` (06:17
+- **Justesse des sondes, chaque jour** (déclaré le 23/11) : le job `fastapi-sample-daily-improvement` (22:30
   Europe/Paris, session isolée, 30 min max) confronte les sondes de
   `fastapi-sample` (`/api/ui/services` TrueNAS) à l'état réel (Prometheus,
   alertes, `homelab-health.json`), calcule leur justesse
@@ -259,18 +259,21 @@ proxy, puis `test-local-first` en `PASS`, sans commit ni push.
   configuration du Gateway, ou `CODER_TELEGRAM_GROUP_ID=-100...`). Arrêt :
   `openclaw cron disable <id>` dans le Gateway, avant tout rollback de l'agent.
 - **Passes de roadmap** : un job `<repo>-roadmap-pass` par dépôt de l'agent,
-  chaque nuit (Europe/Paris, session isolée, 60 min max), sur des créneaux
-  d'une heure qui ne se chevauchent pas. Le budget LiteLLM de la clé `coder`
-  n'a pas été revu pour cinq passes par nuit (décision du 22/11 : à regarder
-  plus tard) :
+  chaque nuit (Europe/Paris, session isolée, 60 min max). Depuis le 26/11,
+  tous les jobs du coder partent avant minuit, en vagues de deux jobs
+  espacées d'une heure (= timeout d'une passe) : au plus deux sandboxes à la
+  fois sur la devbox (2 CPU, 3 Go), et aucun setup dans la saturation IO de
+  TrueNAS (voir l'échec du setup plus bas). La file `cron` d'OpenClaw admet 8
+  runs parallèles et n'occupe pas la file `main` (`maxConcurrent: 2`) :
+  Telegram reste libre. Le budget LiteLLM de la clé `coder` n'a pas été revu
+  pour cinq passes par nuit (décision du 22/11 : à regarder plus tard) :
 
   | Heure | Job |
   |---|---|
-  | 01:00 | `nabla-yubikey-roadmap-pass` |
-  | 02:00 | `nabla-compose-roadmap-pass` |
-  | 03:00 | `fastapi-sample-roadmap-pass` |
-  | 04:00 | `nabla-site-alban-roadmap-pass` |
-  | 05:00 | `nabla-site-bababou-roadmap-pass` |
+  | 21:00 | `nabla-compose-infra-referee` (amorce, 15 min max) |
+  | 21:30 | `nabla-compose-roadmap-pass`, `nabla-yubikey-roadmap-pass` |
+  | 22:30 | `fastapi-sample-daily-improvement`, `nabla-site-alban-roadmap-pass` |
+  | 23:30 | `fastapi-sample-roadmap-pass`, `nabla-site-bababou-roadmap-pass` |
 
   Tous suivent la skill `nabla-roadmap-pass` (sources de roadmap et porte hors
   ligne par dépôt), dans l'ordre fixé le 23/11 : corriger les PR ouvertes
@@ -319,6 +322,15 @@ proxy, puis `test-local-first` en `PASS`, sans commit ni push.
     5 min). Étape bloquante à lire dans
     `sudo docker logs openclaw-gateway --since <heure-5min> --until <heure+5min>`
     (lignes `cron:` précédant `setup timed out`).
+  - **cause trouvée le 26/11** : depuis le 17/11, la fenêtre de nuit de
+    nabla-compose (`nabla-night-window-start`, 01:00 du lundi au samedi, 15
+    Apps dont bitcoind, arrêt à 07:00) bloque l'IO de TrueNAS 40 à 64 % du
+    temps de 01:15 à 07:30 (Prometheus,
+    `rate(node_pressure_io_stalled_seconds_total[5m])`, contre 2 à 5 % avant),
+    et le scrub du dimanche 00:00 fait de même. Le SQLite des sessions de la
+    Gateway ralentit, et la préparation dépasse 60 s. Les jobs de 00:30 et
+    01:00 passaient, tous ceux de 02:00 à 06:17 échouaient 5 à 6 nuits de
+    suite : d'où les vagues avant minuit ci-dessus.
 - **Garde-fous de session** (22/11) : détection de boucles
   (`agents.entries.coder.tools.loopDetection.enabled`, imposée par
   `check-devbox-contract.py`), `ask_user` (boutons Telegram) et goals
@@ -354,7 +366,7 @@ proxy, puis `test-local-first` en `PASS`, sans commit ni push.
   `workspaces/coder/AGENTS.md` (`ask_user`), **pas** un contrôle technique,
   car les approbations d'OpenClaw ne couvrent que `exec` sur l'hôte.
 - **Référent infra entre fastapi-sample et nabla-compose** (23/11) : le job
-  `nabla-compose-infra-referee` (00:30, 900 s) amorce chaque nuit la session
+  `nabla-compose-infra-referee` (21:00, 900 s) amorce chaque nuit la session
   **persistante** `agent:coder:nabla-compose-infra` (cible cron
   `session:nabla-compose-infra`, que OpenClaw 2026.10.7 range sous
   `agent:<agent>:<id>`) avec la skill `nabla-infra-referee`. Le job

@@ -10,18 +10,21 @@ cd "$(dirname "$self")/../.."
 
 name=${1:-fastapi-sample-daily-improvement}
 session=isolated
+# Every job starts before 00:00: TrueNAS IO stalls 40-60 % from the 01:00
+# night window (nabla-compose, Mon-Sat) and the Sunday 00:00 scrub, and the
+# 60 s cron setup watchdog of OpenClaw then times out. Waves one hour apart
+# (= pass timeout), two jobs each: at most two sandboxes on the 2-CPU devbox.
 case $name in
-  fastapi-sample-daily-improvement) schedule="17 6 * * *" timeout=1800 ;;
   # Persistent session (not isolated), primed before the passes: they ask it, by
   # sessions_send, whether a failing probe comes from fastapi-sample or nabla-compose.
-  nabla-compose-infra-referee) schedule="30 0 * * *" timeout=900 session=session:nabla-compose-infra ;;
-  # Roadmap passes: every repository every night, one-hour slots that never
-  # overlap and end before the 06:17 fastapi-sample job.
-  nabla-yubikey-roadmap-pass) schedule="0 1 * * *" timeout=3600 ;;
-  nabla-compose-roadmap-pass) schedule="0 2 * * *" timeout=3600 ;;
-  fastapi-sample-roadmap-pass) schedule="0 3 * * *" timeout=3600 ;;
-  nabla-site-alban-roadmap-pass) schedule="0 4 * * *" timeout=3600 ;;
-  nabla-site-bababou-roadmap-pass) schedule="0 5 * * *" timeout=3600 ;;
+  nabla-compose-infra-referee) schedule="0 21 * * *" timeout=900 session=session:nabla-compose-infra ;;
+  nabla-compose-roadmap-pass) schedule="30 21 * * *" timeout=3600 ;;
+  nabla-yubikey-roadmap-pass) schedule="30 21 * * *" timeout=3600 ;;
+  # Ends (30 min max) before fastapi-sample-roadmap-pass, in the next wave.
+  fastapi-sample-daily-improvement) schedule="30 22 * * *" timeout=1800 ;;
+  nabla-site-alban-roadmap-pass) schedule="30 22 * * *" timeout=3600 ;;
+  fastapi-sample-roadmap-pass) schedule="30 23 * * *" timeout=3600 ;;
+  nabla-site-bababou-roadmap-pass) schedule="30 23 * * *" timeout=3600 ;;
   all)
     for job in nabla-compose-infra-referee fastapi-sample-daily-improvement nabla-compose-roadmap-pass fastapi-sample-roadmap-pass \
                nabla-site-alban-roadmap-pass nabla-site-bababou-roadmap-pass nabla-yubikey-roadmap-pass; do

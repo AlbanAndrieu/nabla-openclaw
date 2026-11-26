@@ -11,6 +11,13 @@ REPOS = ("nabla-compose", "fastapi-sample", "nabla-site-alban", "nabla-site-baba
 REFEREE = "nabla-compose-infra-referee"
 REFEREE_SESSION = "agent:coder:nabla-compose-infra"
 REFEREE_SKILL = "skills/nabla-infra-referee/SKILL.md"
+SCHEDULE = re.compile(r'\n  ([a-z-]+)\) schedule="(\d+) (\d+) \* \* \*" timeout=(\d+)')
+
+
+def schedules():
+    """Job name -> (start minute of the day, timeout in minutes)."""
+    script = (ROOT / "scripts/coder/apply-cron-truenas.sh").read_text(encoding="utf-8")
+    return {name: (int(h) * 60 + int(m), int(t) // 60) for name, m, h, t in SCHEDULE.findall(script)}
 
 
 class CoderCron(unittest.TestCase):
@@ -85,18 +92,30 @@ class RoadmapPassCron(unittest.TestCase):
         skill = (ROOT / "workspaces/coder/skills/nabla-roadmap-pass/SKILL.md").read_text(encoding="utf-8")
         repos = json.loads((ROOT / "deploy/truenas/devbox/contract.json").read_text(encoding="utf-8"))["repositories"]
         self.assertEqual(sorted(f"AlbanAndrieu/{repo}" for repo in REPOS), sorted(repos))
-        hours = []
         for repo in REPOS:
             with self.subTest(repo=repo):
-                match = re.search(rf'\n  {repo}-{ROADMAP}\) schedule="0 ([0-9]+) \* \* \*" timeout=3600 ;;', script)
-                self.assertIsNotNone(match)
-                hours.append(int(match.group(1)))
+                self.assertRegex(script, rf'\n  {repo}-{ROADMAP}\) schedule="\d+ \d+ \* \* \*" timeout=3600 ;;')
                 self.assertIn(f"{repo}-{ROADMAP}", script.split("  all)", 1)[1].split("exit 0", 1)[0])
                 self.assertIn(f"\n| `{repo}` | `", skill)
-        # Daily, one-hour slots (= timeout) that never overlap, all done before 06:17.
-        self.assertEqual(len(set(hours)), len(REPOS))
-        self.assertLessEqual(max(hours) + 1, 6)
         self.assertIn('sed "s/<repo>/${name%-roadmap-pass}/g" policies/cron/roadmap-pass.message.md', script)
+        # 26/11: gpt-4.1 listed docs/ in the empty sandbox and reported the repository as missing.
+        message = (ROOT / "policies/cron/roadmap-pass.message.md").read_text(encoding="utf-8")
+        self.assertIn("Deuxième action, obligatoire : appelle ton outil `exec`", message)
+        self.assertIn("`test -d <repo>/.git || git clone --filter=blob:none https://github.com/AlbanAndrieu/<repo>.git <repo>`", message)
+
+    def test_waves_start_before_the_night_io_stall(self):
+        jobs = schedules()
+        self.assertEqual(len(jobs), len(REPOS) + 2)
+        # 26/11: the 01:00 night window (Mon-Sat) and the Sunday 00:00 scrub stall
+        # TrueNAS IO, so the 60 s cron setup watchdog timed out every job after 01:00.
+        for name, (start, _) in jobs.items():
+            with self.subTest(job=name):
+                self.assertTrue(21 * 60 <= start < 24 * 60)
+                # 2-CPU, 3 GB devbox: never more than two sandboxes at once.
+                running = [other for other, (s, t) in jobs.items() if s <= start < s + t]
+                self.assertLessEqual(len(running), 2)
+        daily, roadmap = jobs[NAME], jobs[f"fastapi-sample-{ROADMAP}"]
+        self.assertLessEqual(sum(daily), roadmap[0])
 
 
 class InfraReferee(unittest.TestCase):
@@ -109,8 +128,8 @@ class InfraReferee(unittest.TestCase):
         minute, hour, timeout, key = match.groups()
         # OpenClaw stores cron target session:<id> as agent:<agentId>:<id>.
         self.assertEqual(f"agent:coder:{key}", REFEREE_SESSION)
-        first_pass = min(int(h) for h in re.findall(r'-roadmap-pass\) schedule="0 (\d+) ', script))
-        self.assertLessEqual(int(hour) * 60 + int(minute) + int(timeout) // 60, first_pass * 60)
+        first_pass = min(start for name, (start, _) in schedules().items() if name.endswith(ROADMAP))
+        self.assertLessEqual(int(hour) * 60 + int(minute) + int(timeout) // 60, first_pass)
         self.assertIn(REFEREE, script.split("  all)", 1)[1].split("exit 0", 1)[0])
         self.assertIn("--session $session", script)
         message = (ROOT / f"policies/cron/{REFEREE}.message.md").read_text(encoding="utf-8")

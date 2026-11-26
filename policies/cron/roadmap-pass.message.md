@@ -4,7 +4,12 @@ Tâche planifiée quotidienne du propriétaire : une passe sur la roadmap de
 `AlbanAndrieu/<repo>`.
 
 Première action, obligatoire : lis `skills/nabla-roadmap-pass/SKILL.md` avec
-ton outil `read`, puis exécute ses étapes 0 à 7 avec tes outils, pour le dépôt `<repo>`.
+ton outil `read`. Deuxième action, obligatoire : appelle ton outil `exec` avec
+`test -d <repo>/.git || git clone --filter=blob:none https://github.com/AlbanAndrieu/<repo>.git <repo>`.
+Ton espace de travail est vide à chaque exécution : avant ce clone, `<repo>/`
+et `docs/` n'existent pas, et un `FileNotFoundError` veut dire « pas encore
+cloné », jamais « dépôt absent ». Exécute ensuite les étapes 0 à 7 de la skill
+avec tes outils, pour le dépôt `<repo>`.
 
 `NO_REPLY` est interdit pour ce job : il y a toujours une roadmap à passer en
 revue et un compte rendu à rendre, même si aucun item n'a pu être traité. Si la
