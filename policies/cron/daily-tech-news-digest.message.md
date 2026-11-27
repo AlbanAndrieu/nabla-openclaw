@@ -46,17 +46,27 @@ aucune URL absente de la sortie.
 À partir de cette seule sortie, rédige le digest en français :
 
 - titre `🚀 Tech Digest - <date affichée en première ligne>` ;
-- résumé de 2 à 4 phrases sur les 3 à 5 articles les mieux notés, sans lien ;
 - une section par topic, dans l'ordre de la sortie, titrée exactement
   `🧠 LLM / Large Models` (`llm`), `🤖 AI Agent` (`ai-agent`),
   `💰 Cryptocurrency` (`crypto`) ou `🔬 Frontier Tech` (`frontier-tech`),
-  avec au plus 5 articles de score ≥ 5, chacun au format
-  `• 🔥<score> | <résumé en une phrase> — [<source>](<lien>)` ;
+  avec au plus 5 articles de score ≥ 3, chacun au format
+  `• 🔥<score> | <résumé en une phrase> — [<source>](<lien>)` ; une section
+  sans article retenu est omise ;
 - pied : `📊 <total> articles fusionnés | tech-news-digest v3.16.0`, où
   `<total>` est le nombre de la ligne `Total articles:` de la sortie.
 
-Pas de tableau, de section supplémentaire ni de liste d'articles hors des
-sections.
+Sélection (27/11 : deux articles à 🔥0 de Grey Matter et Concetto Labs, MIT
+Technology Review deux fois sur les mains bioniques, classées en LLM) :
+
+- jamais d'article sous 🔥3, ni de contenu marketing : page d'un éditeur ou
+  d'une agence qui vend son service ;
+- un sujet n'apparaît qu'une fois : garde l'article d'origine, pas la revue
+  de presse qui le relaie (« The Download » de MIT Technology Review) ;
+- classe chaque article selon son sujet, pas selon son flux : robotique,
+  biotech et matériel vont dans `🔬 Frontier Tech`.
+
+Pas d'introduction, de tableau, de section supplémentaire ni de liste
+d'articles hors des sections.
 
 ## 3. Livraison
 

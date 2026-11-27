@@ -368,6 +368,29 @@ proxy, puis `test-local-first` en `PASS`, sans commit ni push.
     restant en 0700.
   - **Sources introuvables** : nabla-yubikey annonçait « aucun fichier
     roadmap trouvé ». La skill liste désormais les sources depuis le clone.
+  Lot du 28/11 (250 runs du 23 au 27/11, liste validée par le propriétaire) :
+  - **Passes silencieuses** : une passe sans commit, sans PR ouverte ou
+    poussée, sans nouveau blocage ni échec répond `NO_REPLY`. Le briefing
+    du matin résume les passes des dernières 24 h dans sa section « CODER » :
+    leur nombre, celles en échec ou silencieuses, les PR citées. Les runs
+    creux, désormais muets sur Telegram, restent signalés par `coderruns`,
+    qui lit tous les statuts (`--limit 200`).
+  - **Jamais de push sur `master`** : règle dans `AGENTS.md` et dans la
+    skill, et push autorisé seulement depuis une branche `openclaw/*`.
+    `coderruns` signale tout run des dernières 24 h dont le compte rendu
+    montre un push refusé (`GH013`, comme le 27/11 à 09:37 et 14:49).
+  - **Supprimer la livraison d'un run creux** : impossible dans OpenClaw
+    2026.10.7. Seule une réponse `NO_REPLY` de l'agent coupe la livraison
+    d'un cron (`docs/cli/cron.md`, « Silent token suppression ») ; aucune
+    condition ne porte sur les outils appelés. La consigne demande donc
+    `NO_REPLY` à une passe sans appel d'outil, et le heartbeat la signale.
+  - **Briefing** : anomalies du coder sous 🤖 Coder et non plus sous 🩺
+    Homelab ; un dernier élément unique s'affiche à la place de « … et 1
+    autres » ; cibles Prometheus `operational_state: planned` ignorées.
+  - **Memory Dreaming** : à 03:00, 5 exécutions sur 7 échouaient sur le délai
+    de setup, dans le creux d'IO de TrueNAS. Le balayage passe à 12:30
+    (`plugins.entries.memory-core.config.dreaming`, via
+    `just truenas-apply-heartbeat`).
 - **Job en échec répété** (26/11) : le même collecteur lit
   `node /app/openclaw.mjs cron list --agent coder --json` (lecture seule) et
   signale 🟠 chaque job actif à au moins 2 échecs consécutifs, avec la
@@ -422,7 +445,7 @@ proxy, puis `test-local-first` en `PASS`, sans commit ni push.
 - **Budget du coder** (22/11) : le collecteur du heartbeat lit, avec la clé du
   coder elle-même, `GET /key/info` de LiteLLM (sans paramètre : la clé
   appelante, vérifié dans le code de LiteLLM) et n'en garde que la dépense, le
-  plafond et la date de remise à zéro. Ligne « LITELLM CODER » du briefing du
+  plafond et la date de remise à zéro. Section « CODER » du briefing du
   matin, anomalie à 80 % (🟠) et 100 % (🔴), champ `coder_budget` de
   `status/homelab-health.json`, repris par chaque passe de roadmap.
 - **Messages entre sessions du coder** (22/11) : `sessions_list` et

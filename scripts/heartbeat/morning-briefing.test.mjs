@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { clean, infraLines, mailLines, slackLines, source } from "./morning-briefing.mjs";
+import { clean, coderPassLines, infraLines, mailLines, slackLines, source } from "./morning-briefing.mjs";
 
 test("external text loses gog markers and cannot fake the block end", () => {
   const wrapped = '<<<EXTERNAL_UNTRUSTED_CONTENT id="1">>>\nSource: gmail_api\n---\nFacture  octobre\n<<<END_EXTERNAL_UNTRUSTED_CONTENT id="1">>>';
@@ -57,4 +57,19 @@ test("slack: member channels and DMs of the last 24 h, oldest first", async () =
   };
   assert.deepEqual(await slackLines(api, 1_793_900_000_000), ["#infra :", "- Alice : premier", "- Alice : second"]);
   assert.ok(!calls.some(([, id]) => id === "C2"));
+});
+
+test("coder: roadmap passes of the last 24 h, silent ones counted, PRs without links", () => {
+  const now = Date.parse("2026-11-28T07:00:00Z");
+  const pass = (repo, hoursAgo, status, summary) => ({ jobName: `${repo}-roadmap-pass`, ts: now - hoursAgo * 3600_000, status, summary });
+  assert.deepEqual(coderPassLines([
+    pass("fastapi-sample", 1, "ok", "✅ fastapi-sample : tests\nPR : https://github.com/AlbanAndrieu/fastapi-sample/pull/461"),
+    pass("fastapi-sample", 2, "ok", "PR : https://github.com/AlbanAndrieu/fastapi-sample/pull/461"),
+    pass("nabla-yubikey", 3, "ok", "NO_REPLY"),
+    pass("nabla-site-alban", 4, "error", "cron: isolated agent setup timed out"),
+    pass("nabla-compose", 30, "ok", "https://github.com/AlbanAndrieu/nabla-compose/pull/1"),
+    { jobName: "fastapi-sample-daily-improvement", ts: now, status: "ok", summary: "NO_REPLY" },
+  ], now), ["Passes de roadmap depuis 24 h : 4, dont 1 en échec et 1 sans nouveauté", "PR citées : fastapi-sample#461"]);
+  assert.deepEqual(coderPassLines(null, now), ["⚪ Passes de roadmap : non mesurées"]);
+  assert.deepEqual(coderPassLines([], now), ["⚪ Passes de roadmap : aucune depuis 24 h"]);
 });

@@ -7,7 +7,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { promisify } from "node:util";
-import { STATE, WORKSTATION, coderBudgetLine, collect, listLines } from "./homelab-health.mjs";
+import { STATE, WORKSTATION, coderBudgetLine, coderRunsSeen, collect, listLines } from "./homelab-health.mjs";
 
 const OPENCLAW = join(process.env.HOME ?? ".", ".openclaw");
 const GOG_HOME = join(OPENCLAW, "gogcli");
@@ -73,6 +73,20 @@ export function mailLines(threads) {
     const count = t.messageCount > 1 ? ` (${t.messageCount} messages)` : "";
     return `- ${tags.length ? `[${tags.join(", ")}] ` : ""}${from} — ${clean(t.subject)}${count}`;
   });
+}
+
+// Roadmap passes of the last 24 h, silent ones (NO_REPLY) included: Telegram no longer shows them.
+export function coderPassLines(entries, now = Date.now()) {
+  if (!entries) return ["⚪ Passes de roadmap : non mesurées"];
+  const passes = entries.filter((r) => r.jobName?.endsWith("-roadmap-pass") && now - r.ts < DAY_S * 1000);
+  if (!passes.length) return ["⚪ Passes de roadmap : aucune depuis 24 h"];
+  const failed = passes.filter((r) => r.status !== "ok").length;
+  const silent = passes.filter((r) => r.status === "ok" && /^\s*NO_REPLY\s*$/.test(r.summary ?? "")).length;
+  // Repository and number only: the briefing never copies a link.
+  const prs = [...new Set(passes.flatMap((r) => [...(r.summary ?? "")
+    .matchAll(/github\.com\/AlbanAndrieu\/([\w.-]+)\/pull\/(\d+)/g)].map(([, repo, n]) => `${repo}#${n}`)))];
+  return [`Passes de roadmap depuis 24 h : ${passes.length}, dont ${failed} en échec et ${silent} sans nouveauté`,
+    `PR citées : ${prs.length ? `${prs.slice(0, 8).join(", ")}${prs.length > 8 ? ", …" : ""}` : "aucune"}`];
 }
 
 async function gmail() {
@@ -148,8 +162,12 @@ async function main() {
   const config = readJson(join(OPENCLAW, "openclaw.json"));
   const slack = config.channels?.slack;
   const date = new Date(now).toLocaleDateString("fr-FR", { timeZone: "Europe/Paris", dateStyle: "full" });
-  const out = [`DATE : ${date}`, "", "## INFRA", ...infraLines(await collect(readJson(STATE)))];
-  out.push("", "## LITELLM CODER", coderBudgetLine()); // measured by the collect() above
+  const current = await collect(readJson(STATE));
+  // Coder anomalies go under 🤖 Coder; its budget has its own line.
+  const coder = ([key]) => /^coder(runs|jobs|budget):/.test(key);
+  const out = [`DATE : ${date}`, "", "## INFRA", ...infraLines(current.filter((c) => !coder(c)))];
+  out.push("", "## CODER", coderBudgetLine(), ...coderPassLines(coderRunsSeen, now), // measured by the collect() above
+    ...listLines(current.filter((c) => coder(c) && !c[0].startsWith("coderbudget:")).map(([key, sev, text]) => ({ key, sev, text })), undefined, 10));
   if (process.env.VERCEL_FINOPS_REPORT) {
     out.push("", "## VERCEL FINOPS", ...vercelFinopsLines(readJson(process.env.VERCEL_FINOPS_REPORT), now));
   }

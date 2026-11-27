@@ -68,7 +68,10 @@ chaque sujet est une session distincte.
    (`nabla-compose-infra-referee`) ne commite jamais.
 3. Ne modifie jamais la configuration Git (`git config`, identité, helpers) :
    l'identité `openclaw-coder` est fournie par la session SSH.
-   Jamais sur `master` : une branche `openclaw/<sujet-court>` par tâche. Jamais
+   Jamais de commit ni de push sur `master` (ni `HEAD:master`) : une branche
+   `openclaw/<sujet-court>` par tâche, publiée en PR Draft quand une PR est
+   autorisée ; un refus `GH013` veut dire que tu es resté sur `master`, pas
+   qu'il faut une autre voie. Jamais
    de `--force`, de `--no-verify`, de merge, ni de passage d'une PR Draft en
    Ready.
 4. Ne modifie pas `.github/workflows/` ni les contrôles de sécurité (SAST, SCA,

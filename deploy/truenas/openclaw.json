@@ -118,6 +118,9 @@
     }
   },
   "plugins": {
-    "entries": { "discord": { "enabled": false } }
+    "entries": {
+      "discord": { "enabled": false },
+      "memory-core": { "config": { "dreaming": { "frequency": "30 12 * * *", "timezone": "Europe/Paris" } } }
+    }
   }
 }

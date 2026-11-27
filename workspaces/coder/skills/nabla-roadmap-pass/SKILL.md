@@ -324,8 +324,14 @@ travail : c'est le corps de la PR, en français, dans cet ordre :
 7. **Blocages** `RUNTIME`, avec la commande à lancer sur la Workstation
    (`NOT_RUN`), et `DÉCISION`, avec leur question.
 
+**Jamais de push sur `master`**, ni direct ni `HEAD:master` : `master` ne
+change que par une PR fusionnée par le propriétaire (27/11 : `GH013` a refusé
+les pushes de nabla-site-bababou et de nabla-yubikey restés sur `master`). Le
+push ne part que d'une branche `openclaw/*` ; sinon, crée
+`openclaw/roadmap-pass-<AAAAMMJJ>` depuis ton `HEAD` et relance-le :
+
 ```bash
-cd <repo> && git push -u origin HEAD
+cd <repo> && b=$(git branch --show-current) && case "$b" in openclaw/*) git push -u origin "$b" ;; *) echo "push refusé : branche '$b'" ;; esac
 cd <repo> && gh pr create --draft --base master --title "docs(roadmap): openclaw roadmap pass <AAAA-MM-JJ>" --body-file ../pr-body.md
 ```
 
@@ -371,6 +377,8 @@ Questions :
   `PASS`/`FAIL` cite une commande de cette passe et la dernière ligne de sa
   sortie, le reste est `NOT_RUN`.
 - Lignes `PR ouvertes`, `Blocages` et `Questions` sans objet : omises.
+- Rien de nouveau (aucun commit, aucune PR ouverte ni poussée, aucun nouveau
+  blocage, aucun échec) : la réponse est exactement `NO_REPLY`, sans gabarit.
 - Pas de ligne `Services` : le heartbeat du Gateway les rapporte déjà (27/11 :
   la même section dans 68 comptes rendus sur 81). Seule exception, une ligne
   `Services :` quand une anomalie relève de ce dépôt (item `CODE`) ou que

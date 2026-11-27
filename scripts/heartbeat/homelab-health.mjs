@@ -29,6 +29,8 @@ export const CODER_KEY = process.env.CODER_LITELLM_KEY_FILE
 // model answered without running the pipeline (invented digests, 20 and 23/11).
 export const DIGEST_ARCHIVE = join(process.env.HOME ?? ".", ".openclaw/workspace/archive/tech-news-digest");
 let coderBudgetSeen = null;
+// Last page of `cron runs` read by the coderruns check (null: not measured), for the briefing.
+export let coderRunsSeen = null;
 const ICON = { crit: "🔴", warn: "🟠", unknown: "⚪" };
 const RANK = { crit: 0, warn: 1, unknown: 2 };
 const MAX_LINES = 40;
@@ -105,6 +107,20 @@ export function hollowCoderRuns(entries) {
       + `${run.usage?.output_tokens ?? "?"} tokens de sortie : aucun outil exécuté, compte rendu non fondé`]);
 }
 
+// A coder run of the last 24 h, whatever its status, whose report shows a push refused
+// on master: on 27/11 GH013 stopped nabla-site-bababou (09:37) and nabla-yubikey (14:49).
+const MASTER_PUSH = /GH013|Changes must be made through a pull request|push[^\n]{0,30}(?:sur|to|vers) `?master`?[^\n]{0,20}refus/i;
+export function masterPushRuns(entries, now) {
+  const latest = new Map();
+  for (const run of entries) {
+    if (run.sessionKey?.startsWith("agent:coder:") && now - run.ts < 86_400_000 && MASTER_PUSH.test(run.summary ?? "")
+      && !(latest.get(run.jobId)?.ts >= run.ts)) latest.set(run.jobId, run);
+  }
+  return [...latest.values()].map((run) => [`coderruns:push:${run.jobId}`, "warn", `Run coder ${run.jobName ?? run.jobId} `
+    + `du ${new Date(run.ts).toLocaleString("fr-FR", { timeZone: "Europe/Paris", dateStyle: "short", timeStyle: "short" })} : `
+    + "push refusé sur master, la passe doit pousser sa branche et ouvrir une PR"]);
+}
+
 // Enabled coder job whose last runs all failed. From 20 to 26/11 five jobs hit the
 // cron setup watchdog 5-6 nights in a row and only OpenClaw's own failure alerts
 // said so: the anomaly now stays open in the briefing until a run succeeds.
@@ -142,7 +158,8 @@ export const checks = {
       get(`${PROM}/api/v1/targets?state=active`), get(`${PROM}/api/v1/alerts`)]);
     const alerted = new Set(alerts.alerts.map((a) => a.labels.instance));
     return targets.activeTargets
-      .filter((t) => t.health !== "up" && !alerted.has(t.labels.instance))
+      // Exporters of apps not deployed yet (nabla-compose `operational_state: planned`) are expected down.
+      .filter((t) => t.health !== "up" && t.labels.operational_state !== "planned" && !alerted.has(t.labels.instance))
       .map((t) => [`targets:${t.labels.job}`, "warn", `Cible Prometheus ${t.labels.job} injoignable`]);
   },
   async hosts(get) {
@@ -268,12 +285,13 @@ export const checks = {
     }
     return out;
   },
-  // Read-only run history (SQLite, so through the CLI). Newest first: the
-  // nightly coder runs sit well inside the last 100 "ok" runs.
-  async coderruns(_get, _prev, cli = openclawCli, workspace = dirname(dirname(CODER_STATUS))) {
+  // Read-only run history (SQLite, so through the CLI). Newest first, every status:
+  // ~135 runs a day (80 coder passes, 48 heartbeats), and a refused push ends some in error.
+  async coderruns(_get, _prev, cli = openclawCli, workspace = dirname(dirname(CODER_STATUS)), now = Date.now()) {
     if (!existsSync(workspace)) return []; // no coder agent on this Gateway
-    const page = JSON.parse(await cli(["cron", "runs", "--all", "--status", "ok", "--limit", "100", "--timeout", "20000", "--json"]));
-    return hollowCoderRuns(page.entries ?? []);
+    const page = JSON.parse(await cli(["cron", "runs", "--all", "--limit", "200", "--timeout", "20000", "--json"]));
+    coderRunsSeen = page.entries ?? [];
+    return [...hollowCoderRuns(coderRunsSeen), ...masterPushRuns(coderRunsSeen, now)];
   },
   async coderjobs(_get, _prev, cli = openclawCli, workspace = dirname(dirname(CODER_STATUS))) {
     if (!existsSync(workspace)) return [];
@@ -309,8 +327,10 @@ export function diff(prev, current, now) {
 
 export function listLines(items, icon, max = MAX_LINES) {
   const sorted = [...items].sort((a, b) => RANK[a.sev] - RANK[b.sev]);
-  const lines = sorted.slice(0, max).map((item) => `${icon ?? ICON[item.sev]} ${item.text}`);
-  if (items.length > max) lines.push(`… et ${items.length - max} autres`);
+  // A single remaining item takes the place of its "… et 1 autre" line.
+  const shown = items.length === max + 1 ? items.length : max;
+  const lines = sorted.slice(0, shown).map((item) => `${icon ?? ICON[item.sev]} ${item.text}`);
+  if (items.length > shown) lines.push(`… et ${items.length - shown} autres`);
   return lines;
 }
 

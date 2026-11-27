@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { checks, coderBudgetFrom, coderBudgetLine, coderStatus, collect, diff, dockerAnomalies, failingCoderJobs, hollowCoderRuns, render } from "./homelab-health.mjs";
+import { checks, coderBudgetFrom, coderBudgetLine, coderStatus, collect, diff, dockerAnomalies, failingCoderJobs, hollowCoderRuns, listLines, masterPushRuns, render } from "./homelab-health.mjs";
 
 const NOON = Date.parse("2026-11-04T11:00:00Z");
 
@@ -29,6 +29,21 @@ test("alerts name the exporter by its job, not its IP:port", async () => {
   const get = async () => ({ data: { alerts: [{ state: "firing", labels }] } });
   assert.deepEqual(await checks.alerts(get), [["alerts:alertname=NablaExporterTargetDown,instance=172.17.0.24:9114,job=opensearch",
     "warn", "Alerte NablaExporterTargetDown (opensearch)"]]);
+});
+
+test("targets: planned exporters and alerted instances are not reported", async () => {
+  const target = (job, extra = {}) => ({ health: "down", labels: { job, instance: `172.17.0.24:${job.length}`, ...extra } });
+  const get = async (url) => (url.includes("/targets") ? { data: { activeTargets: [
+    target("jellyfin", { operational_state: "planned" }), target("haproxy"), target("opensearch"),
+    { health: "up", labels: { job: "node", instance: "x" } }] } }
+    : { data: { alerts: [{ labels: { instance: "172.17.0.24:10" } }] } });
+  assert.deepEqual(await checks.targets(get), [["targets:haproxy", "warn", "Cible Prometheus haproxy injoignable"]]);
+});
+
+test("list lines: the last single item replaces its overflow line", () => {
+  const items = (n) => Array.from({ length: n }, (_, i) => ({ sev: "warn", text: `a${i}` }));
+  assert.deepEqual(listLines(items(3), undefined, 2), ["🟠 a0", "🟠 a1", "🟠 a2"]);
+  assert.deepEqual(listLines(items(4), undefined, 2), ["🟠 a0", "🟠 a1", "… et 2 autres"]);
 });
 
 test("hosts: a device mounted twice is reported once, at its shortest mountpoint", async () => {
@@ -147,13 +162,16 @@ test("coder runs: the latest ok run of a coder job that ran no tool is flagged",
     run("onecall", 3, 65_000, 795, { usage: { input_tokens: 8_760, output_tokens: 795 } }),
     run("toolloop", 3, 548_000, 2_152, { usage: { input_tokens: 45_573, output_tokens: 2_152, cache_read_tokens: 588_416 } }),
     run("digest", 3, 5_000, 100, { sessionKey: "agent:main:cron:digest:run:s3" }),
+    // 28/11: a pass with nothing new answers NO_REPLY, so a hollow one is silent on Telegram.
+    run("silent", 3, 9_000, 120, { summary: "NO_REPLY" }),
+    run("quiet", 3, 600_000, 7_000, { summary: "NO_REPLY", usage: { input_tokens: 9_000, output_tokens: 7_000, cache_read_tokens: 400_000 } }),
   ];
   const flagged = hollowCoderRuns(entries);
   assert.deepEqual(flagged.map(([key, sev]) => [key, sev]),
-    [["coderruns:daily", "warn"], ["coderruns:terse", "warn"], ["coderruns:onecall", "warn"]]);
+    [["coderruns:daily", "warn"], ["coderruns:terse", "warn"], ["coderruns:onecall", "warn"], ["coderruns:silent", "warn"]]);
   assert.equal(flagged[0][2], "Run coder daily « ok » en 23 s, 180 tokens de sortie : aucun outil exécuté, compte rendu non fondé");
   assert.deepEqual(hollowCoderRuns([...entries, run("daily", 4, 300_000, 4_000)]).map(([key]) => key),
-    ["coderruns:terse", "coderruns:onecall"]);
+    ["coderruns:terse", "coderruns:onecall", "coderruns:silent"]);
 
   const { mkdtempSync } = await import("node:fs");
   const { tmpdir } = await import("node:os");
@@ -161,8 +179,25 @@ test("coder runs: the latest ok run of a coder job that ran no tool is flagged",
   const cli = async (a) => { args = a; return JSON.stringify({ entries }); };
   assert.deepEqual(await checks.coderruns(null, {}, cli, "/nonexistent/workspace-coder"), []);
   assert.equal(args, undefined);
-  assert.equal((await checks.coderruns(null, {}, cli, mkdtempSync(`${tmpdir()}/coder-`))).length, 3);
-  assert.deepEqual(args.slice(0, 5), ["cron", "runs", "--all", "--status", "ok"]);
+  assert.equal((await checks.coderruns(null, {}, cli, mkdtempSync(`${tmpdir()}/coder-`))).length, 4);
+  assert.deepEqual(args.slice(0, 5), ["cron", "runs", "--all", "--limit", "200"]);
+});
+
+test("coder runs: a push refused on master in the last 24 h is flagged, whatever the status", () => {
+  const now = Date.parse("2026-11-27T23:00:00Z");
+  const run = (jobId, hoursAgo, summary, status = "error") => ({ jobId, jobName: jobId, ts: now - hoursAgo * 3600_000, status,
+    summary, sessionKey: `agent:coder:cron:${jobId}:run:s1` });
+  const flagged = masterPushRuns([
+    // 27/11, quoted from the reports.
+    run("bababou", 13, "Push refusé sur `master` par les règles du dépôt (`Changes must be made through a pull request`)"),
+    run("yubikey", 8, "le push direct est refusé (GH013, repository rule violations)"),
+    run("alban", 1, "Aucun commit, aucune PR (BLOQUÉ: push sur master refusé)", "ok"),
+    run("old", 30, "GH013"),
+    run("clean", 1, "PR : https://github.com/AlbanAndrieu/x/pull/3, jamais de push sur master", "ok"),
+    { ...run("main", 1, "GH013"), sessionKey: "agent:main:cron:x" },
+  ], now);
+  assert.deepEqual(flagged.map(([key]) => key), ["coderruns:push:bababou", "coderruns:push:yubikey", "coderruns:push:alban"]);
+  assert.equal(flagged[1][2], "Run coder yubikey du 27/11/2026 16:00 : push refusé sur master, la passe doit pousser sa branche et ouvrir une PR");
 });
 
 test("coder jobs: an enabled job failing two runs in a row stays open with its cause", async () => {

@@ -64,7 +64,9 @@ class CoderCron(unittest.TestCase):
 class RoadmapPassCron(unittest.TestCase):
     def test_message_points_to_the_skill_and_its_branch_only(self):
         message = (ROOT / f"policies/cron/{ROADMAP}.message.md").read_text(encoding="utf-8")
-        for marker in ("skills/nabla-roadmap-pass/SKILL.md", "`NO_REPLY` est interdit", "AUTOMATION_FAILED",
+        # 28/11, owner: a pass that brings nothing new stays silent; never a push to master (GH013, 27/11).
+        for marker in ("skills/nabla-roadmap-pass/SKILL.md", "Réponds exactement `NO_REPLY`", "aucun commit, aucune PR ouverte ni poussée",
+                       "**jamais sur `master`**", "AUTOMATION_FAILED",
                        "openclaw/roadmap-pass-", "openclaw/fix-pr-", "jamais de push sur une autre branche",
                        "étapes 0 à 7", "PR Draft", "Jamais de merge"):
             with self.subTest(marker=marker):
@@ -92,7 +94,9 @@ class RoadmapPassCron(unittest.TestCase):
                        # the clone, 58 reports over 2,000 characters and the PR URL in only 17.
                        'echo "gate_exit=$?" >> ../gate.log', "`yieldMs: 120000`",
                        "cd <repo> && ls -1 docs/*roadmap*.md", "au plus\n15 lignes et 1 500 caractères",
-                       "PR : <URL de la PR Draft", "Pas de ligne `Services`"):
+                       "PR : <URL de la PR Draft", "Pas de ligne `Services`",
+                       "**Jamais de push sur `master`**", 'case "$b" in openclaw/*) git push -u origin "$b"',
+                       "la réponse est exactement `NO_REPLY`"):
             with self.subTest(marker=marker):
                 self.assertIn(marker, skill)
         report = skill.split("## 7. Compte rendu", 1)[1]
@@ -110,6 +114,7 @@ class RoadmapPassCron(unittest.TestCase):
         self.assertIn("`<repo>-roadmap-pass`", agents)
         # Cron sessions get OpenClaw's minimal prompt, without its execution guidance (27/11).
         self.assertIn("un message sans appel d'outil termine ton tour", agents)
+        self.assertIn("Jamais de commit ni de push sur `master`", agents)
         script = (ROOT / "scripts/coder/apply-cron-truenas.sh").read_text(encoding="utf-8")
         skill = (ROOT / "workspaces/coder/skills/nabla-roadmap-pass/SKILL.md").read_text(encoding="utf-8")
         repos = json.loads((ROOT / "deploy/truenas/devbox/contract.json").read_text(encoding="utf-8"))["repositories"]
@@ -194,6 +199,19 @@ class InfraReferee(unittest.TestCase):
     def test_referee_is_a_registered_skill(self):
         seed = json.loads((ROOT / "deploy/truenas/openclaw.json").read_text(encoding="utf-8"))
         self.assertIn("nabla-infra-referee", seed["agents"]["entries"]["coder"]["skills"])
+
+
+
+class GatewaySchedules(unittest.TestCase):
+    def test_dreaming_sweep_runs_outside_the_night_io_stall(self):
+        # 23-27/11: 5 of 7 dreaming runs at 03:00 hit the cron setup watchdog.
+        dreaming = json.loads((ROOT / "deploy/truenas/openclaw.json").read_text(encoding="utf-8"))[
+            "plugins"]["entries"]["memory-core"]["config"]["dreaming"]
+        minute, hour = dreaming["frequency"].split()[:2]
+        self.assertFalse(1 <= int(hour) < 8, dreaming)
+        self.assertEqual(dreaming["timezone"], "Europe/Paris")
+        script = (ROOT / "scripts/heartbeat/apply-truenas.sh").read_text(encoding="utf-8")
+        self.assertIn("config set plugins.entries.memory-core.config.dreaming", script)
 
 
 if __name__ == "__main__":

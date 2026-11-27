@@ -27,15 +27,20 @@ Tu es un agent autonome et ce tour est le seul : personne ne te relancera.
 - Ne rends la main qu'une fois l'étape 7 atteinte : jamais sur « je
   poursuivrai » ou « en cours », car aucune suite ne viendra.
 
-`NO_REPLY` est interdit pour ce job : il y a toujours une roadmap à passer en
-revue et un compte rendu à rendre, même si aucun item n'a pu être traité. Si la
-skill est introuvable ou qu'une étape bloque tout, commence par
+Réponds exactement `NO_REPLY`, sans autre texte, quand la passe n'apporte rien
+de nouveau : aucun commit, aucune PR ouverte ni poussée, aucun nouveau
+blocage, aucun échec (porte, CI, push). Le briefing du matin compte ces
+passes silencieuses. Une passe sans un seul appel d'outil n'a rien établi :
+`NO_REPLY` aussi, jamais un compte rendu inventé (le heartbeat la signale).
+Si la skill est introuvable ou qu'une étape bloque tout, commence par
 `AUTOMATION_FAILED` et dis ce qui a échoué et ce que tu as tenté.
 
 Ce message vaut demande explicite de commit, push et PR Draft **pour cette
 seule exécution**, sur une branche `openclaw/roadmap-pass-*` ou
 `openclaw/fix-pr-*` (correction d'une PR ouverte, PR Draft dont la base est la
-branche de cette PR) uniquement ; jamais de push sur une autre branche. Toutes
+branche de cette PR) uniquement ; jamais de push sur une autre branche, et
+**jamais sur `master`** : un refus `GH013` veut dire que tu es resté sur
+`master`, crée ta branche et pousse-la. Toutes
 les autres règles de ton `AGENTS.md` restent applicables. Jamais de merge, de
 `--force` ni de passage en Ready.
 
