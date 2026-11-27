@@ -347,5 +347,17 @@ class GhWrapper(unittest.TestCase):
         self.assertEqual(self.gh("pr", "list", "--state", "open").stdout, "pr list --state open\n")
 
 
+class DevboxSessions(unittest.TestCase):
+    """27/11: repos' tests failed on the devbox for want of jq and of group exec bits."""
+
+    def test_image_ships_jq(self):
+        self.assertRegex(Path(ROOT, mod.DOCKERFILE).read_text(), r"install -y --no-install-recommends \\\n.* jq ")
+
+    def test_sessions_get_umask_022(self):
+        entrypoint = (ROOT / "deploy/truenas/devbox/entrypoint.sh").read_text()
+        self.assertIn("umask 022\necho \"devbox_sshd=starting", entrypoint)
+        self.assertLess(entrypoint.index('chmod 0700 "$home"'), entrypoint.index("umask 022"))
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -23,5 +23,8 @@ chmod 0700 "$home" "$home/sandboxes"
 rm -rf "$home/.tmp"
 mkdir -m 0700 "$home/.tmp"
 
+# Sessions inherit sshd's umask: under 077, checkouts drop the group/other exec bits that
+# the repos' tests assert (27/11, nabla-compose stat.S_IXGRP). $home stays 0700.
+umask 022
 echo "devbox_sshd=starting port=2222"
 exec /usr/sbin/sshd -D -e -f /etc/ssh/sshd_config

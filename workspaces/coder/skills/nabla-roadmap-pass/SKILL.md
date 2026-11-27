@@ -122,8 +122,22 @@ la passe s'en tient à sa roadmap.
 
 ```bash
 cd <repo> && gh run list --branch master --limit 5 --json name,conclusion,headSha
-cd <repo> && <porte hors ligne du tableau>
+cd <repo> && (<porte hors ligne du tableau>) > ../gate.log 2>&1; echo "gate_exit=$?" >> ../gate.log; tail -n 3 ../gate.log
 ```
+
+Chaque porte hors ligne de cette skill se lance ainsi, avec `exec` et
+`yieldMs: 120000`, son maximum. Elle dure souvent plus (`uv sync`, `npm ci`) :
+si `exec` rend un identifiant de session, elle continue en arrière-plan.
+Attends-la avec cette commande, elle aussi en `yieldMs: 120000`, relancée tant
+que `gate_exit=` n'apparaît pas, 6 fois au plus (27/11 : fastapi-sample
+rendait la main sur « je poursuivrai » pendant `uv sync`) :
+
+```bash
+cd <repo> && timeout 110 sh -c 'until grep -q "^gate_exit=" ../gate.log; do sleep 5; done'; tail -n 3 ../gate.log
+```
+
+`gate_exit=0` vaut `PASS` ; un autre code vaut `FAIL`, avec la ligne d'erreur
+de `../gate.log` ; toujours rien après 6 attentes : `NOT_RUN` (délai).
 
 Avant ton premier changement, `just offline` affiche `files=0` sur
 nabla-compose : c'est `NOT_RUN`, pas `PASS`.
@@ -193,7 +207,15 @@ commande lancée et pourquoi elle n'a rien donné.
 
 ## 4. Itérer sur la roadmap
 
-Sources : celles du tableau, dans leur ordre.
+Sources : celles du tableau, dans leur ordre, lues **dans le clone** (27/11 :
+nabla-yubikey annonçait « aucun fichier roadmap trouvé » alors que ses quatre
+sources existent) :
+
+```bash
+cd <repo> && ls -1 docs/*roadmap*.md
+```
+
+Liste vide dans le clone : l'étape est en `FAIL`, jamais « aucun item ».
 
 **Réconcilier d'abord**, une fois par jour : sautée seulement si l'en-tête de
 réconciliation de la première source porte déjà la date du jour. La roadmap
@@ -275,28 +297,8 @@ Une PR n'existe que pour un commit de code ou de réconciliation. Jamais de
 fichier de notes (`docs/*notes*.md`, `NOTES.md`…) : la roadmap, son runbook
 et le code sont les seuls fichiers d'une passe (27/11 : fastapi-sample#460
 n'ajoutait qu'un titre dans `docs/roadmap_pass_notes.md`). Écris d'abord le
-compte rendu de l'étape 7 dans `pr-body.md`, à la racine de ton espace de
-travail : c'est le corps de la PR, commandes `NOT_RUN` à lancer sur la
-Workstation comprises.
-
-```bash
-cd <repo> && git push -u origin HEAD
-cd <repo> && gh pr create --draft --base master --title "docs(roadmap): openclaw roadmap pass <AAAA-MM-JJ>" --body-file ../pr-body.md
-```
-
-La PR existe déjà : `gh pr comment <numéro> --body-file ../pr-body.md`.
-
-`nabla-compose` : si la passe a traité une entrée `INFRA` du référent, envoie
-`[skills/nabla-infra-referee/SKILL.md] BILAN_INFRA` avec les services touchés
-et l'URL de la PR (`timeoutSeconds: 0`, sans attendre la réponse).
-
-Push ou PR refusé (permission, 403) : ne cherche pas d'autre voie. Exporte
-`git format-patch origin/master -o ~/outbox/<repo>-roadmap-pass-<AAAAMMJJ>/` et
-réponds `BLOQUÉ: push` avec ce chemin.
-
-## 7. Compte rendu (livré par le planificateur)
-
-En français, au plus 30 lignes, sans rien envoyer toi-même, dans cet ordre :
+compte rendu détaillé dans `pr-body.md`, à la racine de ton espace de
+travail : c'est le corps de la PR, en français, dans cet ordre :
 
 1. **Services** : âge de `status/homelab-health.json` et compteurs
    (`crit`/`warn`/`unknown`, ou `STALE`), les 3 anomalies les plus graves ;
@@ -319,12 +321,62 @@ En français, au plus 30 lignes, sans rien envoyer toi-même, dans cet ordre :
    commande exécutée dans cette passe **et la dernière ligne de sa sortie** ;
    toute autre vérification est `NOT_RUN`.
 6. **Consolidation** : une ligne par boucle, ou « sans objet ».
-7. **Publication** : exactement une de ces formes : URL de la PR Draft ;
-   « aucun commit, aucune PR » ; `BLOQUÉ: push` et le chemin `~/outbox/...`.
-8. **Blocages** `RUNTIME` (commande Workstation) et `DÉCISION` : nombre et
-   les 3 plus importants.
-9. **À la fin**, les questions restantes, numérotées : uniquement des
-   arbitrages du propriétaire sur un item `DÉCISION`, aucune sur le déroulé.
+7. **Blocages** `RUNTIME`, avec la commande à lancer sur la Workstation
+   (`NOT_RUN`), et `DÉCISION`, avec leur question.
+
+```bash
+cd <repo> && git push -u origin HEAD
+cd <repo> && gh pr create --draft --base master --title "docs(roadmap): openclaw roadmap pass <AAAA-MM-JJ>" --body-file ../pr-body.md
+```
+
+La PR existe déjà : `gh pr comment <numéro> --body-file ../pr-body.md`.
+
+`nabla-compose` : si la passe a traité une entrée `INFRA` du référent, envoie
+`[skills/nabla-infra-referee/SKILL.md] BILAN_INFRA` avec les services touchés
+et l'URL de la PR (`timeoutSeconds: 0`, sans attendre la réponse).
+
+Push ou PR refusé (permission, 403) : ne cherche pas d'autre voie. Exporte
+`git format-patch origin/master -o ~/outbox/<repo>-roadmap-pass-<AAAAMMJJ>/` et
+réponds `BLOQUÉ: push` avec ce chemin.
+
+## 7. Compte rendu Telegram (livré par le planificateur)
+
+Le propriétaire le lit sur son téléphone, cinq dépôts par heure : au plus
+15 lignes et 1 500 caractères, sans titre ni tableau, sans rien envoyer
+toi-même. Le détail reste dans `pr-body.md` et la PR (27/11 : 58 comptes
+rendus sur 81 dépassaient 2 000 caractères, l'URL de PR n'apparaissait que
+dans 17). Gabarit, dans cet ordre :
+
+```text
+✅ <repo> : <ce que la passe a livré, en une phrase>
+PR : <URL de la PR Draft | aucun commit, aucune PR | BLOQUÉ: push ~/outbox/...>
+Porte : <PASS|FAIL|NOT_RUN> (<commande courte>) : <dernière ligne de sa sortie>
+CI master : <verte | rouge : nom du job>
+Commits : <sha court> <titre> ; … ou « aucun »
+PR ouvertes : <#numéro → action> ; …
+Roadmap : <n> items ouverts ; traités : <identifiants> ; réconciliation <faite | déjà du jour | NOT_RUN>
+Propositions :
+1. <fichier:ligne> : <amélioration> (<preuve de cette passe>, <effort>)
+2. …
+3. …
+Blocages : <n> RUNTIME, <n> DÉCISION ; principal : <commande ou question courte>
+Questions :
+1. <arbitrage d'un item DÉCISION>
+```
+
+- Icône : `✅` pour au moins un commit de code et une porte `PASS`, `⚠️`
+  sinon ; `AUTOMATION_FAILED` à sa place quand la passe n'a pas pu se
+  dérouler.
+- `Commits` recopie `git log --oneline origin/master..HEAD` ; chaque
+  `PASS`/`FAIL` cite une commande de cette passe et la dernière ligne de sa
+  sortie, le reste est `NOT_RUN`.
+- Lignes `PR ouvertes`, `Blocages` et `Questions` sans objet : omises.
+- Pas de ligne `Services` : le heartbeat du Gateway les rapporte déjà (27/11 :
+  la même section dans 68 comptes rendus sur 81). Seule exception, une ligne
+  `Services :` quand une anomalie relève de ce dépôt (item `CODE`) ou que
+  `status/homelab-health.json` est `STALE`.
+- **À la fin**, les questions restantes, numérotées : uniquement des
+  arbitrages du propriétaire sur un item `DÉCISION`, aucune sur le déroulé.
 
 Jamais de merge ni de passage en Ready ; n'annonce aucune réussite non
 vérifiée.

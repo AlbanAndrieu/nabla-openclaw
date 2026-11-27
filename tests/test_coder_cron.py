@@ -87,9 +87,18 @@ class RoadmapPassCron(unittest.TestCase):
                        # 27/11, fastapi-sample#460: Ready PR, one-line notes file, roadmap left at 22/11.
                        "**Réconcilier d'abord**", "git grep -n -i 'réconciliation mise à jour' -- tests/",
                        "Jamais de\nfichier de notes", "--body-file ../pr-body.md",
-                       "**3 propositions d'amélioration**"):
+                       "**3 propositions d'amélioration**",
+                       # 27/11, 81 reports: gates left in the background, sources looked up outside
+                       # the clone, 58 reports over 2,000 characters and the PR URL in only 17.
+                       'echo "gate_exit=$?" >> ../gate.log', "`yieldMs: 120000`",
+                       "cd <repo> && ls -1 docs/*roadmap*.md", "au plus\n15 lignes et 1 500 caractères",
+                       "PR : <URL de la PR Draft", "Pas de ligne `Services`"):
             with self.subTest(marker=marker):
                 self.assertIn(marker, skill)
+        report = skill.split("## 7. Compte rendu", 1)[1]
+        template = report.split("```text\n", 1)[1].split("```", 1)[0]
+        self.assertLessEqual(len(template.splitlines()), 15)
+        self.assertTrue(template.startswith("✅ <repo> : "))
         # Owner's order (23/11): PRs and CI, then refactor/perf/stability, then roadmap, then consolidation.
         steps = [skill.index(f"\n## {title}") for title in (
             "2. Corriger les PR ouvertes", "3. Refactorer, accélérer, stabiliser", "4. Itérer sur la roadmap",
@@ -117,7 +126,7 @@ class RoadmapPassCron(unittest.TestCase):
         self.assertIn("`test -d <repo>/.git || git clone --filter=blob:none https://github.com/AlbanAndrieu/<repo>.git <repo>`", message)
         # 27/11, first hourly passes: two reports narrated a clone without any tool call,
         # and fastapi-sample ended its turn on "je poursuivrai" while its tests ran.
-        for marker in ("ce tour est le seul", "`NOT_RUN`, jamais\n  `PASS`", "l'outil `process`",
+        for marker in ("ce tour est le seul", "`NOT_RUN`, jamais\n  `PASS`", "l'outil `process`", "`yieldMs: 120000`",
                        "jamais sur « je\n  poursuivrai »"):
             with self.subTest(marker=marker):
                 self.assertIn(marker, message)

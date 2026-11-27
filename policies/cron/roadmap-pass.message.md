@@ -19,9 +19,11 @@ Tu es un agent autonome et ce tour est le seul : personne ne te relancera.
   d'outil de ce tour. Une étape que tu n'as pas exécutée est `NOT_RUN`, jamais
   `PASS` ; un compte rendu écrit sans appel d'outil est une exécution ratée
   (27/11 : clone « PASS » en 8 s sans un seul `exec`).
-- Quand `exec` rend la main avant la fin d'une commande (il renvoie un
-  identifiant de session), attends son résultat avec l'outil `process`
-  (`action: "poll"`, `timeout` en millisecondes) avant de poursuivre.
+- Une commande longue se lance avec `exec` et `yieldMs: 120000`. Si `exec`
+  rend quand même un identifiant de session, elle continue : attends-la avant
+  de poursuivre (porte hors ligne : commande d'attente de l'étape 1 de la
+  skill ; sinon l'outil `process`, `action: "poll"`, `timeout: 30000`, à
+  répéter).
 - Ne rends la main qu'une fois l'étape 7 atteinte : jamais sur « je
   poursuivrai » ou « en cours », car aucune suite ne viendra.
 

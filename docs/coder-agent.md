@@ -352,6 +352,22 @@ proxy, puis `test-local-first` en `PASS`, sans commit ni push.
     jour de la skill et des droits des répertoires), alors qu'aucun conteneur
     n'a redémarré. Reste l'arrêt prématuré : la passe de 22:38 s'arrête sur
     « Étape suivante : … ». Le contrôle `coderruns` du heartbeat suit le taux.
+  Comptes rendus Telegram du 27/11 (81 runs, lus dans `cron runs`) :
+  - **Trop longs** : 58 dépassent 2 000 caractères. La même section services
+    revient dans 68 d'entre eux, l'URL de PR dans 17 seulement. La skill
+    impose désormais 15 lignes au plus, une première ligne avec le statut et
+    la PR, sans section services ; le détail va dans le corps de la PR.
+  - **Porte abandonnée** : `exec` rend la main après 2 min au plus
+    (`yieldMs` borné à 120 000 ms) et `process poll` après 30 s ou à la
+    première sortie. La porte écrit donc dans `gate.log` et la passe l'attend
+    par une commande `until grep gate_exit=` relancée, 6 fois au plus.
+  - **Faux échecs de la devbox** : `jq: command not found` dans les tests de
+    nabla-site-alban et de nabla-compose, et des bits `stat.S_IXGRP` perdus,
+    car sshd tourne en `umask 077` et ses sessions en héritent. L'image
+    installe `jq` ; l'entrypoint passe à `umask 022` avant sshd, `$home`
+    restant en 0700.
+  - **Sources introuvables** : nabla-yubikey annonçait « aucun fichier
+    roadmap trouvé ». La skill liste désormais les sources depuis le clone.
 - **Job en échec répété** (26/11) : le même collecteur lit
   `node /app/openclaw.mjs cron list --agent coder --json` (lecture seule) et
   signale 🟠 chaque job actif à au moins 2 échecs consécutifs, avec la
