@@ -11,6 +11,19 @@ REPOS = ("nabla-compose", "fastapi-sample", "nabla-site-alban", "nabla-site-baba
 REFEREE = "nabla-compose-infra-referee"
 REFEREE_SESSION = "agent:coder:nabla-compose-infra"
 REFEREE_SKILL = "skills/nabla-infra-referee/SKILL.md"
+SCHEDULE = re.compile(r'\n  ([a-z-]+)\) schedule="(\d+) (\d+|\d+-\d+) \* \* \*" timeout=(\d+)')
+
+
+def hours(field):
+    first, _, last = field.partition("-")
+    return range(int(first), int(last or first) + 1)
+
+
+def schedules():
+    """Job name -> (start minutes of the day, timeout in minutes)."""
+    script = (ROOT / "scripts/coder/apply-cron-truenas.sh").read_text(encoding="utf-8")
+    return {name: ([h * 60 + int(m) for h in hours(field)], int(t) // 60)
+            for name, m, field, t in SCHEDULE.findall(script)}
 
 
 class CoderCron(unittest.TestCase):
@@ -70,7 +83,11 @@ class RoadmapPassCron(unittest.TestCase):
                        "questions restantes, numérotées", "git log --oneline origin/master..HEAD",
                        "n'est **pas** un", "`files=0`", "la mettre à jour avec `master`",
                        "gain d'au moins 10 %", "Une passe qui ne fait que consolider la roadmap",
-                       "Seulement si les étapes 2 à 4 ont produit au moins un commit de code"):
+                       "Seulement si les étapes 2 à 4 ont produit au moins un commit de code",
+                       # 27/11, fastapi-sample#460: Ready PR, one-line notes file, roadmap left at 22/11.
+                       "**Réconcilier d'abord**", "git grep -n -i 'réconciliation mise à jour' -- tests/",
+                       "Jamais de\nfichier de notes", "--body-file ../pr-body.md",
+                       "**3 propositions d'amélioration**"):
             with self.subTest(marker=marker):
                 self.assertIn(marker, skill)
         # Owner's order (23/11): PRs and CI, then refactor/perf/stability, then roadmap, then consolidation.
@@ -79,24 +96,46 @@ class RoadmapPassCron(unittest.TestCase):
             "5. Consolider la roadmap", "6. Publier", "7. Compte rendu")]
         self.assertEqual(steps, sorted(steps))
 
-    def test_each_repo_has_its_night_and_a_skill_row(self):
+    def test_each_repo_has_its_hourly_pass_and_a_skill_row(self):
         self.assertIn("`<repo>-roadmap-pass`", (ROOT / "workspaces/coder/AGENTS.md").read_text(encoding="utf-8"))
         script = (ROOT / "scripts/coder/apply-cron-truenas.sh").read_text(encoding="utf-8")
         skill = (ROOT / "workspaces/coder/skills/nabla-roadmap-pass/SKILL.md").read_text(encoding="utf-8")
         repos = json.loads((ROOT / "deploy/truenas/devbox/contract.json").read_text(encoding="utf-8"))["repositories"]
         self.assertEqual(sorted(f"AlbanAndrieu/{repo}" for repo in REPOS), sorted(repos))
-        hours = []
         for repo in REPOS:
             with self.subTest(repo=repo):
-                match = re.search(rf'\n  {repo}-{ROADMAP}\) schedule="0 ([0-9]+) \* \* \*" timeout=3600 ;;', script)
-                self.assertIsNotNone(match)
-                hours.append(int(match.group(1)))
+                self.assertRegex(script, rf'\n  {repo}-{ROADMAP}\) schedule="\d+ 8-23 \* \* \*" timeout=1440 ;;')
                 self.assertIn(f"{repo}-{ROADMAP}", script.split("  all)", 1)[1].split("exit 0", 1)[0])
                 self.assertIn(f"\n| `{repo}` | `", skill)
-        # Daily, one-hour slots (= timeout) that never overlap, all done before 06:17.
-        self.assertEqual(len(set(hours)), len(REPOS))
-        self.assertLessEqual(max(hours) + 1, 6)
         self.assertIn('sed "s/<repo>/${name%-roadmap-pass}/g" policies/cron/roadmap-pass.message.md', script)
+        # 26/11: gpt-4.1 listed docs/ in the empty sandbox and reported the repository as missing.
+        message = (ROOT / "policies/cron/roadmap-pass.message.md").read_text(encoding="utf-8")
+        self.assertIn("Deuxième action, obligatoire : appelle ton outil `exec`", message)
+        self.assertIn("`test -d <repo>/.git || git clone --filter=blob:none https://github.com/AlbanAndrieu/<repo>.git <repo>`", message)
+        # 27/11, first hourly passes: two reports narrated a clone without any tool call,
+        # and fastapi-sample ended its turn on "je poursuivrai" while its tests ran.
+        for marker in ("ce tour est le seul", "`NOT_RUN`, jamais\n  `PASS`", "l'outil `process`",
+                       "jamais sur « je\n  poursuivrai »"):
+            with self.subTest(marker=marker):
+                self.assertIn(marker, message)
+
+    def test_runs_avoid_the_night_io_stall_two_at_a_time(self):
+        jobs = schedules()
+        self.assertEqual(len(jobs), len(REPOS) + 2)
+        runs = [(name, start, start + t) for name, (starts, t) in jobs.items() for start in starts]
+        # A run started late in the evening still holds its sandbox after midnight.
+        day = 24 * 60
+        spans = runs + [(name, s - day, e - day) for name, s, e in runs]
+        for name, start, _ in runs:
+            with self.subTest(job=name, start=start):
+                # 26/11: the nabla-compose night window stalls TrueNAS IO from 01:15 to
+                # 07:30 (Mon-Sat), so the 60 s cron setup watchdog timed out every job.
+                self.assertFalse(60 <= start < 8 * 60)
+                # 2-CPU, 3 GB devbox: never more than two sandboxes at once.
+                self.assertLessEqual(len([other for other, s, e in spans if s <= start < e]), 2)
+        roadmap = [(s, e) for name, s, e in spans if name == f"fastapi-sample-{ROADMAP}"]
+        for _, start, end in (run for run in spans if run[0] == NAME):
+            self.assertFalse(any(s < end and start < e for s, e in roadmap))
 
 
 class InfraReferee(unittest.TestCase):
@@ -109,8 +148,8 @@ class InfraReferee(unittest.TestCase):
         minute, hour, timeout, key = match.groups()
         # OpenClaw stores cron target session:<id> as agent:<agentId>:<id>.
         self.assertEqual(f"agent:coder:{key}", REFEREE_SESSION)
-        first_pass = min(int(h) for h in re.findall(r'-roadmap-pass\) schedule="0 (\d+) ', script))
-        self.assertLessEqual(int(hour) * 60 + int(minute) + int(timeout) // 60, first_pass * 60)
+        first_pass = min(min(starts) for name, (starts, _) in schedules().items() if name.endswith(ROADMAP))
+        self.assertLessEqual(int(hour) * 60 + int(minute) + int(timeout) // 60, first_pass)
         self.assertIn(REFEREE, script.split("  all)", 1)[1].split("exit 0", 1)[0])
         self.assertIn("--session $session", script)
         message = (ROOT / f"policies/cron/{REFEREE}.message.md").read_text(encoding="utf-8")

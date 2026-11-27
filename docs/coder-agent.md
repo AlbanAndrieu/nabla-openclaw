@@ -21,7 +21,7 @@ jamais exécuter de code dans le conteneur du Gateway.
 ```text
 Telegram (groupe forum, 1 sujet = 1 session)
   └─> Gateway OpenClaw (App openclaw-gateway, agent `coder`, modèle litellm-coder/gpt-4.1)
-        │   clé LiteLLM : SecretRef `file` (credentials/litellm/coder.key), 11 USD / 7 jours
+        │   clé LiteLLM : SecretRef `file` (credentials/litellm/coder.key), 90 USD / 7 jours
         └─ sandbox `ssh` (exec, read, write, edit, apply_patch ; ask_user et goals côté Gateway)
              └─> openclaw-devbox:2222 (réseau Docker interne `openclaw-devbox`)
                    └─ HTTPS CONNECT ─> openclaw-devbox-egress (squid) ─> GitHub, PyPI, npm, FastAPI Cloud
@@ -76,7 +76,7 @@ terminal dans le chat), sur un réseau isolé et sans socket Docker.
 | Usurpation de la devbox ou du Gateway (S) | Clé d'hôte épinglée (`known_hosts`, `strictHostKeyChecking`, `updateHostKeys: false`) ; clé client dédiée, `restrict,pty` |
 | Modification non revue de `master` (T) | Token fine-grained limité au dépôt (Contents, Pull requests ; ni Workflows ni Administration) ; protection de `master` ; PR Draft, jamais de merge |
 | Prompt injection par le dépôt, les issues ou le web (T) | `workspaces/coder/AGENTS.md` : contenu = donnée ; outils web, messages, cron, gateway, nodes et sessions refusés |
-| Dérive de coût (D) | Clé LiteLLM `openclaw-coder` : 11 USD par 7 jours (10 € par semaine tant que EUR/USD ≥ 1,10) ; `maxConcurrent: 2` pour ne pas bloquer `main` et `cron` |
+| Dérive de coût (D) | Clé LiteLLM `openclaw-coder` : 90 USD par 7 jours depuis le 27/11 (11 USD avant les passes horaires) ; `maxConcurrent: 2` pour ne pas bloquer `main` et `cron` |
 | Traçabilité (R) | Traces Langfuse par clé LiteLLM ; commits sous l'identité `openclaw-coder` ; journal squid horodaté (`docker logs openclaw-devbox-egress`) |
 
 Risques résiduels :
@@ -123,6 +123,11 @@ La clé privée vit dans Vaultwarden et dans le chemin runtime protégé
 `/mnt/cpool/secrets/runtime/openclaw-devbox/` (`1001:1001`, `0400`), jamais
 dans ce dépôt. Statut : **CODED** (manifeste), App **non créée**, helpers
 `git-credential-devbox` et `gh-wrapper.sh` encore sur le token fine-grained.
+Depuis le 27/11, `gh-wrapper.sh` ajoute `--draft` à tout `gh pr create` et
+refuse `gh pr ready` et `gh pr merge` : une passe avait ouvert
+fastapi-sample#460 hors Draft. C'est un garde-fou contre les écarts du modèle,
+pas une frontière (`gh api` passe) ; la frontière reste les permissions du
+jeton.
 
 Manifeste : [`deploy/truenas/devbox/github-app-manifest.json`](../deploy/truenas/devbox/github-app-manifest.json),
 `public: false`, aucun webhook ni événement. Permissions, dérivées de ce que
@@ -175,7 +180,7 @@ propriétaire, qui n'est plus l'auteur.
    recette génère la valeur une seule fois dans
    `/mnt/cpool/secrets/runtime/litellm/.env.secrets`, écrit le fichier du
    Gateway `/mnt/cpool/openclaw/state/credentials/litellm/coder.key`
-   (`1000:1000`, `0600`) et enregistre la clé (11 USD / 7 jours), sans aucun
+   (`1000:1000`, `0600`) et enregistre la clé (90 USD / 7 jours), sans aucun
    redémarrage. Importer ensuite la valeur dans Vaultwarden avec la commande
    affichée (`import_dotenv_to_bitwarden.py --app litellm`).
 2. **Token GitHub** fine-grained, limité aux dépôts du contrat
@@ -245,7 +250,7 @@ proxy, puis `test-local-first` en `PASS`, sans commit ni push.
   vérifie), puis `just truenas-deploy-coder --apply`.
 - **Coût** : `just openclaw-truenas-virtual-keys-quota` (`nabla-compose`) ; le
   budget se réinitialise tous les 7 jours.
-- **Justesse des sondes, chaque jour** (déclaré le 23/11) : le job `fastapi-sample-daily-improvement` (06:17
+- **Justesse des sondes, chaque jour** (déclaré le 23/11) : le job `fastapi-sample-daily-improvement` (00:45
   Europe/Paris, session isolée, 30 min max) confronte les sondes de
   `fastapi-sample` (`/api/ui/services` TrueNAS) à l'état réel (Prometheus,
   alertes, `homelab-health.json`), calcule leur justesse
@@ -259,18 +264,32 @@ proxy, puis `test-local-first` en `PASS`, sans commit ni push.
   configuration du Gateway, ou `CODER_TELEGRAM_GROUP_ID=-100...`). Arrêt :
   `openclaw cron disable <id>` dans le Gateway, avant tout rollback de l'agent.
 - **Passes de roadmap** : un job `<repo>-roadmap-pass` par dépôt de l'agent,
-  chaque nuit (Europe/Paris, session isolée, 60 min max), sur des créneaux
-  d'une heure qui ne se chevauchent pas. Le budget LiteLLM de la clé `coder`
-  n'a pas été revu pour cinq passes par nuit (décision du 22/11 : à regarder
-  plus tard) :
+  **toutes les heures de 08:00 à 23:00** depuis le 27/11 (demande du
+  propriétaire ; Europe/Paris, session isolée, 24 min max), soit 16 passes par
+  jour et par dépôt. Les cinq dépôts sont décalés de 12 min : au plus deux
+  sandboxes à la fois sur la devbox (2 CPU, 3 Go). Aucun setup de 01:00 à
+  08:00, dans la saturation IO de TrueNAS (voir l'échec du setup plus bas).
+  Chaque passe reprend la branche de la précédente (étape 0 de la skill). La
+  file `cron` d'OpenClaw admet 8 runs parallèles et n'occupe pas la file
+  `main` (`maxConcurrent: 2`) : Telegram reste libre. Chaque passe annonce son
+  compte rendu sur Telegram (80 messages par jour).
 
   | Heure | Job |
   |---|---|
-  | 01:00 | `nabla-yubikey-roadmap-pass` |
-  | 02:00 | `nabla-compose-roadmap-pass` |
-  | 03:00 | `fastapi-sample-roadmap-pass` |
-  | 04:00 | `nabla-site-alban-roadmap-pass` |
-  | 05:00 | `nabla-site-bababou-roadmap-pass` |
+  | 00:30 | `nabla-compose-infra-referee` (amorce, 15 min max) |
+  | 00:45 | `fastapi-sample-daily-improvement` (30 min max) |
+  | HH:00 (08-23) | `nabla-compose-roadmap-pass` |
+  | HH:12 | `fastapi-sample-roadmap-pass` |
+  | HH:24 | `nabla-site-alban-roadmap-pass` |
+  | HH:36 | `nabla-site-bababou-roadmap-pass` |
+  | HH:48 | `nabla-yubikey-roadmap-pass` |
+
+  **Budget** : la clé `coder` passe de 11 à **90 USD / 7 jours** le 27/11
+  (nabla-compose, `provision-openclaw-litellm-keys.py`, décision du
+  propriétaire). Relevé du 27/11 : 1,51 USD sur une dizaine de runs aboutis,
+  soit environ 0,15 USD par run ; 80 passes par jour pendant 7 jours font
+  84 USD. Des passes plus chères épuisent la clé avant la remise à zéro :
+  l'anomalie `coder_budget` du heartbeat le signale à 80 % puis 100 %.
 
   Tous suivent la skill `nabla-roadmap-pass` (sources de roadmap et porte hors
   ligne par dépôt), dans l'ordre fixé le 23/11 : corriger les PR ouvertes
@@ -298,6 +317,27 @@ proxy, puis `test-local-first` en `PASS`, sans commit ni push.
   que `pytest --cov` dure à lui seul ~80 s ; la passe nabla-compose réelle
   dure 548 s. L'anomalie reste ouverte jusqu'au prochain run réel du même job
   et figure dans le briefing du matin ; aucun signal sans `workspace-coder`.
+  Premières passes horaires (27/11) : nabla-site-alban et nabla-yubikey
+  décrivent un clone « PASS » en 8 à 10 s sans appel d'outil, et
+  fastapi-sample rend la main au bout de 49 s sur « je poursuivrai » pendant
+  ses tests. OpenClaw 2026.10.7 n'a pas de `tool_choice` pour un job
+  planifié : le message de passe reprend les rappels agentiques du guide
+  GPT-4.1 (un seul tour, aucune valeur sans sortie d'outil, `NOT_RUN` plutôt
+  que `PASS`, `process` `poll` pour une commande passée en arrière-plan).
+  Relevé du soir (65 runs) : environ 40 passes restent creuses (7 à 15 s,
+  ~500 tokens), le message renforcé n'étant pas encore appliqué ; la seule
+  passe fastapi-sample réelle (711 s) a ouvert fastapi-sample#460, hors
+  Draft, avec un fichier de notes d'une ligne et une roadmap toujours
+  réconciliée au 22/11. La skill impose depuis une réconciliation quotidienne
+  avec `master` (en-tête, PR fusionnées, test qui fige l'en-tête), 3
+  propositions d'amélioration par passe et le compte rendu comme corps de PR,
+  sans fichier de notes.
+- **Job en échec répété** (26/11) : le même collecteur lit
+  `node /app/openclaw.mjs cron list --agent coder --json` (lecture seule) et
+  signale 🟠 chaque job actif à au moins 2 échecs consécutifs, avec la
+  première ligne de `lastError`. L'anomalie reste dans le briefing jusqu'au
+  premier run réussi. Du 20 au 26/11, seules les alertes d'échec d'OpenClaw
+  annonçaient les 5 à 6 nuits d'échec des passes.
 - **Première tentative nocturne en échec** (`cron: isolated agent setup timed
   out before runner start`, puis relance réussie 1 à 9 min plus tard) :
   diagnostic par lecture du code d'OpenClaw 2026.10.7, **sans réglage à
@@ -319,6 +359,15 @@ proxy, puis `test-local-first` en `PASS`, sans commit ni push.
     5 min). Étape bloquante à lire dans
     `sudo docker logs openclaw-gateway --since <heure-5min> --until <heure+5min>`
     (lignes `cron:` précédant `setup timed out`).
+  - **cause trouvée le 26/11** : depuis le 17/11, la fenêtre de nuit de
+    nabla-compose (`nabla-night-window-start`, 01:00 du lundi au samedi, 15
+    Apps dont bitcoind, arrêt à 07:00) bloque l'IO de TrueNAS 40 à 64 % du
+    temps de 01:15 à 07:30 (Prometheus,
+    `rate(node_pressure_io_stalled_seconds_total[5m])`, contre 2 à 5 % avant),
+    et le scrub du dimanche 00:00 fait de même. Le SQLite des sessions de la
+    Gateway ralentit, et la préparation dépasse 60 s. Les jobs de 00:30 et
+    01:00 passaient, tous ceux de 02:00 à 06:17 échouaient 5 à 6 nuits de
+    suite : d'où, depuis, aucun setup entre 01:00 et 08:00.
 - **Garde-fous de session** (22/11) : détection de boucles
   (`agents.entries.coder.tools.loopDetection.enabled`, imposée par
   `check-devbox-contract.py`), `ask_user` (boutons Telegram) et goals

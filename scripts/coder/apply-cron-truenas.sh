@@ -10,18 +10,21 @@ cd "$(dirname "$self")/../.."
 
 name=${1:-fastapi-sample-daily-improvement}
 session=isolated
+# No setup from 01:00 to 08:00: TrueNAS IO stalls 40-60 % in the nabla-compose
+# night window (01:00-07:30, Mon-Sat) and the 60 s cron setup watchdog of OpenClaw
+# then times out. Roadmap passes run every hour from 08:00 to 23:00, 12 min apart,
+# 24 min max: at most two sandboxes at once on the 2-CPU devbox.
 case $name in
-  fastapi-sample-daily-improvement) schedule="17 6 * * *" timeout=1800 ;;
   # Persistent session (not isolated), primed before the passes: they ask it, by
   # sessions_send, whether a failing probe comes from fastapi-sample or nabla-compose.
   nabla-compose-infra-referee) schedule="30 0 * * *" timeout=900 session=session:nabla-compose-infra ;;
-  # Roadmap passes: every repository every night, one-hour slots that never
-  # overlap and end before the 06:17 fastapi-sample job.
-  nabla-yubikey-roadmap-pass) schedule="0 1 * * *" timeout=3600 ;;
-  nabla-compose-roadmap-pass) schedule="0 2 * * *" timeout=3600 ;;
-  fastapi-sample-roadmap-pass) schedule="0 3 * * *" timeout=3600 ;;
-  nabla-site-alban-roadmap-pass) schedule="0 4 * * *" timeout=3600 ;;
-  nabla-site-bababou-roadmap-pass) schedule="0 5 * * *" timeout=3600 ;;
+  # After the referee and the 23:48 pass, before the night window; never with the fastapi-sample pass.
+  fastapi-sample-daily-improvement) schedule="45 0 * * *" timeout=1800 ;;
+  nabla-compose-roadmap-pass) schedule="0 8-23 * * *" timeout=1440 ;;
+  fastapi-sample-roadmap-pass) schedule="12 8-23 * * *" timeout=1440 ;;
+  nabla-site-alban-roadmap-pass) schedule="24 8-23 * * *" timeout=1440 ;;
+  nabla-site-bababou-roadmap-pass) schedule="36 8-23 * * *" timeout=1440 ;;
+  nabla-yubikey-roadmap-pass) schedule="48 8-23 * * *" timeout=1440 ;;
   all)
     for job in nabla-compose-infra-referee fastapi-sample-daily-improvement nabla-compose-roadmap-pass fastapi-sample-roadmap-pass \
                nabla-site-alban-roadmap-pass nabla-site-bababou-roadmap-pass nabla-yubikey-roadmap-pass; do

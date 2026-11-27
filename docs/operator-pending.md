@@ -241,8 +241,8 @@ TrueNAS (`sudo cat` local). L'import est confié à une autre session.
   3. passes de roadmap quotidiennes sur les cinq dépôts : `just
      truenas-apply-coder-cron all` **appliqué le 25/11** (7 jobs coder, 11 au
      total, sans doublon). Reste la preuve par les comptes rendus Telegram de
-     la nuit du 25 au 26/11. Budget de la clé `coder` (11 USD / 7 jours,
-     1,35 USD dépensés le 25/11) à revoir : il couvrait une seule passe par nuit.
+     la nuit du 25 au 26/11. Budget de la clé `coder` relevé à 90 USD / 7
+     jours le 27/11 pour les passes horaires (décision du propriétaire).
 - **Discord** : attester un `doctor` avec le vrai token avant de réactiver le
   canal, puis router `#fastapi-sample-dev` vers `coder`.
 - **Homarr** : la clé créée le 11/11 (`nabla/prod/homarr`) est installée dans

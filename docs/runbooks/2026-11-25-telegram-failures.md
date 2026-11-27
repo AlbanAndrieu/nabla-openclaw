@@ -37,6 +37,22 @@ Le digest du 24/11 est **ACCEPTED** : `ok` en 66 s, archive
   `provision-openclaw-litellm-keys.py` (ajout hors script), d'où
   `model_scope=mismatch` dans `--quota-audit`. Intégrer ce modèle au script
   ou le retirer de la clé : à arbitrer.
-- **ACCEPTED** `NOT_RUN` : passes coder de la nuit du 25 au 26/11 (npm,
-  FastAPI Cloud, sites), briefing et digest du 26/11 avec le nouveau budget,
-  résolution des trois alertes `coderruns` après de vraies passes.
+- **Relevé du 26/11 au soir** (lecture seule, `cron list`) : briefing du
+  26/11 `ok` et livré, digest `ok` en 75 s, livré, archive
+  `daily-2026-11-26.md` de 20 titres : **ACCEPTED** avec le nouveau budget.
+  Passes coder : 6 jobs sur 7 en échec, et la ligne « relance suivante
+  passe » ci-dessus ne tient plus. Cinq dépassent le délai de setup chaque nuit
+  depuis le 20/11, dans la saturation IO de TrueNAS (fenêtre de nuit de
+  nabla-compose) ; la passe nabla-yubikey tourne sans cloner son dépôt.
+  Correctifs dans la PR #36 (vagues avant minuit, clone imposé, contrôle
+  `coderjobs`). Horaires **DEPLOYED** le 27/11 à 00:25 depuis la branche
+  (`150369b`) : 7 jobs redéclarés sans doublon (11 jobs au total),
+  prochains départs le 27/11 de 21:00 à 23:30. Rollback : réappliquer
+  `apply-cron-truenas.sh all` depuis `master` (anciens horaires 00:30 à
+  06:17). Remplacé le même jour vers 00:36, à la demande du propriétaire,
+  par des passes horaires de 08:00 à 23:00 (24 min max, décalées de 12 min)
+  et une clé `coder` à 90 USD / 7 jours. npm, FastAPI Cloud, sites et
+  résolution des alertes `coderruns` : relevé du 27/11 à 09:00, 7 jobs sur 7
+  `ok` sans échec consécutif (délai de setup **ACCEPTED**), mais deux passes
+  creuses (clone « PASS » sans appel d'outil) et une passe écourtée ; message
+  de passe renforcé dans la PR #36.

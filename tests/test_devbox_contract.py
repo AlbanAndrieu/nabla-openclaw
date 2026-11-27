@@ -7,6 +7,7 @@ import json
 from pathlib import Path
 import re
 import shutil
+import subprocess
 import tempfile
 import threading
 import unittest
@@ -317,6 +318,33 @@ class PinDevboxImages(unittest.TestCase):
             self.assertEqual(pin.main(["--via"]), 2)
             self.assertEqual(pin.main(["--resolve"]), 2)
         self.assertEqual(compose.read_text(), before)
+
+
+class GhWrapper(unittest.TestCase):
+    """Devbox `gh`: PRs stay Draft, Ready and merge stay with the owner (fastapi-sample#460, 27/11)."""
+
+    def gh(self, *argv):
+        with tempfile.TemporaryDirectory() as temp:
+            fake = Path(temp, "gh")
+            fake.write_text('#!/bin/sh\necho "$@"\n')
+            fake.chmod(0o755)
+            wrapper = Path(temp, "wrapper.sh")
+            wrapper.write_text((ROOT / "deploy/truenas/devbox/gh-wrapper.sh").read_text().replace("/usr/bin/gh", str(fake)))
+            return subprocess.run(["sh", str(wrapper), *argv], capture_output=True, text=True, check=False)
+
+    def test_pr_create_is_always_draft(self):
+        self.assertEqual(self.gh("pr", "create", "--title", "t").stdout, "pr create --draft --title t\n")
+        self.assertEqual(self.gh("pr", "create", "-d", "--title", "t").stdout, "pr create -d --title t\n")
+
+    def test_ready_and_merge_are_refused(self):
+        for verb in ("ready", "merge"):
+            with self.subTest(verb=verb):
+                run = self.gh("pr", verb, "460")
+                self.assertEqual((run.returncode, run.stdout), (1, ""))
+                self.assertIn("réservé au propriétaire", run.stderr)
+
+    def test_other_commands_pass_through(self):
+        self.assertEqual(self.gh("pr", "list", "--state", "open").stdout, "pr list --state open\n")
 
 
 if __name__ == "__main__":

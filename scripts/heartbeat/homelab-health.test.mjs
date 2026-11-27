@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { checks, coderBudgetFrom, coderBudgetLine, coderStatus, collect, diff, dockerAnomalies, hollowCoderRuns, render } from "./homelab-health.mjs";
+import { checks, coderBudgetFrom, coderBudgetLine, coderStatus, collect, diff, dockerAnomalies, failingCoderJobs, hollowCoderRuns, render } from "./homelab-health.mjs";
 
 const NOON = Date.parse("2026-11-04T11:00:00Z");
 
@@ -163,6 +163,31 @@ test("coder runs: the latest ok run of a coder job that ran no tool is flagged",
   assert.equal(args, undefined);
   assert.equal((await checks.coderruns(null, {}, cli, mkdtempSync(`${tmpdir()}/coder-`))).length, 3);
   assert.deepEqual(args.slice(0, 5), ["cron", "runs", "--all", "--status", "ok"]);
+});
+
+test("coder jobs: an enabled job failing two runs in a row stays open with its cause", async () => {
+  const job = (id, consecutiveErrors, extra) => ({ id, name: id, enabled: true,
+    state: { consecutiveErrors, lastError: "cron: isolated agent setup timed out before runner start" }, ...extra });
+  const jobs = [
+    job("compose", 6), // 20-26/11: setup watchdog every night
+    job("yubikey", 5, { state: { consecutiveErrors: 5, lastError: `${"x".repeat(200)}\nActions tentées :` } }),
+    job("referee", 0),
+    job("once", 1), // a single failure is OpenClaw's own alert business
+    job("off", 4, { enabled: false }),
+  ];
+  const flagged = failingCoderJobs(jobs);
+  assert.deepEqual(flagged.map(([key, sev]) => [key, sev]), [["coderjobs:compose", "warn"], ["coderjobs:yubikey", "warn"]]);
+  assert.equal(flagged[0][2], "Job coder compose en échec 6 fois de suite : cron: isolated agent setup timed out before runner start");
+  assert.equal(flagged[1][2], `Job coder yubikey en échec 5 fois de suite : ${"x".repeat(160)}`);
+
+  const { mkdtempSync } = await import("node:fs");
+  const { tmpdir } = await import("node:os");
+  let args;
+  const cli = async (a) => { args = a; return JSON.stringify({ jobs, total: jobs.length, hasMore: false }); };
+  assert.deepEqual(await checks.coderjobs(null, {}, cli, "/nonexistent/workspace-coder"), []);
+  assert.equal(args, undefined);
+  assert.equal((await checks.coderjobs(null, {}, cli, mkdtempSync(`${tmpdir()}/coder-`))).length, 2);
+  assert.deepEqual(args.slice(0, 4), ["cron", "list", "--agent", "coder"]);
 });
 
 test("coder budget: spend and cap from /key/info, nothing else, junk refused", () => {

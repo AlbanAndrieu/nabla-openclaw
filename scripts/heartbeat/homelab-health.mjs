@@ -105,6 +105,16 @@ export function hollowCoderRuns(entries) {
       + `${run.usage?.output_tokens ?? "?"} tokens de sortie : aucun outil exécuté, compte rendu non fondé`]);
 }
 
+// Enabled coder job whose last runs all failed. From 20 to 26/11 five jobs hit the
+// cron setup watchdog 5-6 nights in a row and only OpenClaw's own failure alerts
+// said so: the anomaly now stays open in the briefing until a run succeeds.
+export function failingCoderJobs(jobs) {
+  return jobs
+    .filter((job) => job.enabled !== false && job.state?.consecutiveErrors >= 2)
+    .map((job) => [`coderjobs:${job.id}`, "warn", `Job coder ${job.name ?? job.id} en échec `
+      + `${job.state.consecutiveErrors} fois de suite : ${String(job.state.lastError ?? "cause inconnue").split("\n")[0].trim().slice(0, 160)}`]);
+}
+
 // execFile's message is the command line; the cause is the CLI's first stderr line.
 const openclawCli = (args) => promisify(execFile)(process.execPath, [OPENCLAW_CLI, ...args],
   { timeout: 25_000, maxBuffer: 4 << 20 }).then(({ stdout }) => stdout, (err) => {
@@ -264,6 +274,11 @@ export const checks = {
     if (!existsSync(workspace)) return []; // no coder agent on this Gateway
     const page = JSON.parse(await cli(["cron", "runs", "--all", "--status", "ok", "--limit", "100", "--timeout", "20000", "--json"]));
     return hollowCoderRuns(page.entries ?? []);
+  },
+  async coderjobs(_get, _prev, cli = openclawCli, workspace = dirname(dirname(CODER_STATUS))) {
+    if (!existsSync(workspace)) return [];
+    const page = JSON.parse(await cli(["cron", "list", "--agent", "coder", "--json", "--timeout", "20000"]));
+    return failingCoderJobs(page.jobs ?? []);
   },
 };
 
