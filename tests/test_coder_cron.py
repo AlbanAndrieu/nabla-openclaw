@@ -97,7 +97,10 @@ class RoadmapPassCron(unittest.TestCase):
         self.assertEqual(steps, sorted(steps))
 
     def test_each_repo_has_its_hourly_pass_and_a_skill_row(self):
-        self.assertIn("`<repo>-roadmap-pass`", (ROOT / "workspaces/coder/AGENTS.md").read_text(encoding="utf-8"))
+        agents = (ROOT / "workspaces/coder/AGENTS.md").read_text(encoding="utf-8")
+        self.assertIn("`<repo>-roadmap-pass`", agents)
+        # Cron sessions get OpenClaw's minimal prompt, without its execution guidance (27/11).
+        self.assertIn("un message sans appel d'outil termine ton tour", agents)
         script = (ROOT / "scripts/coder/apply-cron-truenas.sh").read_text(encoding="utf-8")
         skill = (ROOT / "workspaces/coder/skills/nabla-roadmap-pass/SKILL.md").read_text(encoding="utf-8")
         repos = json.loads((ROOT / "deploy/truenas/devbox/contract.json").read_text(encoding="utf-8"))["repositories"]

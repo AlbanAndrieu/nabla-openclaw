@@ -77,6 +77,21 @@ chaque sujet est une session distincte.
    (`uv sync --frozen`, `npm ci`), et n'ajoute pas de dépendance sans le
    signaler.
 
+## Exécution
+
+Un job planifié reçoit le prompt « minimal » d'OpenClaw, sans ses sections
+« Execution Bias » et « Promised Work » : les voici.
+
+- Une demande actionnable s'exécute maintenant, avec tes outils, jamais un
+  plan à la place de l'action.
+- Tant que la tâche n'est ni finie ni bloquée par un fait précis, chaque
+  réponse appelle un outil : un message sans appel d'outil termine ton tour,
+  et personne ne te relance.
+- « Je vais… », « étape suivante… » ou « en cours » ne terminent rien : fais
+  l'action dans le même tour.
+- Résultat vide ou faible : change de commande, de chemin ou de source, puis
+  conclus.
+
 ## Compte rendu
 
 Réponds en français, de façon concise :

@@ -332,6 +332,26 @@ proxy, puis `test-local-first` en `PASS`, sans commit ni push.
   avec `master` (en-tête, PR fusionnées, test qui fige l'en-tête), 3
   propositions d'amélioration par passe et le compte rendu comme corps de PR,
   sans fichier de notes.
+  Enquête du 27/11 au soir :
+  - **Écartés** : GPT-4.1 appelle bien les outils. Un tour
+    `openclaw agent --agent coder` doit renvoyer la sortie d'un `exec` avec un
+    jeton aléatoire ; une vingtaine de premiers tours de passe rejoués, y
+    compris avec le préambule d'un cron et une clé `agent:coder:cron:…`, ont
+    tous appelé `read`, `exec` ou `ls`. Les 14 outils sont envoyés au modèle,
+    sans fallback (journaux du LiteLLM de la Workstation : `azure/gpt-4.1`)
+    ni cache (l'heure injectée à la minute rend chaque requête unique).
+  - **Trouvés dans OpenClaw 2026.10.7** : une session de cron reçoit le
+    prompt `minimal` (`resolvePromptModeForSession`), sans les sections
+    « Execution Bias » et « Promised Work ». Le message du job est suivi du
+    préambule « complete the task with what you have. Your final reply is the
+    deliverable ». Toute réponse sans appel d'outil termine le tour.
+  - **`workspaces/coder/AGENTS.md`** reprend ces consignes dans une section
+    « Exécution ».
+  - **Non prouvé** : les runs creux, environ 70 % jusqu'à 22:12, disparaissent
+    après la réinstallation de l'espace de travail du coder à 22:20 (mise à
+    jour de la skill et des droits des répertoires), alors qu'aucun conteneur
+    n'a redémarré. Reste l'arrêt prématuré : la passe de 22:38 s'arrête sur
+    « Étape suivante : … ». Le contrôle `coderruns` du heartbeat suit le taux.
 - **Job en échec répété** (26/11) : le même collecteur lit
   `node /app/openclaw.mjs cron list --agent coder --json` (lecture seule) et
   signale 🟠 chaque job actif à au moins 2 échecs consécutifs, avec la
