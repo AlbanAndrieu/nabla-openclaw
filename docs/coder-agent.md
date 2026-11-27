@@ -123,6 +123,11 @@ La clé privée vit dans Vaultwarden et dans le chemin runtime protégé
 `/mnt/cpool/secrets/runtime/openclaw-devbox/` (`1001:1001`, `0400`), jamais
 dans ce dépôt. Statut : **CODED** (manifeste), App **non créée**, helpers
 `git-credential-devbox` et `gh-wrapper.sh` encore sur le token fine-grained.
+Depuis le 27/11, `gh-wrapper.sh` ajoute `--draft` à tout `gh pr create` et
+refuse `gh pr ready` et `gh pr merge` : une passe avait ouvert
+fastapi-sample#460 hors Draft. C'est un garde-fou contre les écarts du modèle,
+pas une frontière (`gh api` passe) ; la frontière reste les permissions du
+jeton.
 
 Manifeste : [`deploy/truenas/devbox/github-app-manifest.json`](../deploy/truenas/devbox/github-app-manifest.json),
 `public: false`, aucun webhook ni événement. Permissions, dérivées de ce que
@@ -319,6 +324,14 @@ proxy, puis `test-local-first` en `PASS`, sans commit ni push.
   planifié : le message de passe reprend les rappels agentiques du guide
   GPT-4.1 (un seul tour, aucune valeur sans sortie d'outil, `NOT_RUN` plutôt
   que `PASS`, `process` `poll` pour une commande passée en arrière-plan).
+  Relevé du soir (65 runs) : environ 40 passes restent creuses (7 à 15 s,
+  ~500 tokens), le message renforcé n'étant pas encore appliqué ; la seule
+  passe fastapi-sample réelle (711 s) a ouvert fastapi-sample#460, hors
+  Draft, avec un fichier de notes d'une ligne et une roadmap toujours
+  réconciliée au 22/11. La skill impose depuis une réconciliation quotidienne
+  avec `master` (en-tête, PR fusionnées, test qui fige l'en-tête), 3
+  propositions d'amélioration par passe et le compte rendu comme corps de PR,
+  sans fichier de notes.
 - **Job en échec répété** (26/11) : le même collecteur lit
   `node /app/openclaw.mjs cron list --agent coder --json` (lecture seule) et
   signale 🟠 chaque job actif à au moins 2 échecs consécutifs, avec la

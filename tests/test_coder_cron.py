@@ -83,7 +83,11 @@ class RoadmapPassCron(unittest.TestCase):
                        "questions restantes, numérotées", "git log --oneline origin/master..HEAD",
                        "n'est **pas** un", "`files=0`", "la mettre à jour avec `master`",
                        "gain d'au moins 10 %", "Une passe qui ne fait que consolider la roadmap",
-                       "Seulement si les étapes 2 à 4 ont produit au moins un commit de code"):
+                       "Seulement si les étapes 2 à 4 ont produit au moins un commit de code",
+                       # 27/11, fastapi-sample#460: Ready PR, one-line notes file, roadmap left at 22/11.
+                       "**Réconcilier d'abord**", "git grep -n -i 'réconciliation mise à jour' -- tests/",
+                       "Jamais de\nfichier de notes", "--body-file ../pr-body.md",
+                       "**3 propositions d'amélioration**"):
             with self.subTest(marker=marker):
                 self.assertIn(marker, skill)
         # Owner's order (23/11): PRs and CI, then refactor/perf/stability, then roadmap, then consolidation.

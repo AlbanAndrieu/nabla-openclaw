@@ -1,6 +1,6 @@
 ---
 name: nabla-roadmap-pass
-description: Passe horaire (24 min max) sur un dépôt de l'agent (nabla-compose, fastapi-sample, nabla-site-alban, nabla-site-bababou, nabla-yubikey) depuis la devbox. Vérifier l'état des services, réparer d'abord les PR ouvertes (retard sur master, conflits, CI rouge) et la CI de master, puis refactorer, améliorer la performance et stabiliser le code avec une mesure, puis implémenter un par un les items de roadmap faisables hors ligne ; consolider la roadmap en trois boucles seulement après un commit de code, et regrouper les blocages et les questions à la fin. Lancée par les jobs planifiés `<repo>-roadmap-pass`.
+description: Passe horaire (24 min max) sur un dépôt de l'agent (nabla-compose, fastapi-sample, nabla-site-alban, nabla-site-bababou, nabla-yubikey) depuis la devbox. Vérifier l'état des services, réparer d'abord les PR ouvertes (retard sur master, conflits, CI rouge) et la CI de master, puis refactorer, améliorer la performance et stabiliser le code avec une mesure, puis réconcilier la roadmap avec master (une fois par jour) et implémenter un par un les items de roadmap faisables hors ligne ; consolider la roadmap en trois boucles seulement après un commit de code, et regrouper les blocages et les questions à la fin. Lancée par les jobs planifiés `<repo>-roadmap-pass`.
 ---
 
 # Passe de roadmap d'un dépôt
@@ -193,7 +193,29 @@ commande lancée et pourquoi elle n'a rien donné.
 
 ## 4. Itérer sur la roadmap
 
-Sources : celles du tableau, dans leur ordre. Commence par **lister** les
+Sources : celles du tableau, dans leur ordre.
+
+**Réconcilier d'abord**, une fois par jour : sautée seulement si l'en-tête de
+réconciliation de la première source porte déjà la date du jour. La roadmap
+doit refléter `master` avant que tu choisisses un item (27/11 : fastapi-sample
+restait réconciliée au 22/11 après 5 jours de PR fusionnées) :
+
+```bash
+cd <repo> && grep -n -m3 -i 'réconcili' <première source du tableau>
+cd <repo> && gh pr list --state merged --search "merged:>=<AAAA-MM-JJ de cet en-tête>" --limit 50 --json number,title,mergedAt --jq '.[] | "#\(.number) \(.mergedAt[:10]) \(.title)"'
+cd <repo> && git grep -n -i 'réconciliation mise à jour' -- tests/
+```
+
+Chaque PR fusionnée qui livre un item ouvert le fait passer à `CODED` avec
+`#<numéro>` (jamais `DEPLOYED` ni `ACCEPTED`) ; un item livré qui n'est plus
+ouvert nulle part rejoint « Travaux terminés ». Mets à jour la date (même
+format) et le SHA de `master` de l'en-tête, ou ajoute en tête de la première
+source `> Réconciliation mise à jour le <date> (master <sha>)` s'il n'y en a
+pas. Un test qui fige cet en-tête (troisième commande) change dans le même
+commit ; lance-le. Commit `docs(roadmap): reconcile with master <sha court>`.
+Ce commit justifie la PR, mais ne remplace pas le commit de code de la passe.
+
+Puis **liste** les
 items ouverts (ni `DONE` ni `ACCEPTED`) : identifiant et titre des 10
 premiers. « Aucun item traitable » sans cette liste est une passe ratée.
 Pour chaque item, par priorité, classe-le :
@@ -249,13 +271,20 @@ Parque blocages et questions dans
 
 ## 6. Publier
 
+Une PR n'existe que pour un commit de code ou de réconciliation. Jamais de
+fichier de notes (`docs/*notes*.md`, `NOTES.md`…) : la roadmap, son runbook
+et le code sont les seuls fichiers d'une passe (27/11 : fastapi-sample#460
+n'ajoutait qu'un titre dans `docs/roadmap_pass_notes.md`). Écris d'abord le
+compte rendu de l'étape 7 dans `pr-body.md`, à la racine de ton espace de
+travail : c'est le corps de la PR, commandes `NOT_RUN` à lancer sur la
+Workstation comprises.
+
 ```bash
 cd <repo> && git push -u origin HEAD
+cd <repo> && gh pr create --draft --base master --title "docs(roadmap): openclaw roadmap pass <AAAA-MM-JJ>" --body-file ../pr-body.md
 ```
 
-Puis `gh pr create --draft` (titre `docs(roadmap): openclaw roadmap pass
-<AAAA-MM-JJ>`, base `master`), ou un commentaire de bilan si la PR existe déjà. Le corps
-liste les commandes restées `NOT_RUN` à lancer sur la Workstation.
+La PR existe déjà : `gh pr comment <numéro> --body-file ../pr-body.md`.
 
 `nabla-compose` : si la passe a traité une entrée `INFRA` du référent, envoie
 `[skills/nabla-infra-referee/SKILL.md] BILAN_INFRA` avec les services touchés
@@ -280,7 +309,10 @@ En français, au plus 30 lignes, sans rien envoyer toi-même, dans cet ordre :
 3. **PR ouvertes** : `#numéro titre → état → action` pour chacune, URL des PR
    `openclaw/fix-pr-*` ouvertes.
 4. **Refactor, performance, stabilité** : une ligne par axe, avec sa mesure
-   avant et après et le SHA, ou la commande lancée et pourquoi rien.
+   avant et après et le SHA, ou la commande lancée et pourquoi rien. Puis
+   **3 propositions d'amélioration**, même sans commit : `fichier:ligne`, la
+   sortie d'outil de cette passe qui la justifie (couverture, durée, `TODO`,
+   lint) et l'effort estimé. « Rien à proposer » est une passe ratée.
 5. **Roadmap** : les items listés à l'étape 4 avec leur classe ; items
    traités : uniquement les commits de cette passe, tels que les liste
    `git log --oneline origin/master..HEAD`. Chaque `PASS`/`FAIL` cite une
