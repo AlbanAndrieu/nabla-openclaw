@@ -52,5 +52,7 @@ Le digest du 24/11 est **ACCEPTED** : `ok` en 66 s, archive
   06:17). Remplacé le même jour vers 00:36, à la demande du propriétaire,
   par des passes horaires de 08:00 à 23:00 (24 min max, décalées de 12 min)
   et une clé `coder` à 90 USD / 7 jours. npm, FastAPI Cloud, sites et
-  résolution des alertes `coderruns` : **ACCEPTED** `NOT_RUN` jusqu'au relevé
-  du 27/11 vers 09:00.
+  résolution des alertes `coderruns` : relevé du 27/11 à 09:00, 7 jobs sur 7
+  `ok` sans échec consécutif (délai de setup **ACCEPTED**), mais deux passes
+  creuses (clone « PASS » sans appel d'outil) et une passe écourtée ; message
+  de passe renforcé dans la PR #36.

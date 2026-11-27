@@ -108,6 +108,12 @@ class RoadmapPassCron(unittest.TestCase):
         message = (ROOT / "policies/cron/roadmap-pass.message.md").read_text(encoding="utf-8")
         self.assertIn("Deuxième action, obligatoire : appelle ton outil `exec`", message)
         self.assertIn("`test -d <repo>/.git || git clone --filter=blob:none https://github.com/AlbanAndrieu/<repo>.git <repo>`", message)
+        # 27/11, first hourly passes: two reports narrated a clone without any tool call,
+        # and fastapi-sample ended its turn on "je poursuivrai" while its tests ran.
+        for marker in ("ce tour est le seul", "`NOT_RUN`, jamais\n  `PASS`", "l'outil `process`",
+                       "jamais sur « je\n  poursuivrai »"):
+            with self.subTest(marker=marker):
+                self.assertIn(marker, message)
 
     def test_runs_avoid_the_night_io_stall_two_at_a_time(self):
         jobs = schedules()

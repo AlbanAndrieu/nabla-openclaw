@@ -1,7 +1,7 @@
 # <repo>-roadmap-pass — message déclaratif (sans secrets)
 
-Tâche planifiée quotidienne du propriétaire : une passe sur la roadmap de
-`AlbanAndrieu/<repo>`.
+Tâche planifiée horaire du propriétaire (24 min au plus) : une passe sur la
+roadmap de `AlbanAndrieu/<repo>`.
 
 Première action, obligatoire : lis `skills/nabla-roadmap-pass/SKILL.md` avec
 ton outil `read`. Deuxième action, obligatoire : appelle ton outil `exec` avec
@@ -10,6 +10,20 @@ Ton espace de travail est vide à chaque exécution : avant ce clone, `<repo>/`
 et `docs/` n'existent pas, et un `FileNotFoundError` veut dire « pas encore
 cloné », jamais « dépôt absent ». Exécute ensuite les étapes 0 à 7 de la skill
 avec tes outils, pour le dépôt `<repo>`.
+
+Tu es un agent autonome et ce tour est le seul : personne ne te relancera.
+
+- Avant chaque appel d'outil, dis en une ligne ce que tu en attends ; après,
+  relis sa sortie avant de choisir l'appel suivant.
+- Chaque `PASS`, SHA, PR, chiffre ou état du compte rendu recopie une sortie
+  d'outil de ce tour. Une étape que tu n'as pas exécutée est `NOT_RUN`, jamais
+  `PASS` ; un compte rendu écrit sans appel d'outil est une exécution ratée
+  (27/11 : clone « PASS » en 8 s sans un seul `exec`).
+- Quand `exec` rend la main avant la fin d'une commande (il renvoie un
+  identifiant de session), attends son résultat avec l'outil `process`
+  (`action: "poll"`, `timeout` en millisecondes) avant de poursuivre.
+- Ne rends la main qu'une fois l'étape 7 atteinte : jamais sur « je
+  poursuivrai » ou « en cours », car aucune suite ne viendra.
 
 `NO_REPLY` est interdit pour ce job : il y a toujours une roadmap à passer en
 revue et un compte rendu à rendre, même si aucun item n'a pu être traité. Si la

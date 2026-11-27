@@ -312,6 +312,13 @@ proxy, puis `test-local-first` en `PASS`, sans commit ni push.
   que `pytest --cov` dure à lui seul ~80 s ; la passe nabla-compose réelle
   dure 548 s. L'anomalie reste ouverte jusqu'au prochain run réel du même job
   et figure dans le briefing du matin ; aucun signal sans `workspace-coder`.
+  Premières passes horaires (27/11) : nabla-site-alban et nabla-yubikey
+  décrivent un clone « PASS » en 8 à 10 s sans appel d'outil, et
+  fastapi-sample rend la main au bout de 49 s sur « je poursuivrai » pendant
+  ses tests. OpenClaw 2026.10.7 n'a pas de `tool_choice` pour un job
+  planifié : le message de passe reprend les rappels agentiques du guide
+  GPT-4.1 (un seul tour, aucune valeur sans sortie d'outil, `NOT_RUN` plutôt
+  que `PASS`, `process` `poll` pour une commande passée en arrière-plan).
 - **Job en échec répété** (26/11) : le même collecteur lit
   `node /app/openclaw.mjs cron list --agent coder --json` (lecture seule) et
   signale 🟠 chaque job actif à au moins 2 échecs consécutifs, avec la
