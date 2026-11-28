@@ -353,6 +353,23 @@ class DevboxSessions(unittest.TestCase):
     def test_image_ships_jq(self):
         self.assertRegex(Path(ROOT, mod.DOCKERFILE).read_text(), r"install -y --no-install-recommends \\\n.* jq ")
 
+    def test_image_ships_mise_pre_commit_and_prek(self):
+        # 28/11: the repos' agent-quality-gate.sh found neither pre-commit nor prek, and the
+        # coder tried to install mise through mise.run, which the egress proxy refuses.
+        requirements = Path(ROOT, mod.REQUIREMENTS).read_text()
+        for pin in ("pre-commit==", "prek==", "uv=="):
+            with self.subTest(pin=pin):
+                self.assertIn(pin, requirements)
+        dockerfile = Path(ROOT, mod.DOCKERFILE).read_text()
+        self.assertIn("install -m 0755 /tmp/mise/bin/mise /usr/local/bin/mise", dockerfile)
+        # COPY --chmod=0444 alone made /etc/mise 0444: mise silently skipped its config.
+        self.assertLess(dockerfile.index("install -d -o root -g root -m 0755 /etc/mise"),
+                        dockerfile.index("COPY --chmod=0444 mise-config.toml /etc/mise/config.toml"))
+        config = Path(ROOT, "deploy/truenas/devbox/mise-config.toml").read_text()
+        for setting in ('trusted_config_paths = ["/home/coder"]', "use_versions_host = false", 'disable_tools = ["node"]'):
+            with self.subTest(setting=setting):
+                self.assertIn(setting, config)
+
     def test_coder_tool_calls_stay_serial(self):
         # 28/11: OpenClaw refreshes .openclaw/sandbox-skills before each exec without a lock,
         # and parallel exec calls of one session raced on it (tar "File exists").

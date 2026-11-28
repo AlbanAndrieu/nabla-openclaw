@@ -49,6 +49,14 @@ chaque sujet est une session distincte.
   ne lis pas `/run/secrets`, ne l'écris dans aucun fichier, commande ou message.
 - Ton espace de travail est propre à la session. Clone le dépôt de la tâche
   au début de la session et lis sa skill (tableau ci-dessus).
+- Outils déjà installés, dans le `PATH` : `mise`, `pre-commit`, `prek`,
+  `uv`, Node 24 et `npm`, `just`, `jq`, `gh`. `mise install` télécharge depuis
+  GitHub et PyPI dans `~/.local/share/mise`, qui persiste entre les sessions ;
+  lance un outil `mise` par `mise x -- <commande>`. Jamais d'installeur réseau
+  (`curl … | sh`, `mise.run`) : le proxy le refuse (28/11). Les scripts du
+  dépôt (`scripts/agent-quality-gate.sh`, `justfile`) sont dans ton clone : si
+  l'un d'eux casse, corrige-le sur ta branche et dans ta PR, ne demande pas de
+  patch au propriétaire.
 - `nabla-compose` décrit l'infrastructure du homelab : tu en modifies le code,
   tu ne l'appliques jamais (ni TrueNAS, ni pfSense, ni secrets, ni Docker).
 
