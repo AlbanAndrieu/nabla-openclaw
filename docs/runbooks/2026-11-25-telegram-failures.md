@@ -56,3 +56,18 @@ Le digest du 24/11 est **ACCEPTED** : `ok` en 66 s, archive
   `ok` sans échec consécutif (délai de setup **ACCEPTED**), mais deux passes
   creuses (clone « PASS » sans appel d'outil) et une passe écourtée ; message
   de passe renforcé dans la PR #36.
+- **28/11, heartbeat en échec depuis 07:42.** Chaque heartbeat finit en
+  300 ms sur « Session binding owner changed for telegram:default », avant
+  tout appel au modèle, et `homelab-health.json` n'est plus rafraîchi depuis
+  le 27/11 à 22:33. Le canal Telegram reste `running` et `connected`.
+  Cause probable (OpenClaw 2026.10.7, lecture du code) : à 05:26 puis 05:41, après le gel IO de la nuit,
+  le redémarrage du canal par le host-thaw et le health-monitor dépasse son
+  budget d'arrêt de 5 s. Le compte relancé à 05:44 se retrouve sans adapter de
+  binding enregistré : dans `thread-bindings`, `stop()` de l'ancien manager
+  désenregistre son adapter après que le nouveau démarrage a réutilisé ce
+  manager. Rien ne le recrée sans redémarrer le canal. Réparation sans
+  redémarrage du Gateway : `scripts/heartbeat/restart-telegram-channel.sh`.
+  Sans argument, il ne fait que lire (code de sortie 1 = adapter perdu).
+  Avec `apply`, il enchaîne `channels.stop` puis `channels.start` sur
+  `telegram/default`. Le gel IO revient chaque nuit : à lancer depuis le
+  contrôle horaire tant qu'aucun planificateur côté TrueNAS ne le porte.
