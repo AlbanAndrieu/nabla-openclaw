@@ -332,6 +332,74 @@ proxy, puis `test-local-first` en `PASS`, sans commit ni push.
   avec `master` (en-tête, PR fusionnées, test qui fige l'en-tête), 3
   propositions d'amélioration par passe et le compte rendu comme corps de PR,
   sans fichier de notes.
+  Enquête du 27/11 au soir :
+  - **Écartés** : GPT-4.1 appelle bien les outils. Un tour
+    `openclaw agent --agent coder` doit renvoyer la sortie d'un `exec` avec un
+    jeton aléatoire ; une vingtaine de premiers tours de passe rejoués, y
+    compris avec le préambule d'un cron et une clé `agent:coder:cron:…`, ont
+    tous appelé `read`, `exec` ou `ls`. Les 14 outils sont envoyés au modèle,
+    sans fallback (journaux du LiteLLM de la Workstation : `azure/gpt-4.1`)
+    ni cache (l'heure injectée à la minute rend chaque requête unique).
+  - **Trouvés dans OpenClaw 2026.10.7** : une session de cron reçoit le
+    prompt `minimal` (`resolvePromptModeForSession`), sans les sections
+    « Execution Bias » et « Promised Work ». Le message du job est suivi du
+    préambule « complete the task with what you have. Your final reply is the
+    deliverable ». Toute réponse sans appel d'outil termine le tour.
+  - **`workspaces/coder/AGENTS.md`** reprend ces consignes dans une section
+    « Exécution ».
+  - **Non prouvé** : les runs creux, environ 70 % jusqu'à 22:12, disparaissent
+    après la réinstallation de l'espace de travail du coder à 22:20 (mise à
+    jour de la skill et des droits des répertoires), alors qu'aucun conteneur
+    n'a redémarré. Reste l'arrêt prématuré : la passe de 22:38 s'arrête sur
+    « Étape suivante : … ». Le contrôle `coderruns` du heartbeat suit le taux.
+  Comptes rendus Telegram du 27/11 (81 runs, lus dans `cron runs`) :
+  - **Trop longs** : 58 dépassent 2 000 caractères. La même section services
+    revient dans 68 d'entre eux, l'URL de PR dans 17 seulement. La skill
+    impose désormais 15 lignes au plus, une première ligne avec le statut et
+    la PR, sans section services ; le détail va dans le corps de la PR.
+  - **Porte abandonnée** : `exec` rend la main après 2 min au plus
+    (`yieldMs` borné à 120 000 ms) et `process poll` après 30 s ou à la
+    première sortie. La porte écrit donc dans `gate.log` et la passe l'attend
+    par une commande `until grep gate_exit=` relancée, 6 fois au plus.
+  - **Faux échecs de la devbox** : `jq: command not found` dans les tests de
+    nabla-site-alban et de nabla-compose, et des bits `stat.S_IXGRP` perdus,
+    car sshd tourne en `umask 077` et ses sessions en héritent. L'image
+    installe `jq` ; l'entrypoint passe à `umask 022` avant sshd, `$home`
+    restant en 0700.
+  - **Sources introuvables** : nabla-yubikey annonçait « aucun fichier
+    roadmap trouvé ». La skill liste désormais les sources depuis le clone.
+  - **Synchro de la sandbox** (28/11, 00:45) : le daily-improvement rend
+    `AUTOMATION_FAILED`, chaque sonde échouant sur `tar: … Cannot open: File
+    exists` ou `rm: … sandbox-skills … Directory not empty`. Avant chaque
+    `exec`, OpenClaw 2026.10.7 vide puis réextrait `.openclaw/sandbox-skills`
+    sans verrou, et des `exec` parallèles d'une même session se marchent
+    dessus. Le coder passe à `parallel_tool_calls: false`
+    (`agents.entries.coder.params`). `AGENTS.md` fait relancer seul un appel
+    touché, et le contrôle `coderruns` signale tout run de 24 h qui porte ces
+    erreurs.
+  Lot du 28/11 (250 runs du 23 au 27/11, liste validée par le propriétaire) :
+  - **Passes silencieuses** : une passe sans commit, sans PR ouverte ou
+    poussée, sans nouveau blocage ni échec répond `NO_REPLY`. Le briefing
+    du matin résume les passes des dernières 24 h dans sa section « CODER » :
+    leur nombre, celles en échec ou silencieuses, les PR citées. Les runs
+    creux, désormais muets sur Telegram, restent signalés par `coderruns`,
+    qui lit tous les statuts (`--limit 200`).
+  - **Jamais de push sur `master`** : règle dans `AGENTS.md` et dans la
+    skill, et push autorisé seulement depuis une branche `openclaw/*`.
+    `coderruns` signale tout run des dernières 24 h dont le compte rendu
+    montre un push refusé (`GH013`, comme le 27/11 à 09:37 et 14:49).
+  - **Supprimer la livraison d'un run creux** : impossible dans OpenClaw
+    2026.10.7. Seule une réponse `NO_REPLY` de l'agent coupe la livraison
+    d'un cron (`docs/cli/cron.md`, « Silent token suppression ») ; aucune
+    condition ne porte sur les outils appelés. La consigne demande donc
+    `NO_REPLY` à une passe sans appel d'outil, et le heartbeat la signale.
+  - **Briefing** : anomalies du coder sous 🤖 Coder et non plus sous 🩺
+    Homelab ; un dernier élément unique s'affiche à la place de « … et 1
+    autres » ; cibles Prometheus `operational_state: planned` ignorées.
+  - **Memory Dreaming** : à 03:00, 5 exécutions sur 7 échouaient sur le délai
+    de setup, dans le creux d'IO de TrueNAS. Le balayage passe à 12:30
+    (`plugins.entries.memory-core.config.dreaming`, via
+    `just truenas-apply-heartbeat`).
 - **Job en échec répété** (26/11) : le même collecteur lit
   `node /app/openclaw.mjs cron list --agent coder --json` (lecture seule) et
   signale 🟠 chaque job actif à au moins 2 échecs consécutifs, avec la
@@ -386,7 +454,7 @@ proxy, puis `test-local-first` en `PASS`, sans commit ni push.
 - **Budget du coder** (22/11) : le collecteur du heartbeat lit, avec la clé du
   coder elle-même, `GET /key/info` de LiteLLM (sans paramètre : la clé
   appelante, vérifié dans le code de LiteLLM) et n'en garde que la dépense, le
-  plafond et la date de remise à zéro. Ligne « LITELLM CODER » du briefing du
+  plafond et la date de remise à zéro. Section « CODER » du briefing du
   matin, anomalie à 80 % (🟠) et 100 % (🔴), champ `coder_budget` de
   `status/homelab-health.json`, repris par chaque passe de roadmap.
 - **Messages entre sessions du coder** (22/11) : `sessions_list` et

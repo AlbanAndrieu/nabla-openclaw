@@ -34,6 +34,8 @@ class CoderCron(unittest.TestCase):
                        "uv sync --frozen", "Jamais de merge", "dernière ligne de sa sortie",
                        "`FAUSSE_ALERTE`", "`PANNE_RATÉE`", "Justesse =", "`fastapi-sample-roadmap-pass`",
                        "`RIEN À CORRIGER` n'est permis qu'avec une justesse de 100 %",
+                       # 28/11 00:45: four AUTOMATION_FAILED and raw tar output in one report.
+                       "12 lignes au plus", "jamais la sortie brute de `tar`", "`AUTOMATION_FAILED` n'apparaît qu'une fois",
                        "http://172.17.0.24:9090/api/v1/query?query=up",
                        # gpt-4.1 is the only model: the prompt forces a tool call (23/11 invented PASS).
                        "Première action, obligatoire : appelle ton outil `exec`"):
@@ -64,9 +66,14 @@ class CoderCron(unittest.TestCase):
 class RoadmapPassCron(unittest.TestCase):
     def test_message_points_to_the_skill_and_its_branch_only(self):
         message = (ROOT / f"policies/cron/{ROADMAP}.message.md").read_text(encoding="utf-8")
-        for marker in ("skills/nabla-roadmap-pass/SKILL.md", "`NO_REPLY` est interdit", "AUTOMATION_FAILED",
+        # 28/11, owner: a pass that brings nothing new stays silent; never a push to master (GH013, 27/11).
+        for marker in ("skills/nabla-roadmap-pass/SKILL.md", "Réponds exactement `NO_REPLY`", "aucun commit, aucune PR ouverte ni poussée",
+                       "**jamais sur `master`**", "AUTOMATION_FAILED",
                        "openclaw/roadmap-pass-", "openclaw/fix-pr-", "jamais de push sur une autre branche",
-                       "étapes 0 à 7", "PR Draft", "Jamais de merge"):
+                       "étapes 0 à 7", "PR Draft", "Jamais de merge",
+                       # 28/11: bababou concluded "no commit" three times on a red TS2304 gate.
+                       "**Porte rouge = le travail de la passe.**", "jamais `✅`, jamais\n`NO_REPLY`",
+                       "« Aucun item traitable » n'est pas une conclusion", "même déjà signalé"):
             with self.subTest(marker=marker):
                 self.assertIn(marker, message)
         self.assertNotRegex(message, r"(?i)(?:ghp_|github_pat_|sk-[a-z0-9]{12,}|token\s*=)")
@@ -87,9 +94,25 @@ class RoadmapPassCron(unittest.TestCase):
                        # 27/11, fastapi-sample#460: Ready PR, one-line notes file, roadmap left at 22/11.
                        "**Réconcilier d'abord**", "git grep -n -i 'réconciliation mise à jour' -- tests/",
                        "Jamais de\nfichier de notes", "--body-file ../pr-body.md",
-                       "**3 propositions d'amélioration**"):
+                       "**3 propositions d'amélioration**",
+                       # 27/11, 81 reports: gates left in the background, sources looked up outside
+                       # the clone, 58 reports over 2,000 characters and the PR URL in only 17.
+                       'echo "gate_exit=$?" >> ../gate.log', "`yieldMs: 120000`",
+                       # 28/11: parentheses dropped, the log only appeared with the last gate command.
+                       'echo "gate_start=$(date +%T)" > ../gate.log && (', "Garde les parenthèses",
+                       "cd <repo> && ls -1 docs/*roadmap*.md", "au plus\n15 lignes et 1 500 caractères",
+                       "PR : <URL de la PR Draft", "Pas de ligne `Services`",
+                       "**Jamais de push sur `master`**", 'case "$b" in openclaw/*) git push -u origin "$b"',
+                       "la réponse est exactement `NO_REPLY`",
+                       "C'est l'item de la passe", "Une porte rouge n'est jamais silencieuse",
+                       # 28/11 08:00: three passes stopped at step 1 on a stale heartbeat file.
+                       "`PASS`, et **jamais bloquant**"):
             with self.subTest(marker=marker):
                 self.assertIn(marker, skill)
+        report = skill.split("## 7. Compte rendu", 1)[1]
+        template = report.split("```text\n", 1)[1].split("```", 1)[0]
+        self.assertLessEqual(len(template.splitlines()), 15)
+        self.assertTrue(template.startswith("✅ <repo> : "))
         # Owner's order (23/11): PRs and CI, then refactor/perf/stability, then roadmap, then consolidation.
         steps = [skill.index(f"\n## {title}") for title in (
             "2. Corriger les PR ouvertes", "3. Refactorer, accélérer, stabiliser", "4. Itérer sur la roadmap",
@@ -97,7 +120,11 @@ class RoadmapPassCron(unittest.TestCase):
         self.assertEqual(steps, sorted(steps))
 
     def test_each_repo_has_its_hourly_pass_and_a_skill_row(self):
-        self.assertIn("`<repo>-roadmap-pass`", (ROOT / "workspaces/coder/AGENTS.md").read_text(encoding="utf-8"))
+        agents = (ROOT / "workspaces/coder/AGENTS.md").read_text(encoding="utf-8")
+        self.assertIn("`<repo>-roadmap-pass`", agents)
+        # Cron sessions get OpenClaw's minimal prompt, without its execution guidance (27/11).
+        self.assertIn("un message sans appel d'outil termine ton tour", agents)
+        self.assertIn("Jamais de commit ni de push sur `master`", agents)
         script = (ROOT / "scripts/coder/apply-cron-truenas.sh").read_text(encoding="utf-8")
         skill = (ROOT / "workspaces/coder/skills/nabla-roadmap-pass/SKILL.md").read_text(encoding="utf-8")
         repos = json.loads((ROOT / "deploy/truenas/devbox/contract.json").read_text(encoding="utf-8"))["repositories"]
@@ -114,7 +141,7 @@ class RoadmapPassCron(unittest.TestCase):
         self.assertIn("`test -d <repo>/.git || git clone --filter=blob:none https://github.com/AlbanAndrieu/<repo>.git <repo>`", message)
         # 27/11, first hourly passes: two reports narrated a clone without any tool call,
         # and fastapi-sample ended its turn on "je poursuivrai" while its tests ran.
-        for marker in ("ce tour est le seul", "`NOT_RUN`, jamais\n  `PASS`", "l'outil `process`",
+        for marker in ("ce tour est le seul", "`NOT_RUN`, jamais\n  `PASS`", "l'outil `process`", "`yieldMs: 120000`",
                        "jamais sur « je\n  poursuivrai »"):
             with self.subTest(marker=marker):
                 self.assertIn(marker, message)
@@ -182,6 +209,19 @@ class InfraReferee(unittest.TestCase):
     def test_referee_is_a_registered_skill(self):
         seed = json.loads((ROOT / "deploy/truenas/openclaw.json").read_text(encoding="utf-8"))
         self.assertIn("nabla-infra-referee", seed["agents"]["entries"]["coder"]["skills"])
+
+
+
+class GatewaySchedules(unittest.TestCase):
+    def test_dreaming_sweep_runs_outside_the_night_io_stall(self):
+        # 23-27/11: 5 of 7 dreaming runs at 03:00 hit the cron setup watchdog.
+        dreaming = json.loads((ROOT / "deploy/truenas/openclaw.json").read_text(encoding="utf-8"))[
+            "plugins"]["entries"]["memory-core"]["config"]["dreaming"]
+        minute, hour = dreaming["frequency"].split()[:2]
+        self.assertFalse(1 <= int(hour) < 8, dreaming)
+        self.assertEqual(dreaming["timezone"], "Europe/Paris")
+        script = (ROOT / "scripts/heartbeat/apply-truenas.sh").read_text(encoding="utf-8")
+        self.assertIn("config set plugins.entries.memory-core.config.dreaming", script)
 
 
 if __name__ == "__main__":

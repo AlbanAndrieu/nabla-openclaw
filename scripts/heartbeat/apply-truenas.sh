@@ -22,6 +22,11 @@ gateway_cli cron scratch "$(job_field declarationKey heartbeat:main id <<< "$job
 heartbeat=$(node -e 'console.log(JSON.stringify(require("./deploy/truenas/openclaw.json").agents.defaults.heartbeat))')
 gateway_cli config set agents.defaults.heartbeat "'$heartbeat'" < /dev/null
 
+# memory-core's dreaming sweep: at its 03:00 default, 5 of 7 runs (23-27/11) hit the
+# cron setup watchdog in the TrueNAS IO stall. A plugin config edit reloads memory-core only.
+dreaming=$(node -e 'console.log(JSON.stringify(require("./deploy/truenas/openclaw.json").plugins.entries["memory-core"].config.dreaming))')
+gateway_cli config set plugins.entries.memory-core.config.dreaming "'$dreaming'" --strict-json --merge < /dev/null
+
 # The owner's Telegram chat stays out of Git: reuse the digest's delivery target.
 to=$(node -e 'console.log(JSON.parse(require("fs").readFileSync(0)).jobs.find((j) => j.name === "daily-tech-news-digest").delivery.to)' <<< "$jobs")
 briefing=$(job_field name morning-briefing id <<< "$jobs")

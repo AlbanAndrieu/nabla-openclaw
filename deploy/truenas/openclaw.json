@@ -82,6 +82,7 @@
         "name": "coder",
         "workspace": "/home/node/.openclaw/workspace-coder",
         "model": "litellm-coder/gpt-4.1",
+        "params": { "parallel_tool_calls": false },
         "skills": ["fastapi-sample-dev", "nabla-compose-dev", "nabla-infra-referee", "nabla-roadmap-pass", "nabla-site-dev", "nabla-yubikey-dev"],
         "sandbox": {
           "mode": "all",
@@ -118,6 +119,9 @@
     }
   },
   "plugins": {
-    "entries": { "discord": { "enabled": false } }
+    "entries": {
+      "discord": { "enabled": false },
+      "memory-core": { "config": { "dreaming": { "frequency": "30 12 * * *", "timezone": "Europe/Paris" } } }
+    }
   }
 }

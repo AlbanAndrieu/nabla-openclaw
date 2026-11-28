@@ -347,5 +347,23 @@ class GhWrapper(unittest.TestCase):
         self.assertEqual(self.gh("pr", "list", "--state", "open").stdout, "pr list --state open\n")
 
 
+class DevboxSessions(unittest.TestCase):
+    """27/11: repos' tests failed on the devbox for want of jq and of group exec bits."""
+
+    def test_image_ships_jq(self):
+        self.assertRegex(Path(ROOT, mod.DOCKERFILE).read_text(), r"install -y --no-install-recommends \\\n.* jq ")
+
+    def test_coder_tool_calls_stay_serial(self):
+        # 28/11: OpenClaw refreshes .openclaw/sandbox-skills before each exec without a lock,
+        # and parallel exec calls of one session raced on it (tar "File exists").
+        seed = json.loads(Path(ROOT, "deploy/truenas/openclaw.json").read_text())
+        self.assertIs(seed["agents"]["entries"]["coder"]["params"]["parallel_tool_calls"], False)
+
+    def test_sessions_get_umask_022(self):
+        entrypoint = (ROOT / "deploy/truenas/devbox/entrypoint.sh").read_text()
+        self.assertIn("umask 022\necho \"devbox_sshd=starting", entrypoint)
+        self.assertLess(entrypoint.index('chmod 0700 "$home"'), entrypoint.index("umask 022"))
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -68,7 +68,10 @@ chaque sujet est une session distincte.
    (`nabla-compose-infra-referee`) ne commite jamais.
 3. Ne modifie jamais la configuration Git (`git config`, identité, helpers) :
    l'identité `openclaw-coder` est fournie par la session SSH.
-   Jamais sur `master` : une branche `openclaw/<sujet-court>` par tâche. Jamais
+   Jamais de commit ni de push sur `master` (ni `HEAD:master`) : une branche
+   `openclaw/<sujet-court>` par tâche, publiée en PR Draft quand une PR est
+   autorisée ; un refus `GH013` veut dire que tu es resté sur `master`, pas
+   qu'il faut une autre voie. Jamais
    de `--force`, de `--no-verify`, de merge, ni de passage d'une PR Draft en
    Ready.
 4. Ne modifie pas `.github/workflows/` ni les contrôles de sécurité (SAST, SCA,
@@ -76,6 +79,26 @@ chaque sujet est une session distincte.
 5. N'exécute pas de code téléchargé hors des dépendances verrouillées du dépôt
    (`uv sync --frozen`, `npm ci`), et n'ajoute pas de dépendance sans le
    signaler.
+
+## Exécution
+
+Un job planifié reçoit le prompt « minimal » d'OpenClaw, sans ses sections
+« Execution Bias » et « Promised Work » : les voici.
+
+- Une demande actionnable s'exécute maintenant, avec tes outils, jamais un
+  plan à la place de l'action.
+- Tant que la tâche n'est ni finie ni bloquée par un fait précis, chaque
+  réponse appelle un outil : un message sans appel d'outil termine ton tour,
+  et personne ne te relance.
+- « Je vais… », « étape suivante… » ou « en cours » ne terminent rien : fais
+  l'action dans le même tour.
+- Résultat vide ou faible : change de commande, de chemin ou de source, puis
+  conclus.
+- Un appel d'outil à la fois. Avant chaque `exec`, OpenClaw vide puis
+  réextrait `.openclaw/sandbox-skills` : une sortie `tar: … Cannot open: File
+  exists` ou `rm: … sandbox-skills … Directory not empty` vient de cette
+  synchro, pas de ta commande. Relance le même appel, seul ; au troisième
+  échec, c'est un `AUTOMATION_FAILED` sur la devbox, pas sur le dépôt.
 
 ## Compte rendu
 

@@ -95,9 +95,19 @@ changement : abandonne la branche sans pousser et réponds `ÉCHEC`.
 ## 6. Compte rendu
 
 Ta réponse finale est livrée par le planificateur : n'envoie rien toi-même.
-En français, au plus 15 lignes : SHA ; compteurs de la sonde TrueNAS, cibles
-`DOWN` et alertes, âge de `homelab-health.json` ; justesse en % avec le
-détail `JUSTE`/`FAUSSE_ALERTE`/`PANNE_RATÉE`/`INCONNU` ; une ligne par écart
-avec son verdict ; correction choisie et pourquoi ; URL de la PR Draft (ou
-`EN ATTENTE`, `RIEN À CORRIGER`, `ÉCHEC`). Jamais de merge ni de passage en
-Ready ; n'annonce aucune réussite non vérifiée.
+En français, 12 lignes au plus, lisibles sur un téléphone, dans cet ordre :
+
+1. `✅`, `⚠️` ou `AUTOMATION_FAILED`, puis le verdict en une phrase : URL de
+   la PR Draft, `EN ATTENTE`, `RIEN À CORRIGER` ou `ÉCHEC`.
+2. `Sondes :` SHA, compteurs de la sonde TrueNAS, cibles `DOWN` et alertes,
+   âge de `homelab-health.json`.
+3. `Justesse :` en %, avec le détail `JUSTE`/`FAUSSE_ALERTE`/`PANNE_RATÉE`/`INCONNU`.
+4. Une ligne par écart avec son verdict, 5 au plus.
+5. `Correction :` celle choisie et pourquoi.
+
+Une mesure en échec tient en une ligne, `<mesure> : NOT_RUN (<cause en
+quelques mots>)`, jamais la sortie brute de `tar`, `rm` ou d'une pile
+(28/11 : quatre `AUTOMATION_FAILED` et dix lignes de `tar` dans un seul
+compte rendu). `AUTOMATION_FAILED` n'apparaît qu'une fois, en tête.
+Jamais de merge ni de passage en Ready ; n'annonce aucune réussite non
+vérifiée.

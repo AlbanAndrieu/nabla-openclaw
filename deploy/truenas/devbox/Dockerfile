@@ -9,12 +9,13 @@ LABEL name="openclaw-devbox" version="0.2.0"
 
 # Debian trixie packages: sshd, the SSH sandbox bridge contract
 # (/bin/sh, python3, GNU stat/readlink, tar) and the repositories' toolchain
-# (git, gh, just, make). Versions follow the digest-pinned base: exact apt pins
-# break on each Debian security update.
+# (git, gh, jq, just, make; the repos' scripts and tests call jq). Versions
+# follow the digest-pinned base: exact apt pins break on each Debian security
+# update.
 # hadolint ignore=DL3008
 RUN apt-get update \
  && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
-      bash ca-certificates coreutils curl gh git just make openssh-server tar tini xz-utils \
+      bash ca-certificates coreutils curl gh git jq just make openssh-server tar tini xz-utils \
  && rm -rf /var/lib/apt/lists/* /etc/ssh/ssh_host_* \
  && groupadd --gid 1001 coder \
  && useradd --uid 1001 --gid coder --home-dir /home/coder --no-create-home --shell /bin/bash coder \
