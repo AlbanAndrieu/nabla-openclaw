@@ -1,0 +1,12 @@
+# System mise settings of the coder devbox (/etc/mise/config.toml).
+# Egress allows GitHub, PyPI and npm only: no mise.run, mise-versions.jdx.dev or nodejs.org.
+[settings]
+# Each pass clones its repositories under /home/coder/sandboxes: trust their mise.toml.
+trusted_config_paths = ["/home/coder"]
+# Resolve "latest" through GitHub instead of mise-versions.jdx.dev.
+use_versions_host = false
+# Interpreters come from the image only (sshd_config: no interpreter downloads at
+# runtime, UV_PYTHON pinned): Python 3.13, Node 24 and npm. nodejs.org is outside egress.
+disable_tools = ["node", "python"]
+# Never prompt: the coder runs without a terminal.
+yes = true

@@ -41,6 +41,18 @@ RUN test "$(dpkg --print-architecture)" = amd64 \
  && test "$(node --version)" = "v${NODE_VERSION}" \
  && test "$(npm --version)" = "${NPM_VERSION}"
 
+# mise for the repos' mise.toml (`mise install`, `mise x`); its tools come from GitHub
+# and PyPI, the only package hosts of the egress allowlist (config: mise-config.toml).
+ARG MISE_VERSION=2026.11.14
+ARG MISE_SHA256=fdf945a962cd4a3217f8f6bc8d6bbbbd1c600d0b252cbd05f87652887e020baa
+RUN curl -fsSLo /tmp/mise.tar.xz "https://github.com/jdx/mise/releases/download/v${MISE_VERSION}/mise-v${MISE_VERSION}-linux-x64.tar.xz" \
+ && echo "${MISE_SHA256}  /tmp/mise.tar.xz" | sha256sum -c - \
+ && tar -xJf /tmp/mise.tar.xz -C /tmp --no-same-owner mise/bin/mise \
+ && install -m 0755 /tmp/mise/bin/mise /usr/local/bin/mise \
+ && rm -rf /tmp/mise /tmp/mise.tar.xz \
+ && test "$(mise --version | cut -d' ' -f1)" = "${MISE_VERSION}" \
+ && install -d -o root -g root -m 0755 /etc/mise
+COPY --chmod=0444 mise-config.toml /etc/mise/config.toml
 COPY --chmod=0444 requirements.txt /tmp/requirements.txt
 RUN python3 -m pip install --no-cache-dir --require-hashes --only-binary=:all: -r /tmp/requirements.txt \
  && rm /tmp/requirements.txt
