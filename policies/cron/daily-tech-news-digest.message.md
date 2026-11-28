@@ -60,10 +60,14 @@ Technology Review deux fois sur les mains bioniques, classées en LLM) :
 
 - jamais d'article sous 🔥3, ni de contenu marketing : page d'un éditeur ou
   d'une agence qui vend son service ;
-- un sujet n'apparaît qu'une fois : garde l'article d'origine, pas la revue
-  de presse qui le relaie (« The Download » de MIT Technology Review) ;
-- classe chaque article selon son sujet, pas selon son flux : robotique,
-  biotech et matériel vont dans `🔬 Frontier Tech`.
+- un sujet n'apparaît qu'une fois : garde l'article d'origine, jamais la
+  newsletter ou le récapitulatif qui le relaie (lien contenant `newsletter`,
+  `the-download` ou `the-daily`, comme le 28/11 sur CryptoQuant) ;
+- classe chaque article selon son sujet, pas selon son flux : un modèle d'IA
+  (architecture, entraînement, benchmark) va dans `🧠 LLM / Large Models` ;
+  robotique, biotech et matériel dans `🔬 Frontier Tech` ; un article sans
+  rapport avec la crypto ne va jamais dans `💰 Cryptocurrency` (28/11 : des
+  mods de GTA 6 publiés par Decrypt).
 
 Pas d'introduction, de tableau, de section supplémentaire ni de liste
 d'articles hors des sections.

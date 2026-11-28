@@ -23,6 +23,17 @@ PR Draft #37.
 | P0-7 relevé CPU Vercel, P0-8 timer, P0-9 recette | bloqué | plan Hobby sans données de facturation : export manuel du tableau de bord Usage (B4) |
 | P1 jeton Slack `xapp-`/`xoxb-` | bloqué | jeton à régénérer par le propriétaire dans Slack, puis à ranger dans Vaultwarden |
 
+## Passe 2 (28/11, 11:15-) : réception
+
+| Item | Statut | Preuve |
+|---|---|---|
+| Briefing, section CODER | `ACCEPTED` pour la forme | briefing de 08:00 livré : budget, puis passes et anomalies du coder sous 🤖 Coder et non plus sous 🩺 Homelab. « Passes de roadmap : non mesurées » parce que `coderruns` a dépassé son délai à 08:00 (test SMART long de `sdd`, pression IO de 42 à 57 %) |
+| Cibles `planned` et collecteur docker | `ACCEPTED` | plus aucune ligne « Cible Prometheus … injoignable » ni « Source docker injoignable » à 08:00 ; le collecteur docker remonte de vrais conteneurs `unhealthy` (Sentry) |
+| `coderruns` en `--limit 200` | `ACCEPTED` | à 11:19, 200 entrées en 1 s, comme `--status ok --limit 100` et `--limit 50` mesurés juste avant. Les 171 s de 11:15 et les 112 s de 01:11 viennent des pics d'IO |
+| Digest | partiel, correctif `CODED` | 09:00 : ni introduction ni marketing, scores ≥ 7. Restaient un doublon (la newsletter « The Daily » de The Block relayait l'article CryptoQuant) et un classement selon le flux (mods de GTA 6 en Crypto). Règles précisées puis réappliquées sur TrueNAS ; `ACCEPTED` `NOT_RUN` jusqu'au digest du 29/11 |
+| Passes `NO_REPLY`, push sur `master` | `NOT_RUN` | pas encore de passe silencieuse ni de refus `GH013` observés depuis le déploiement |
+| Memory Dreaming à 12:30 | `NOT_RUN` | premier passage à 12:30 |
+
 ## Questions parquées (posées après cinq passes complètes)
 
 1. Export manuel du tableau de bord Usage de Vercel (`just vercel-finops-file`) : il débloque P0-7 à P0-9 et la vérification de Fluid Provisioned Memory.
