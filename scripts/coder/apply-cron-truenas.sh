@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Declares one scheduled job of the coder agent on the TrueNAS Gateway, without
 # restart. --declaration-key makes a re-run update the same job.
-#   just truenas-apply-coder-cron [fastapi-sample-daily-improvement|<repo>-roadmap-pass|nabla-compose-infra-referee|all]
+#   just truenas-apply-coder-cron [fastapi-sample-daily-improvement|<repo>-roadmap-pass|nabla-compose-infra-referee|security-audit-daily|all]
 # The Telegram group id stays out of Git: CODER_TELEGRAM_GROUP_ID=-100..., or by
 # default the group that apply-truenas.sh routed to coder in the Gateway config.
 set -euo pipefail
@@ -17,6 +17,7 @@ session=isolated
 case $name in
   # Persistent session (not isolated), primed before the passes: they ask it, by
   # sessions_send, whether a failing probe comes from fastapi-sample or nabla-compose.
+  security-audit-daily) schedule="0 0 * * *" timeout=1500 ;;
   nabla-compose-infra-referee) schedule="30 0 * * *" timeout=900 session=session:nabla-compose-infra ;;
   # After the referee and the 23:48 pass, before the night window; never with the fastapi-sample pass.
   fastapi-sample-daily-improvement) schedule="45 0 * * *" timeout=1800 ;;
@@ -26,7 +27,7 @@ case $name in
   nabla-site-bababou-roadmap-pass) schedule="36 8-23 * * *" timeout=1440 ;;
   nabla-yubikey-roadmap-pass) schedule="48 8-23 * * *" timeout=1440 ;;
   all)
-    for job in nabla-compose-infra-referee fastapi-sample-daily-improvement nabla-compose-roadmap-pass fastapi-sample-roadmap-pass \
+    for job in security-audit-daily nabla-compose-infra-referee fastapi-sample-daily-improvement nabla-compose-roadmap-pass fastapi-sample-roadmap-pass \
                nabla-site-alban-roadmap-pass nabla-site-bababou-roadmap-pass nabla-yubikey-roadmap-pass; do
       "$self" "$job"
     done
@@ -43,6 +44,26 @@ thread=""
 if [ -n "${CODER_TELEGRAM_THREAD_ID:-}" ]; then
   [[ "$CODER_TELEGRAM_THREAD_ID" =~ ^[0-9]+$ ]] || { echo "telegram_thread_id=invalid"; exit 2; }
   thread="--thread-id $CODER_TELEGRAM_THREAD_ID"
+fi
+
+# Install only the reviewed runner from this checkout, as the unprivileged coder.
+# Atomic replacement in the existing ZFS-backed home; no new mount or egress.
+if [[ $name == security-audit-daily ]]; then
+  install_cmd=$(cat <<'REMOTE'
+sudo -n docker exec -i -u 1001:1001 openclaw-devbox python3 -c '
+import os, sys, tempfile
+from pathlib import Path
+home = Path("/home/coder")
+with tempfile.NamedTemporaryFile(dir=home, prefix=".audit-runner-", delete=False) as f:
+    f.write(sys.stdin.buffer.read())
+    f.flush()
+    os.fchmod(f.fileno(), 0o700)
+    os.fsync(f.fileno())
+os.replace(f.name, home / ".nabla-security-audit-run.py")
+'
+REMOTE
+)
+  ssh -o BatchMode=yes truenas "$install_cmd" < scripts/coder/security-audit-run.py
 fi
 
 # The message goes through stdin: it holds quotes and backticks.

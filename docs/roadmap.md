@@ -12,6 +12,11 @@
 
 **État vérifié (11/11 au soir) :** [PR #17](https://github.com/AlbanAndrieu/nabla-openclaw/pull/17) fusionnée et **appliquée sur TrueNAS** ; aucun relevé CPU réel validé, car le plan Hobby n'expose pas le CPU actif à la CLI. Reste : **relevé (export manuel) → activation quotidienne si un relevé automatique devient possible**.
 
+## P0 — Audit sécurité quotidien (28/11)
+
+- [ ] Job dédié et archive ZFS privée : CODED ; tests offline ciblés PASS ; activation/recette TrueNAS NOT_RUN. [Procédure et décision Git](security-audit-daily.md).
+- [ ] Audit complet indépendant dans un sandbox dédié, export privé DefectDojo/SARIF, ingestion FastAPI/CTEM ; jamais de findings non vérifiés.
+
 ## P0 — Terminer et appliquer le contrôle Vercel dans le heartbeat
 
 | Ordre | Statut | Action vérifiable |
