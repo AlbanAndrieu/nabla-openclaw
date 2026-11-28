@@ -148,7 +148,7 @@ class RoadmapPassCron(unittest.TestCase):
 
     def test_runs_avoid_the_night_io_stall_two_at_a_time(self):
         jobs = schedules()
-        self.assertEqual(len(jobs), len(REPOS) + 2)
+        self.assertEqual(len(jobs), len(REPOS) + 3)
         runs = [(name, start, start + t) for name, (starts, t) in jobs.items() for start in starts]
         # A run started late in the evening still holds its sandbox after midnight.
         day = 24 * 60
