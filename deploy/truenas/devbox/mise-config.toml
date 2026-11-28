@@ -5,7 +5,8 @@
 trusted_config_paths = ["/home/coder"]
 # Resolve "latest" through GitHub instead of mise-versions.jdx.dev.
 use_versions_host = false
-# The image ships Node 24 and npm; nodejs.org downloads are refused by the egress proxy.
-disable_tools = ["node"]
+# Interpreters come from the image only (sshd_config: no interpreter downloads at
+# runtime, UV_PYTHON pinned): Python 3.13, Node 24 and npm. nodejs.org is outside egress.
+disable_tools = ["node", "python"]
 # Never prompt: the coder runs without a terminal.
 yes = true

@@ -11,7 +11,11 @@ repos=("$@")
 
 ssh -o BatchMode=yes truenas "sudo -n docker exec -i -u coder -w /home/coder openclaw-devbox bash -s -- ${repos[*]}" <<'EOF'
 set -uo pipefail
-gate_tools=" python uv just prek pre-commit shellcheck ruff npm hk "
+# docker exec skips sshd: take the coder session environment (proxy, TMPDIR, git identity)
+# from the image's sshd SetEnv line; its values hold no spaces.
+for kv in $(sed -n 's/^SetEnv //p' /etc/ssh/sshd_config); do export "$kv"; done
+# Interpreters (python, node) stay the image's; mise-config.toml disables them.
+gate_tools=" uv just prek pre-commit shellcheck ruff npm hk "
 root=$(mktemp -d /home/coder/.cache/devbox-warm.XXXXXX)
 trap 'rm -rf "$root"' EXIT
 for repo in "$@"; do

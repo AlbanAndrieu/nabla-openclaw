@@ -366,7 +366,8 @@ class DevboxSessions(unittest.TestCase):
         self.assertLess(dockerfile.index("install -d -o root -g root -m 0755 /etc/mise"),
                         dockerfile.index("COPY --chmod=0444 mise-config.toml /etc/mise/config.toml"))
         config = Path(ROOT, "deploy/truenas/devbox/mise-config.toml").read_text()
-        for setting in ('trusted_config_paths = ["/home/coder"]', "use_versions_host = false", 'disable_tools = ["node"]'):
+        for setting in ('trusted_config_paths = ["/home/coder"]', "use_versions_host = false",
+                        'disable_tools = ["node", "python"]'):
             with self.subTest(setting=setting):
                 self.assertIn(setting, config)
 
