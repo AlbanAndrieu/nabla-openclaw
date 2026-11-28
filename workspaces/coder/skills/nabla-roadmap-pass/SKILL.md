@@ -79,7 +79,10 @@ python3 -c 'import json;d=json.load(open("status/homelab-health.json"));print(d[
 ```
 
 Fichier absent, ou `generated_at` vieux de plus de 2 h : état `STALE`, jamais
-`PASS`.
+`PASS`, et **jamais bloquant**. Note-le en une ligne, appuie-toi sur les
+sondes en direct ci-dessous et continue la passe : les étapes 2 à 7 portent
+sur le code (28/11 : les passes de 08:00 se sont arrêtées à l'étape 1 sur un
+fichier vieux de 10 h, le heartbeat ayant échoué).
 
 **En direct sur TrueNAS** (HTTP en `GET`, lecture seule ; Gatus, POST et tout
 autre chemin ou port du LAN sont refusés par le proxy, c'est voulu) :

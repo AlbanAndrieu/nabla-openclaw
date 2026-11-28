@@ -98,7 +98,9 @@ class RoadmapPassCron(unittest.TestCase):
                        "cd <repo> && ls -1 docs/*roadmap*.md", "au plus\n15 lignes et 1 500 caractères",
                        "PR : <URL de la PR Draft", "Pas de ligne `Services`",
                        "**Jamais de push sur `master`**", 'case "$b" in openclaw/*) git push -u origin "$b"',
-                       "la réponse est exactement `NO_REPLY`"):
+                       "la réponse est exactement `NO_REPLY`",
+                       # 28/11 08:00: three passes stopped at step 1 on a stale heartbeat file.
+                       "`PASS`, et **jamais bloquant**"):
             with self.subTest(marker=marker):
                 self.assertIn(marker, skill)
         report = skill.split("## 7. Compte rendu", 1)[1]
