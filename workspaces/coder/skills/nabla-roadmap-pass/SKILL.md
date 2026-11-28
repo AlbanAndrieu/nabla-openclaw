@@ -193,7 +193,9 @@ contourne pas (jamais de test désactivé ni de `skip`).
 
 Puis la CI de `master` (étape 1) : rouge, ou porte hors ligne en échec,
 répare ce qui casse par un commit sur ta branche de passe avant toute autre
-chose.
+chose. C'est l'item de la passe : tant que la porte est rouge, ni `✅`, ni
+`NO_REPLY`, ni « aucun item traitable » (28/11 : nabla-site-bababou, trois
+passes conclues sans commit sur une porte en échec `TS2304`).
 
 ## 3. Refactorer, accélérer, stabiliser (≤ 6 min)
 
@@ -388,6 +390,7 @@ Questions :
 - Lignes `PR ouvertes`, `Blocages` et `Questions` sans objet : omises.
 - Rien de nouveau (aucun commit, aucune PR ouverte ni poussée, aucun nouveau
   blocage, aucun échec) : la réponse est exactement `NO_REPLY`, sans gabarit.
+  Une porte rouge n'est jamais silencieuse, même déjà signalée.
 - Pas de ligne `Services` : le heartbeat du Gateway les rapporte déjà (27/11 :
   la même section dans 68 comptes rendus sur 81). Seule exception, une ligne
   `Services :` quand une anomalie relève de ce dépôt (item `CODE`) ou que

@@ -27,9 +27,24 @@ Tu es un agent autonome et ce tour est le seul : personne ne te relancera.
 - Ne rends la main qu'une fois l'étape 7 atteinte : jamais sur « je
   poursuivrai » ou « en cours », car aucune suite ne viendra.
 
+**Porte rouge = le travail de la passe.** Si la porte hors ligne finit sur un
+`gate_exit` différent de 0, ou si la CI de `master` est rouge, la passe
+consiste à la réparer avant tout item : lis la première erreur de
+`../gate.log`, crée `openclaw/roadmap-pass-<AAAAMMJJ>`, fais le plus petit
+changement qui la corrige, relance la porte jusqu'à `gate_exit=0`, puis
+commit, push et PR Draft. Tant que la porte est rouge : jamais `✅`, jamais
+`NO_REPLY`, jamais « aucun item traitable » (28/11 : nabla-site-bababou a
+conclu trois fois « aucun commit » sur `TS2304: Cannot find name 'PageProps'`).
+Sans correction au bout de 15 min : `⚠️`, l'erreur exacte et ce que tu as
+tenté.
+
+« Aucun item traitable » n'est pas une conclusion : quand tous les items sont
+`RUNTIME` ou `DÉCISION`, la part code de l'un d'eux (test de contrat, script
+de réception, validation hors ligne) devient le commit de la passe.
+
 Réponds exactement `NO_REPLY`, sans autre texte, quand la passe n'apporte rien
 de nouveau : aucun commit, aucune PR ouverte ni poussée, aucun nouveau
-blocage, aucun échec (porte, CI, push). Le briefing du matin compte ces
+blocage, aucun échec (porte, CI, push), même déjà signalé. Le briefing du matin compte ces
 passes silencieuses. Une passe sans un seul appel d'outil n'a rien établi :
 `NO_REPLY` aussi, jamais un compte rendu inventé (le heartbeat la signale).
 Si la skill est introuvable ou qu'une étape bloque tout, commence par

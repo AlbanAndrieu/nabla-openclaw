@@ -70,7 +70,10 @@ class RoadmapPassCron(unittest.TestCase):
         for marker in ("skills/nabla-roadmap-pass/SKILL.md", "Réponds exactement `NO_REPLY`", "aucun commit, aucune PR ouverte ni poussée",
                        "**jamais sur `master`**", "AUTOMATION_FAILED",
                        "openclaw/roadmap-pass-", "openclaw/fix-pr-", "jamais de push sur une autre branche",
-                       "étapes 0 à 7", "PR Draft", "Jamais de merge"):
+                       "étapes 0 à 7", "PR Draft", "Jamais de merge",
+                       # 28/11: bababou concluded "no commit" three times on a red TS2304 gate.
+                       "**Porte rouge = le travail de la passe.**", "jamais `✅`, jamais\n`NO_REPLY`",
+                       "« Aucun item traitable » n'est pas une conclusion", "même déjà signalé"):
             with self.subTest(marker=marker):
                 self.assertIn(marker, message)
         self.assertNotRegex(message, r"(?i)(?:ghp_|github_pat_|sk-[a-z0-9]{12,}|token\s*=)")
@@ -101,6 +104,7 @@ class RoadmapPassCron(unittest.TestCase):
                        "PR : <URL de la PR Draft", "Pas de ligne `Services`",
                        "**Jamais de push sur `master`**", 'case "$b" in openclaw/*) git push -u origin "$b"',
                        "la réponse est exactement `NO_REPLY`",
+                       "C'est l'item de la passe", "Une porte rouge n'est jamais silencieuse",
                        # 28/11 08:00: three passes stopped at step 1 on a stale heartbeat file.
                        "`PASS`, et **jamais bloquant**"):
             with self.subTest(marker=marker):
