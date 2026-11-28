@@ -34,6 +34,8 @@ class CoderCron(unittest.TestCase):
                        "uv sync --frozen", "Jamais de merge", "dernière ligne de sa sortie",
                        "`FAUSSE_ALERTE`", "`PANNE_RATÉE`", "Justesse =", "`fastapi-sample-roadmap-pass`",
                        "`RIEN À CORRIGER` n'est permis qu'avec une justesse de 100 %",
+                       # 28/11 00:45: four AUTOMATION_FAILED and raw tar output in one report.
+                       "12 lignes au plus", "jamais la sortie brute de `tar`", "`AUTOMATION_FAILED` n'apparaît qu'une fois",
                        "http://172.17.0.24:9090/api/v1/query?query=up",
                        # gpt-4.1 is the only model: the prompt forces a tool call (23/11 invented PASS).
                        "Première action, obligatoire : appelle ton outil `exec`"):

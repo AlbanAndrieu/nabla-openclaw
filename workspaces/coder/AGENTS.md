@@ -94,6 +94,11 @@ Un job planifié reçoit le prompt « minimal » d'OpenClaw, sans ses sections
   l'action dans le même tour.
 - Résultat vide ou faible : change de commande, de chemin ou de source, puis
   conclus.
+- Un appel d'outil à la fois. Avant chaque `exec`, OpenClaw vide puis
+  réextrait `.openclaw/sandbox-skills` : une sortie `tar: … Cannot open: File
+  exists` ou `rm: … sandbox-skills … Directory not empty` vient de cette
+  synchro, pas de ta commande. Relance le même appel, seul ; au troisième
+  échec, c'est un `AUTOMATION_FAILED` sur la devbox, pas sur le dépôt.
 
 ## Compte rendu
 

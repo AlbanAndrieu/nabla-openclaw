@@ -107,18 +107,32 @@ export function hollowCoderRuns(entries) {
       + `${run.usage?.output_tokens ?? "?"} tokens de sortie : aucun outil exécuté, compte rendu non fondé`]);
 }
 
-// A coder run of the last 24 h, whatever its status, whose report shows a push refused
-// on master: on 27/11 GH013 stopped nabla-site-bababou (09:37) and nabla-yubikey (14:49).
-const MASTER_PUSH = /GH013|Changes must be made through a pull request|push[^\n]{0,30}(?:sur|to|vers) `?master`?[^\n]{0,20}refus/i;
-export function masterPushRuns(entries, now) {
+// Latest coder run per job of the last 24 h, whatever its status, whose report matches `pattern`.
+function latestCoderRunsMatching(entries, now, pattern) {
   const latest = new Map();
   for (const run of entries) {
-    if (run.sessionKey?.startsWith("agent:coder:") && now - run.ts < 86_400_000 && MASTER_PUSH.test(run.summary ?? "")
+    if (run.sessionKey?.startsWith("agent:coder:") && now - run.ts < 86_400_000 && pattern.test(run.summary ?? "")
       && !(latest.get(run.jobId)?.ts >= run.ts)) latest.set(run.jobId, run);
   }
-  return [...latest.values()].map((run) => [`coderruns:push:${run.jobId}`, "warn", `Run coder ${run.jobName ?? run.jobId} `
-    + `du ${new Date(run.ts).toLocaleString("fr-FR", { timeZone: "Europe/Paris", dateStyle: "short", timeStyle: "short" })} : `
-    + "push refusé sur master, la passe doit pousser sa branche et ouvrir une PR"]);
+  return [...latest.values()];
+}
+const runLabel = (run) => `Run coder ${run.jobName ?? run.jobId} du `
+  + new Date(run.ts).toLocaleString("fr-FR", { timeZone: "Europe/Paris", dateStyle: "short", timeStyle: "short" });
+
+// A push refused on master: on 27/11 GH013 stopped nabla-site-bababou (09:37) and nabla-yubikey (14:49).
+const MASTER_PUSH = /GH013|Changes must be made through a pull request|push[^\n]{0,30}(?:sur|to|vers) `?master`?[^\n]{0,20}refus/i;
+export function masterPushRuns(entries, now) {
+  return latestCoderRunsMatching(entries, now, MASTER_PUSH).map((run) => [`coderruns:push:${run.jobId}`, "warn",
+    `${runLabel(run)} : push refusé sur master, la passe doit pousser sa branche et ouvrir une PR`]);
+}
+
+// OpenClaw empties then re-extracts .openclaw/sandbox-skills before each exec, without a lock:
+// on 28/11 at 00:45 parallel exec calls of one session raced (tar "File exists", rm "Directory
+// not empty") and every probe of the daily job failed.
+const SANDBOX_SYNC = /sandbox-skills|Cannot open: File exists/;
+export function sandboxSyncRuns(entries, now) {
+  return latestCoderRunsMatching(entries, now, SANDBOX_SYNC).map((run) => [`coderruns:sandbox:${run.jobId}`, "warn",
+    `${runLabel(run)} : synchro de la sandbox devbox en échec (tar/rm sur sandbox-skills), commandes non exécutées`]);
 }
 
 // Enabled coder job whose last runs all failed. From 20 to 26/11 five jobs hit the
@@ -291,7 +305,7 @@ export const checks = {
     if (!existsSync(workspace)) return []; // no coder agent on this Gateway
     const page = JSON.parse(await cli(["cron", "runs", "--all", "--limit", "200", "--timeout", "20000", "--json"]));
     coderRunsSeen = page.entries ?? [];
-    return [...hollowCoderRuns(coderRunsSeen), ...masterPushRuns(coderRunsSeen, now)];
+    return [...hollowCoderRuns(coderRunsSeen), ...masterPushRuns(coderRunsSeen, now), ...sandboxSyncRuns(coderRunsSeen, now)];
   },
   async coderjobs(_get, _prev, cli = openclawCli, workspace = dirname(dirname(CODER_STATUS))) {
     if (!existsSync(workspace)) return [];

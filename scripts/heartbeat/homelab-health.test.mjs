@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { checks, coderBudgetFrom, coderBudgetLine, coderStatus, collect, diff, dockerAnomalies, failingCoderJobs, hollowCoderRuns, listLines, masterPushRuns, render } from "./homelab-health.mjs";
+import { checks, coderBudgetFrom, coderBudgetLine, coderStatus, collect, diff, dockerAnomalies, failingCoderJobs, hollowCoderRuns, listLines, masterPushRuns, render, sandboxSyncRuns } from "./homelab-health.mjs";
 
 const NOON = Date.parse("2026-11-04T11:00:00Z");
 
@@ -198,6 +198,21 @@ test("coder runs: a push refused on master in the last 24 h is flagged, whatever
   ], now);
   assert.deepEqual(flagged.map(([key]) => key), ["coderruns:push:bababou", "coderruns:push:yubikey", "coderruns:push:alban"]);
   assert.equal(flagged[1][2], "Run coder yubikey du 27/11/2026 16:00 : push refusé sur master, la passe doit pousser sa branche et ouvrir une PR");
+});
+
+test("coder runs: a sandbox skills sync race in the last 24 h is flagged", () => {
+  const now = Date.parse("2026-11-28T01:00:00Z");
+  const run = (jobId, hoursAgo, summary) => ({ jobId, jobName: jobId, ts: now - hoursAgo * 3600_000, status: "ok",
+    summary, sessionKey: `agent:coder:cron:${jobId}:run:s1` });
+  const flagged = sandboxSyncRuns([
+    // 28/11 00:45, quoted from the daily report.
+    run("daily", 0.25, "Erreur : rm: cannot remove '/home/coder/sandboxes/openclaw-ssh-workspace-6258/workspace/.openclaw/sandbox-skills/skills': Directory not empty"),
+    run("referee", 2, "tar: ./skills/nabla-compose-dev/SKILL.md: Cannot open: File exists"),
+    run("old", 30, "tar: ./skills/x/SKILL.md: Cannot open: File exists"),
+    run("clean", 1, "Porte : PASS (just test) : 117 passed"),
+  ], now);
+  assert.deepEqual(flagged.map(([key]) => key), ["coderruns:sandbox:daily", "coderruns:sandbox:referee"]);
+  assert.match(flagged[0][2], /^Run coder daily du 28\/11\/2026 01:45 : synchro de la sandbox devbox en échec/);
 });
 
 test("coder jobs: an enabled job failing two runs in a row stays open with its cause", async () => {

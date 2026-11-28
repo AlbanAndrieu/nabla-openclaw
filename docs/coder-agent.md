@@ -368,6 +368,15 @@ proxy, puis `test-local-first` en `PASS`, sans commit ni push.
     restant en 0700.
   - **Sources introuvables** : nabla-yubikey annonçait « aucun fichier
     roadmap trouvé ». La skill liste désormais les sources depuis le clone.
+  - **Synchro de la sandbox** (28/11, 00:45) : le daily-improvement rend
+    `AUTOMATION_FAILED`, chaque sonde échouant sur `tar: … Cannot open: File
+    exists` ou `rm: … sandbox-skills … Directory not empty`. Avant chaque
+    `exec`, OpenClaw 2026.10.7 vide puis réextrait `.openclaw/sandbox-skills`
+    sans verrou, et des `exec` parallèles d'une même session se marchent
+    dessus. Le coder passe à `parallel_tool_calls: false`
+    (`agents.entries.coder.params`). `AGENTS.md` fait relancer seul un appel
+    touché, et le contrôle `coderruns` signale tout run de 24 h qui porte ces
+    erreurs.
   Lot du 28/11 (250 runs du 23 au 27/11, liste validée par le propriétaire) :
   - **Passes silencieuses** : une passe sans commit, sans PR ouverte ou
     poussée, sans nouveau blocage ni échec répond `NO_REPLY`. Le briefing
