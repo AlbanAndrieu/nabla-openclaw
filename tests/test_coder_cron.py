@@ -95,6 +95,8 @@ class RoadmapPassCron(unittest.TestCase):
                        # 27/11, 81 reports: gates left in the background, sources looked up outside
                        # the clone, 58 reports over 2,000 characters and the PR URL in only 17.
                        'echo "gate_exit=$?" >> ../gate.log', "`yieldMs: 120000`",
+                       # 28/11: parentheses dropped, the log only appeared with the last gate command.
+                       'echo "gate_start=$(date +%T)" > ../gate.log && (', "Garde les parenthèses",
                        "cd <repo> && ls -1 docs/*roadmap*.md", "au plus\n15 lignes et 1 500 caractères",
                        "PR : <URL de la PR Draft", "Pas de ligne `Services`",
                        "**Jamais de push sur `master`**", 'case "$b" in openclaw/*) git push -u origin "$b"',

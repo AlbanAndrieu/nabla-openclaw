@@ -125,8 +125,14 @@ la passe s'en tient à sa roadmap.
 
 ```bash
 cd <repo> && gh run list --branch master --limit 5 --json name,conclusion,headSha
-cd <repo> && (<porte hors ligne du tableau>) > ../gate.log 2>&1; echo "gate_exit=$?" >> ../gate.log; tail -n 3 ../gate.log
+cd <repo> && echo "gate_start=$(date +%T)" > ../gate.log && (<porte hors ligne du tableau>) >> ../gate.log 2>&1; echo "gate_exit=$?" >> ../gate.log; tail -n 3 ../gate.log
 ```
+
+Garde les parenthèses autour de la porte : sans elles, seule sa dernière
+commande écrit dans le log (28/11 : nabla-site-alban et fastapi-sample ont
+abandonné sur un `gate.log` absent pendant `npm ci` et `uv sync`). Un log
+réduit à `gate_start=` signifie que la porte tourne encore : continue
+d'attendre.
 
 Chaque porte hors ligne de cette skill se lance ainsi, avec `exec` et
 `yieldMs: 120000`, son maximum. Elle dure souvent plus (`uv sync`, `npm ci`) :
